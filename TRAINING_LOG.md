@@ -2602,3 +2602,64 @@ another guess: the right next step is to measure, from an accepted
 baseline replay, what near-King density and build cadence actually look
 like in games we win, and derive the threshold from that -- rather than
 proposing a number and spending a full Gauntlet finding out it's wrong.
+
+---
+
+## Iteration 38 — sliding build budget; measurement finally explains six prior failures
+
+**The measurement that reframed everything.** After six failed attempts
+at the King's build policy (Iterations 28-31, 34, 37), extracted the
+actual build cadence from a *winning* game rather than proposing another
+threshold: the King builds all 25 rats in rounds **1-25, one per round,
+back-to-back**, then never builds again. Confirmed the identical pattern
+in losing games (`keepout`, `tiny`). So the maximal early burst is the
+proven-good behavior -- **every one of the six throttle attempts was
+damaging the thing that works**, which is exactly why they all
+regressed. The only genuine defect is the second half: `builtCount` is
+cumulative-ever-built, so once it hits the cap the King is locked out of
+*replacing* losses for the remaining ~1975 rounds regardless of how many
+rats have died.
+
+**Iteration 38:** keep the per-window cap at 25 (preserving the
+round-1-25 burst byte-for-byte) but refresh the budget every 400 rounds,
+permitting replacement without ever allowing a faster-than-proven ramp.
+
+**Full Gauntlet: 30/40 (75.0%)** -- tied with the `g_iter12` baseline,
+but with a clean, one-directional diff rather than noise. **Fixed:**
+`knifefight` on all three losing pairings (the exact map Iteration 35
+had regressed), plus `keepout`, `thunderdome`, `tiny`. **Broke:**
+`minimaze` (3 pairings) and `pipes` (2).
+
+**Traced the new `minimaze` loss, and it falsified the obvious
+hypothesis.** The intuitive read was congestion -- `minimaze`/`pipes`
+are the tight maze/corridor maps, so more rats where movement is already
+the bottleneck. The replay says otherwise. Build rounds were
+`1..25, 400-420, 480, 530, 639, 682, 800-802` -- the mechanism fired
+exactly as designed -- but the economy tells the real story:
+
+    round 400   cheese 1660   aliveBabies 19
+    round 500   cheese  150   aliveBabies 40
+    round 900   cheese  160 ... round 1100  cheese 18  (King starves)
+
+The replacement burst built ~21 rats in 20 rounds and **spent the entire
+treasury**, from 1660 down to 150, never recovering. This is a
+*cheese-bankruptcy* failure, not a congestion failure.
+
+**The mechanism is `BUILD_ROBOT_COST_INCREASE = 10*floor(pop/4)`** (see
+`RULES.md`): build cost scales with current population. The opening
+burst is cheap because population starts at *zero* and the cost ramps up
+as it grows. A replacement burst starting at population ~19 begins
+already-expensive and compounds from there -- so "25 builds" costs
+dramatically more in round 400 than the identical "25 builds" did in
+round 1. Refreshing the budget to the same value was never
+cost-equivalent, and nothing in the design accounted for that.
+
+This also retroactively explains Iteration 28's "boom-bust overbuild"
+(population to 36-37, cheese crash) as the same phenomenon rather than a
+separate one: it wasn't that *more rats* is inherently wrong, it's that
+building them at high population is priced completely differently.
+
+**Next:** the fix is to make replacement building respect its real cost
+-- a much larger cheese buffer for refreshes than for the opening burst
+(the opening burst can safely spend down to `RESERVE`; a replacement
+burst cannot), and/or a partial rather than full budget refresh.

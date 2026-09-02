@@ -30,6 +30,7 @@ public class RobotPlayer {
 
     static Random rng;
     static int builtCount = 0;
+    static int buildWindowStart = 0; // Iteration 38, see runRatKing
     static int cheeseCheckpoint = -1;
     static int cheeseCheckpointRound = 0;
     static boolean economyStruggling = false;
@@ -185,7 +186,54 @@ public class RobotPlayer {
         // outlast a war of attrition. Raising it, not yet Gauntlet-verified
         // -- see TRAINING_LOG.md for whether this reintroduces gridlock on
         // knifefight (the reason 15 was chosen) or actually helps.
+        // Iteration 38 (TRAINING_LOG.md): a **sliding build budget**, derived
+        // from measurement rather than guessed. Six previous attempts to fix
+        // this (Iterations 28-31, 34, 37) all tried to *slow* the King down
+        // -- scaling reserves, cooldowns, hysteresis, trend detection,
+        // congestion limits -- and every single one made things worse.
+        // Measuring an actual winning game finally explained why: the King
+        // builds all 25 rats in rounds **1 through 25, one per round,
+        // back-to-back**, and then never builds again. The maximal early
+        // burst isn't the bug, it's the proven-good behavior; every throttle
+        // attempt was damaging the thing that works.
+        //
+        // The only real defect is the second half of that sentence: because
+        // `builtCount` is cumulative-ever-built, once it reaches the cap the
+        // King is locked out of *replacing* losses for the rest of the game,
+        // no matter how many rats have died (confirmed on `closeup`, `tiny`,
+        // and `whereisthecheese`). So: keep the cap's per-window value
+        // exactly as-is -- preserving the round-1-to-25 burst byte-for-byte
+        // -- but let the budget refresh periodically, permitting replacement
+        // building later without ever allowing a faster-than-proven ramp.
+        // The first Gauntlet on this design tied the baseline (75.0%) with a
+        // clean, one-directional diff: it *fixed* `knifefight` on all three
+        // losing pairings (the exact map Iteration 35 had regressed), plus
+        // `keepout`, `thunderdome`, `tiny` -- and broke `minimaze` (3) and
+        // `pipes` (2). Those two are the tight maze/corridor maps, i.e.
+        // replacement building adds congestion precisely where movement is
+        // already the bottleneck. So gate the *refresh* on there being room
+        // to absorb new rats. Crucially this check applies only to
+        // replacement windows, never to the opening burst -- that's what
+        // separates it from Iteration 37, which applied a congestion limit
+        // to *all* building and starved the round-1-25 ramp that every
+        // winning game depends on.
         final int MAX_POPULATION = 25;
+        final int BUILD_WINDOW_ROUNDS = 400;
+        final int REPLACEMENT_CONGESTION_LIMIT = 6;
+        if (rc.getRoundNum() - buildWindowStart >= BUILD_WINDOW_ROUNDS) {
+            int nearKing = 0;
+            for (RobotInfo info : nearby) {
+                if (info.getType() == UnitType.BABY_RAT && info.getTeam() == rc.getTeam()
+                        && info.getLocation().distanceSquaredTo(rc.getLocation())
+                            <= GameConstants.RAT_KING_BUILD_DISTANCE_SQUARED) {
+                    nearKing++;
+                }
+            }
+            if (nearKing < REPLACEMENT_CONGESTION_LIMIT) {
+                buildWindowStart = rc.getRoundNum();
+                builtCount = 0;
+            }
+        }
         MapLocation buildLoc = findBuildLocation(rc);
         if (buildLoc != null && rc.canBuildRat(buildLoc)
                 && rc.getGlobalCheese() - rc.getCurrentRatCost() >= RESERVE
