@@ -1893,3 +1893,54 @@ population grows rather than spending every round it technically can
 afford to. Untried; the original diagnosis (cumulative cap silently
 becomes a starvation lockout in high-attrition games) is still correct
 and still worth fixing -- just not via a bare number change.
+
+---
+
+## Iteration 29 attempt — scale the build reserve with population; REJECTED (partial improvement, still net negative)
+
+Direct follow-up targeting Iteration 28's diagnosed mechanism: kept
+`MAX_POPULATION` high (200) but replaced the flat `RESERVE` in the
+build-affordability check with `buildReserve = RESERVE + 10 *
+builtCount`, so the required cheese buffer grows as population grows,
+throttling build *rate* instead of only capping the eventual total.
+Left the desperate-trigger's `RESERVE` unchanged at a flat 150 to avoid
+conflating two different concerns.
+
+**Smoke test** (`closeup` vs. `immediate_defector`): improved over
+Iteration 28 (died at r835, up from r380) but still worse than the
+`g_iter10` baseline (r1095). Traced it: population still overshoots to
+36 by round 50 (same as Iteration 28 -- at that population, `builtCount`
+~30 means `buildReserve` ~450, which a ~2000-cheese King can still
+easily clear, so the scaling reserve doesn't meaningfully throttle the
+*initial* burst, only later spending). Notably, for the rest of the
+midgame we actually win the fight decisively -- `catDamage` 1190 vs.
+340, `cheeseTransferred` consistently ahead -- before eventually
+collapsing near the end anyway.
+
+**REJECT without a full Gauntlet run** (motivating game still net worse
+than baseline). Reverted `src/bot/RobotPlayer.java`.
+
+**Diagnosis:** the scaling reserve is the right *idea* but starts from
+too low a base and grows too slowly to catch the initial overbuild --
+by the time it meaningfully bites, population has already overshot past
+what the early-game economy (still ramping up, few rats delivering
+cheese yet) can sustain. A steeper scaling factor, or a *separate* cap
+specifically on early-game build rate (e.g. a hard per-round build limit
+for the first N rounds, independent of cheese affordability entirely)
+would likely need to replace or supplement this. Also worth noting: even
+mid-attempt, we were *winning* the fight for hundreds of rounds
+(catDamage/cheeseTransferred both favored us) before still losing --
+this population-rebuilding thread has real upside once the initial
+overbuild is actually fixed, not a dead end like the catDamage-seeking
+attempts.
+
+**Status after this investigation arc (Iterations 25-29, all rejected):
+still the clean `g_iter10` baseline, 70.0%.** Two genuinely promising,
+partially-understood threads remain open for a future session: (1) a
+danger-conditional retreat trigger for the "lone wanderer" exploration
+problem (not a distance threshold), and (2) a properly-tuned build-rate
+throttle that catches the early-game overbuild specifically (not just a
+reserve that scales too slowly). Both are real, replay-confirmed
+mechanisms with failed-but-informative first attempts, not
+speculation -- worth returning to with fresh design rather than more
+parameter guesses.
