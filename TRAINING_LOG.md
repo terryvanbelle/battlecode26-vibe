@@ -2713,3 +2713,13 @@ King can never rebuild," and tracing the resulting regression falsified
 the next obvious guess (congestion) in favor of the real one (cost
 scaling). Two measurements replaced seven guesses. **Measure the target
 behavior before proposing a threshold for it.**
+
+**vs-old-bots for `g_iter13`** (`gauntlet/20260902-234351/`), now against
+the corrected every-10th roster: **vs. `g_iter1` 17/20 (85%)**, up from
+`g_iter12`'s 80%; **vs. `g_iter11` 18/20 (90%)**, up sharply from
+`g_iter12`'s 70%. The `g_iter11` jump is the more meaningful of the two
+-- it's the most recent fixed reference point, so a 70%->90% move
+against it is independent corroboration that Iteration 39 is a real
+strength gain rather than a peer-roster artifact. This also reverses the
+gradual decline the old-bot chart had been showing (90->85->80->80),
+which had been the one metric trending the wrong way.

@@ -238,7 +238,26 @@ public class RobotPlayer {
             builtCount = 0;
             replacementMode = true;
         }
-        int buildReserve = replacementMode ? REPLACEMENT_RESERVE : RESERVE;
+        // Iteration 40: emergency override. On `tiny`, tracing the one
+        // remaining loss showed the King sitting on 800-950 cheese with
+        // **zero** living Baby Rats from round 575 onward, slowly starving
+        // while holding it -- because that's below `REPLACEMENT_RESERVE`, so
+        // rebuilding was blocked at exactly the moment it mattered most.
+        // Hoarding a reserve with no army is strictly worse than spending
+        // it: the reserve exists to keep the King alive, and an undefended
+        // King with no economy dies anyway. When no allied Baby Rat is
+        // visible at all, fall back to the ordinary `RESERVE` bar. (Rats
+        // alive but outside the King's vision aren't defending it or
+        // feeding it either, and the per-window cap still bounds the
+        // response, so the downside of a false positive is small.)
+        boolean noVisibleArmy = true;
+        for (RobotInfo info : nearby) {
+            if (info.getType() == UnitType.BABY_RAT && info.getTeam() == rc.getTeam()) {
+                noVisibleArmy = false;
+                break;
+            }
+        }
+        int buildReserve = (replacementMode && !noVisibleArmy) ? REPLACEMENT_RESERVE : RESERVE;
         MapLocation buildLoc = findBuildLocation(rc);
         if (buildLoc != null && rc.canBuildRat(buildLoc)
                 && rc.getGlobalCheese() - rc.getCurrentRatCost() >= buildReserve
