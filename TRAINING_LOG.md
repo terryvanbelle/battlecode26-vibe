@@ -516,3 +516,66 @@ cat-damage fix. Regenerate either with `tools/.venv/bin/python3
 tools/plot_progress.py` / `tools/plot_alt_metrics.py`; commit updated PNGs
 periodically, not after every single iteration (same casual cadence BC22
 settled on).
+
+---
+
+## Iteration 6 — engage cats unconditionally instead of fleeing below 3 allies; accepted, 70%
+
+**High-risk structural change** (TRAINING_ALGORITHM.md's "High-risk
+structural exploration" -- picked as a first-class move, not a last
+resort, given Iteration 5's fix only ever produced token cat damage).
+Checked whether the `>=3`-ally swarm-engage threshold from Iteration 1
+ever actually fired: grepped two more full replays (`sittingducks`,
+`whereisthecheese` losses) for `RatAttack` events -- **zero**, despite 10
+cat-attack events each. Rats deliberately spread out for cheese search
+(Iteration 1-4's own fixes), so 3 of them converging on one cat at the
+same moment was luck, not policy.
+
+**Reasoned about the underlying combat math directly** (not evidence yet,
+a hypothesis to verify): `CAT_SCRATCH_DAMAGE=20` every ~3 rounds
+(`actionCooldown=30`) is ~6.67 dmg/round average; `RAT_BITE_DAMAGE=10`
+every round (`actionCooldown=10`, always ready) is 10 dmg/round -- a lone
+Baby Rat that reaches bite range actually out-trades a cat on DPS, even
+though it obviously can't out-tank one (100 HP vs. 4000). Also: a cat's
+scratch reaches its whole vision cone (radius² 17, ~4.1 tiles) but a Baby
+Rat's bite only reaches range² 2 (~1.4 tiles) -- the old "flee anything
+within 8" threshold kept a fleeing rat inside the cat's engagement range
+the whole time it was trying to escape, without ever closing to bite
+range either. Worst of both outcomes.
+
+**Fix.** Removed the ally-count gate. A Baby Rat now engages (moves
+toward + attacks) any cat within range 8 unless it's both critically low
+HP (`<=30`) *and* has no ally nearby, in which case it still flees (not
+worth dying on the approach for a hit that likely never lands).
+
+**Smoke test:** `sittingducks` -- previously a loss, now a decisive win.
+`catDamage=[350,60]` (vs. `[0,0]` baseline-wide all session), despite
+losing far more Baby Rats than the opponent (`aliveBabies=[6,13]` at
+round 2000) -- confirms the trade is working as reasoned: cheap units for
+real cat damage, not previously-existing.
+
+**Full Gauntlet: 28/40 (70%)**, up from 27/40 (67.5%). `pure_cooperator`
+60%->65%, `immediate_defector` unchanged at 75% in aggregate but with a
+different losing-map set (`closeup` newly lost both sides, `keepout`/
+`sittingducks` newly won). Diff by shape: mixed-direction, no single
+map/side concentrated across both opponents -- reads as the expected
+chaos-sensitivity of an aggressiveness change interacting differently
+with each map's specific cat/spawn geometry, not a systematic regression,
+and the net movement is positive. **ACCEPT.** Snapshotted as
+`src/g_iter6/`; new baseline `gauntlet/20260902-015534/`. Replay:
+`replays/iter6_pure_cooperator_sittingducks_botA.bc26`.
+
+Regenerated `progress/cumulative_iterations.png` and
+`progress/peer_win_spread.png` (6 accepted iterations now).
+
+**Next.** `closeup` is now a fresh, concentrated weak spot against
+`immediate_defector` specifically (lost both sides, previously split) --
+worth tracing given it's the map with the dirt-boxed-King mechanic
+(Iteration 2); possible interaction between digging out and the newly
+more-aggressive cat policy competing for the same early turns. Separately,
+Baby Rats still never *approach* a cat proactively (only within range 8,
+i.e. already fairly close) -- extending engagement range, or exploiting
+that cats are deterministic/predictable (RULES.md: waypoint cycling,
+~8-round Attack-mode windows) to approach safely during a cat's harmless
+Explore-mode phase, remains unexplored and is probably the next real lever
+once this round of tuning settles.
