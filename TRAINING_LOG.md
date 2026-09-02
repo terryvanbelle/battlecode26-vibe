@@ -2278,3 +2278,89 @@ passability, similar in spirit to what the engine's own cat AI gets via
 implemented from scratch). That's a legitimately larger project, not a
 quick iteration -- noting it as an architectural limitation rather than
 continuing to patch around it.
+
+---
+
+## Diagnostic: whereisthecheese (botB) -- a third confirmed instance of the cumulative-cap lockout
+
+Traced `whereisthecheese` vs. `pure_cooperator` (bot=B side): our
+population (as the King-losing side) crashed from 25 to 0 within 300
+rounds while `pure_cooperator` stabilized at 7. Confirmed our King had
+already built exactly 25 (`MAX_POPULATION`) before the crash, then could
+never rebuild -- identical mechanism to `closeup` and `tiny`. Three
+independent maps now confirmed, making the King's build-policy the
+single most-evidenced remaining weakness in the bot.
+
+## Iteration 34 attempt — trend-based build throttle (real redesign, not a parameter guess); REJECTED after three internal fixes, still net negative
+
+Given four quick-parameter guesses already failed this exact problem
+(Iterations 28-31), attempted a genuine redesign instead: replace the
+flat cap with a throttle tied to the *actual observed cheese trend*
+rather than a point-in-time snapshot or a fixed count. Design: allow
+unconstrained building up to `INITIAL_RAMP_POPULATION` (matching the old
+cap exactly, so early-game behavior is unchanged from the accepted
+baseline), then require the rolling ~50-round cheese trend to be
+non-negative before continuing past that -- throttling immediately when
+it turns negative and un-throttling automatically once it recovers, not
+a permanent latch like `economyStruggling`.
+
+**Found and fixed three real bugs in the design itself before it was
+even Gauntlet-tested**, each caught by smoke-testing against the actual
+motivating maps rather than jumping straight to the full Gauntlet:
+
+1. **First cut (trend alone, no absolute floor): all three motivating
+   maps got *worse*, not better** (`whereisthecheese` died at r350, even
+   faster than the r943 baseline loss). Diagnosis: cheese declines during
+   *any* active population growth, healthy or not -- a pure trend check
+   throttles legitimate, sustainable growth as readily as a real
+   overspend. Fixed by requiring the decline to *also* leave cheese below
+   `3x RESERVE` before counting as a throttle signal.
+2. **That fix produced byte-identical smoke-test results to the first
+   cut** (same exact round numbers) -- a strong signal the throttle logic
+   wasn't even being exercised. Traced it: `INITIAL_RAMP_POPULATION` was
+   set to 15, not 25 -- lower than the old cap's proven-working ramp
+   target, so population was crashing before the ramp phase even ended.
+   Fixed by matching the old cap's exact value (25).
+3. **Still byte-identical results.** Checked `builtCount` directly in the
+   new replay: 39 builds -- population *did* exceed 25, exploding to 37
+   alive by round 50, reproducing Iteration 28's exact original boom-bust
+   mistake. Root cause: `buildThrottled` (a `boolean` field) defaults to
+   Java's `false`, and the code read `builtCount < RAMP || !buildThrottled`
+   -- before the trend detector's first 50-round checkpoint ever fires,
+   `!buildThrottled` is unconditionally `true`, so building past the ramp
+   threshold was *already unthrottled* from round 1, with nothing
+   pacing it until 50 rounds' worth of unconstrained growth had already
+   happened. Fixed by defaulting `buildThrottled = true` (stay capped
+   until a healthy trend is *positively confirmed*, not just absent of a
+   detected problem).
+
+**With all three fixes: real, different behavior finally confirmed**
+(`whereisthecheese` flipped to a clean win in the smoke test, `closeup`/
+`tiny` showed different round counts than before, `knifefight` still won
+cleanly -- no gridlock regression, the original reason `MAX_POPULATION`
+existed).
+
+**Full Gauntlet: 24/40 (60.0%), still down from 75.0%.** A new pattern
+appeared: many very fast eliminations (400-800 rounds, vs. the
+baseline's mostly r2000 point-decisions or 900-1200-round eliminations)
+spread broadly -- `closeup` now loses all four pairings, `tiny` three of
+four, both with unusually fast round counts. Broader than the three
+originally-targeted maps.
+
+**REJECT.** Reverted `src/bot/RobotPlayer.java`.
+
+**Honest assessment:** this was a real design, not a guess, and it did
+partially work (`whereisthecheese` improved) -- but the net effect
+across the full map set is still clearly negative, with a concerning new
+fast-elimination pattern that wasn't present in any prior attempt this
+session. Given how much surface area the King's spending model touches
+(build rate, combat sustainability, `desperate`/backstab-hunt triggering
+via the same `RESERVE` constant, digging behavior when boxed in) each
+change to it seems to trade one map's problem for a different map's
+regression, suggesting the *shared* `RESERVE`/build logic has more
+implicit coupling between these systems than is safe to change
+piecemeal. **Five total attempts now across Iterations 28-34, all
+rejected.** Not attempting a sixth today. If revisited, the design
+should probably decouple `RESERVE` (used for `desperate` triggering) from
+whatever governs the build-rate throttle specifically, rather than
+layering more logic onto the same shared constant and King loop.
