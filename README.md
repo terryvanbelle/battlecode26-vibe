@@ -29,7 +29,7 @@ digest, or `specs/specs.pdf` for the official spec itself.
 | `TRAINING_ALGORITHM.md` | the iterative dev-loop this project follows |
 | `TRAINING_LOG.md` | the running record of every iteration attempted |
 | `specs/specs.pdf` | the official Battlecode 2026 spec (vendored) |
-| `tools/bc26_replay.py` | replay (`.bc26`) -> human-readable text transcript ([tools/README.md](tools/README.md)) |
+| `tools/replay-dump.sh` | replay (`.bc26`) -> human-readable text transcript ([tools/README.md](tools/README.md)) |
 | `tools/gauntlet.sh` | run the Gauntlet (all opponents x maps x sides) on the VM |
 | `tools/vm-match.sh` | run one-off headless matches on the VM and pull replays + logs back |
 | `tools/snapshot.sh` | freeze `src/bot/` into a new Gauntlet opponent package |
@@ -42,8 +42,8 @@ one per logged iteration) and `progress/` (charts/CSVs) are checked in.
 ## Quick start
 
 ```bash
-# inspect a replay
-tools/.venv/bin/python tools/bc26_replay.py matches/some-replay.bc26 --step 25
+# inspect a replay (runs on the VM -- see tools/README.md for why)
+tools/replay-dump.sh matches/some-replay.bc26 --from 100 --to 150
 
 # run the example bot against itself on a couple of maps (spins up the GCE VM)
 tools/vm-match.sh tiny closeup
