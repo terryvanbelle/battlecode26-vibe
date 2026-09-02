@@ -1718,3 +1718,65 @@ nearby cat (e.g. track own-team death rate attributable to a specific
 cat ID over a rolling window) and respond with more conservative
 population/exposure near it, rather than anything that assumes cat
 danger is symmetric across a match by default.
+
+---
+
+## Diagnostic: minimaze vs. pure_cooperator -- a third confirmation of the catDamage-vs-economy pattern
+
+Fresh-territory trace. Same shape as `rift`/`keepout` vs.
+`pure_cooperator`, but starker: we lead cheese (3215 vs. 2395),
+`cheeseTransferred` (5810 vs. 4990), and population (23 vs. 16), yet
+lose on points because `catDamage` favors the opponent 70 vs. 420 -- a
+6x gap. Confirmed this isn't rat-vs-rat combat (`pure_cooperator` never
+backstabs): only 49 total `RatAttack` events in the whole 2000-round
+game, almost entirely against cats. Three independent maps now show
+this same pattern against the same opponent -- a real, recurring
+weakness in `catDamage` output specifically, not noise.
+
+## Iteration 27 attempt — economy-gated idle cat-seeking; REJECTED (broad regression)
+
+A more targeted version of Iteration 22's rejected idea: rather than
+having idle Baby Rats seek `lastKnownCatLoc` unconditionally, gate it on
+a new King-broadcast signal (shared array slot 5) -- only seek a
+remembered cat when population is fully built (`builtCount >=
+MAX_POPULATION`) and the economy isn't currently struggling, on the
+theory that Iteration 22's broad regression came from paying the
+cheese-search opportunity cost in every game when the payoff only
+mattered in the ones we could actually afford it in.
+
+**Smoke test** (`minimaze` vs. `pure_cooperator`, the motivating game):
+flipped from a loss to a win.
+
+**Full Gauntlet: 24/40 (60.0%), down sharply from 70.0%.**
+`pure_cooperator` 65%->55%, `immediate_defector` 80%->65% -- both peers
+dropped hard, with new losses spread broadly across unrelated maps
+(`closeup` newly losing *both* sides, `sittingducks`/`whereisthecheese`
+flipping from clean points losses to early eliminations, a new `tiny`
+loss). Even the motivating `minimaze` matchup still lost on one side
+despite the smoke-tested win on the other.
+
+**REJECT** (Step 6.5, broad regression). Reverted
+`src/bot/RobotPlayer.java`.
+
+**Meta-diagnosis, now backed by three separate attempts at the same
+underlying idea (Iterations 21, 22, 27):** "make idle Baby Rats spend
+time seeking out cats" keeps failing regardless of the specific trigger
+condition -- inert when gated too narrowly (21: HP-threshold flee,
+never fired), broadly regressive when unconditional (22), and still
+broadly regressive even with an economy-health gate that looked
+well-reasoned on paper (27, `builtCount >= MAX_POPULATION` evidently
+triggers far more often, and in far more contexts, than "comfortably
+ahead and safe to spend a turn on this" actually means in practice --
+a fully-built population doesn't mean cheese-search is no longer
+valuable, since sources deplete and new rats still need to find fresh
+ones continuously). **This specific lever (redirecting otherwise-idle
+movement toward cats) looks like a dead end** for closing the `catDamage`
+gap seen on `rift`/`keepout`/`minimaze` -- three attempts, three
+different gating conditions, three failures. A fix for that gap, if one
+exists, more likely needs to come from combat *efficiency* during
+engagements that already happen (rather than seeking out more of them),
+or should be set aside as an accepted limitation rather than continuing
+to guess at trigger conditions for this same mechanism.
+
+**Status:** back to the clean `g_iter10` baseline (70.0%,
+`gauntlet/20260902-163148/`). No accepted changes since Iteration 24.
