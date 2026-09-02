@@ -2723,3 +2723,37 @@ against it is independent corroboration that Iteration 39 is a real
 strength gain rather than a peer-roster artifact. This also reverses the
 gradual decline the old-bot chart had been showing (90->85->80->80),
 which had been the one metric trending the wrong way.
+
+---
+
+## Diagnostic: 3 of the 4 remaining g_iter13 losses share one cause
+
+Traced all four losses in the new `g_iter13` baseline
+(`gauntlet/20260902-233818/`). Three are the *same* mechanism, and it's
+one Iteration 39 introduced:
+
+- `tiny` (coop bot=A): army 0 from round 575, cheese 950 -> 0, King starves.
+- `whereisthecheese` (coop bot=B): army 0 from round 425, cheese
+  970 -> 845 -> 695 -> ... -> 1, King starves. Build rounds: 1-25 only.
+- `tiny` (`immediate_defector` bot=B): army 0 from round 275, cheese
+  1035 -> 885 -> 735 -> ... -> 1, King starves.
+
+In every case the King is holding **several hundred to ~1000 cheese with
+zero living Baby Rats**, and never rebuilds, because
+`REPLACEMENT_RESERVE = 1000` is above the cheese level these
+lower-economy maps sustain. The reserve exists to keep the King alive,
+but here it does the opposite: it preserves a buffer the King then
+slowly burns on upkeep while defenceless, instead of converting it into
+the army that would generate income. Iteration 39 fixed bankruptcy-by-
+overbuilding and introduced starvation-by-hoarding at the low end.
+
+(The fourth loss, `minimaze` bot=B, is unrelated: population is healthy
+at 25-31 vs. the opponent's 14 and we lead `cheeseTransferred`
+7655 vs. 5505 -- it's the known `catDamage`-weighted map-luck pattern,
+already closed out as not-further-pursuable.)
+
+**Iteration 40** targets exactly this: when *no* allied Baby Rat is
+visible to the King at all, drop back to the ordinary `RESERVE` bar.
+Checked against the traces above, the override fires in all three cases
+(e.g. `whereisthecheese` round 425: army 0, cheese 970 > 150, so it
+rebuilds instead of hoarding). Result pending.
