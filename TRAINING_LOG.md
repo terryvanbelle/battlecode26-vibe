@@ -697,3 +697,42 @@ near the King *before* individual rats are already low, or the King
 itself sallying out to help) is more likely to be the real lever than a
 per-robot panic threshold -- `closeup`'s population-bleed problem is
 still open.
+
+---
+
+## Iteration 9 attempt — retreat when locally outnumbered; REJECTED (also never engaged)
+
+Different signal than Iteration 8's rejected HP threshold: instead of
+reacting to accumulated damage, retreat toward the King the instant a
+Baby Rat is outnumbered nearby (`countEnemyRatsNear > countAlliesNear`
+within range 8), an immediately-assessable condition rather than one that
+needs several rounds of taking hits first.
+
+**Smoke test:** same `closeup` vs. `immediate_defector` game -- again
+byte-identical (round 1328, identical checkpoints). **Full Gauntlet:
+28/40 (70%), and every single game -- not just the aggregate -- identical
+to the `g_iter7` baseline** (`gauntlet/20260902-020332/`): same maps, same
+sides, same rounds, zero diffs anywhere. Stronger evidence than
+Iteration 8's rejection that this code path never fires at all, not just
+in the motivating case.
+
+**REJECT** (Step 6.4.3, no engagement anywhere). Reverted.
+
+**Refined diagnosis:** two different retreat signals in a row (damage
+accumulated, local numerical disadvantage) both turned out inert across
+the entire Gauntlet. The common thread: combat encounters here are
+apparently almost always 1-on-1 -- both `pure_cooperator` and
+`immediate_defector`'s own Baby Rats explore/hunt independently rather
+than in coordinated groups (this project's own bot does too, by design,
+since Iteration 1-4's exploration fixes deliberately spread the
+population out), so "locally outnumbered" essentially never arises from
+either side. This reframes `closeup`'s population bleed as a
+**cumulative-attrition** problem (a long series of individually-fair 1v1
+fights, some won some lost, netting out to slow decline) rather than a
+tactical-retreat problem -- no amount of smarter fight/flee logic fixes a
+attrition race if the *replacement rate* can't keep up. Next: raise
+`MAX_POPULATION` (currently a flat 15, set in Iteration 2 purely to solve
+`knifefight`'s spawn-gridlock problem, never revisited since) -- `closeup`
+traces showed a healthy, competitive economy (`cheeseTransferred` roughly
+even) that could plausibly sustain a larger standing population if the
+cap weren't holding it back.
