@@ -1994,3 +1994,51 @@ real margin above it, rather than a hard threshold either direction) --
 real design work for a future session, not another quick guess. Back to
 the clean `g_iter10` baseline (70.0%, `gauntlet/20260902-163148/`). No
 accepted changes since Iteration 24.
+
+---
+
+## Iteration 31 attempt — hysteresis + build cooldown together; REJECTED (identical to Iteration 30, wrong mechanism)
+
+Real design attempt rather than another parameter guess: paused
+building entirely once cheese dropped to `RESERVE` (not just "this one
+build is unaffordable"), only resuming once cheese recovered to `2x
+RESERVE` -- real margin, not the same edge it just fell below. Tested
+hysteresis alone first: **identical result to Iteration 28's unbounded
+cap (r380)** -- confirms hysteresis doesn't touch the *initial* burst at
+all, since starting cheese (2500) is high enough that dozens of builds
+happen before cheese ever dips below `RESERVE` for the first time, so
+the pause-and-resume logic never even engages until it's already too
+late. Added Iteration 30's per-round build cooldown back in alongside
+it, to cap the rate everywhere including before the first dip.
+
+**Smoke test with both combined: r430 -- identical to Iteration 30's
+result**, down to the exact same round number. Hysteresis added nothing
+on top of the cooldown alone.
+
+**REJECT without a full Gauntlet run.** Reverted
+`src/bot/RobotPlayer.java`.
+
+**This pins down exactly why the whole thread has failed four times
+now:** hysteresis controls *when building resumes*, but the King isn't
+dying from resuming too early -- by the time cheese first reaches
+`RESERVE`, the population commitment is already locked in (rats already
+built, already fighting, already needing to be fed indirectly through
+the economy), and the flat 2/round King upkeep keeps draining regardless
+of whether a single additional rat is ever built again. **No build
+*policy* change -- cap value, reserve scaling, cooldown, or resumption
+hysteresis -- addresses a King that's already committed past what its
+income can sustain.** The actual fix, if one exists, would need to act
+*before* that commitment happens (e.g. a much more conservative
+early-game pace matched to actual measured income rather than a fixed
+starting-cheese-derived affordability check) or accept smaller
+populations as a deliberate tradeoff rather than trying to extract more
+army out of the same starting economy.
+
+**Closing this investigation arc for the session** (Iterations 28-31,
+four attempts, four distinct confirmed mechanisms, zero net
+improvements). Recommend a future session treat this as a "redesign the
+King's spending model from scratch" project, not a "fix the current
+one" task -- everything in the current model (flat cap, flat reserve,
+flat cooldown, flat hysteresis margin) has now been shown to have a
+real failure mode once population and combat losses interact with it in
+a high-attrition matchup.
