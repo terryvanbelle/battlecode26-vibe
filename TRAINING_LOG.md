@@ -1849,3 +1849,47 @@ remains the danger-conditional retreat trigger noted after Iteration 26
 enemy or a near-death HP event, rather than a distance-only threshold),
 which needs real design work before another attempt, not a quick
 variation.
+
+---
+
+## Iteration 28 attempt — raise MAX_POPULATION well past 25; REJECTED (boom-bust overbuild)
+
+A genuinely fresh lever, not a variation on the 9 already-rejected
+combat/exploration attempts: confirmed via replay that `builtCount`
+(cumulative-ever-built, not a live census) hit exactly 25 by round 300
+in the `closeup` vs. `immediate_defector` loss and the King *never
+built again* for the remaining 800 rounds, even as population crashed
+to 1-2 alive. The code's own comments already named this exact risk
+(BC22's cumulative-vs-live pitfall) but it had never actually been
+tested. Raised `MAX_POPULATION` from 25 to 200, on the theory that the
+existing `RESERVE` cheese throttle (economic) and `findBuildLocation()`
+returning null with no open tile (spatial -- what actually solved
+`knifefight`'s original spawn-gridlock, not the cumulative count) should
+be sufficient rate-limiters on their own.
+
+**Smoke test** (`closeup` vs. `immediate_defector`, the motivating
+game): **worse**, not better -- died at r380, down from the baseline's
+r1095. Traced it: population exploded to 37 alive by round 50 (cheap
+early build cost, `RESERVE` only checks whether *this one* build is
+currently affordable, not whether the resulting population is
+sustainable), crashing cheese to near-zero by round 75 and keeping it
+pinned there for the rest of the tracked window -- a boom-bust
+overbuild, not the intended "replace losses as they happen" behavior.
+
+**REJECT without a full Gauntlet run** (Step 6.5 -- the motivating game
+itself got unambiguously worse). Reverted `src/bot/RobotPlayer.java`.
+
+**Diagnosis:** the boom happens by round 50, long before any moderate
+cap increase (e.g. 35-40) would even become the binding constraint --
+so this isn't really about *which* cap value to pick, a lower raise
+would likely hit the same boom-bust for the same reason. The real gap is
+that `RESERVE` is a flat threshold that doesn't scale with population:
+it can't tell "building the 5th rat this round is fine" from "building
+the 30th rat this round, on top of 29 others built in the last 50
+rounds with none delivering cheese yet, is not." A fix needs either a
+build-rate limiter (not just an affordability check) or a `RESERVE` that
+scales with `builtCount`, so the King naturally throttles itself as
+population grows rather than spending every round it technically can
+afford to. Untried; the original diagnosis (cumulative cap silently
+becomes a starvation lockout in high-attrition games) is still correct
+and still worth fixing -- just not via a bare number change.
