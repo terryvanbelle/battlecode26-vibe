@@ -626,3 +626,33 @@ fight is now winnable. Worth checking whether Baby Rats retreating toward
 the King when threatened (concentrating defenders near where the King can
 also help fight, per `attackNearestHostile`) would end the slow bleed
 `closeup` still shows.
+
+### Win % vs. a fixed old-bot roster
+
+Prompted directly by the user, who pointed out that `g_iter1` was already
+available as a fixed comparison point rather than waiting for
+`TRAINING_ALGORITHM.md`'s own stated "~10th accepted iteration" threshold
+(that guidance was written for BC22's much larger scale, where the peer
+Gauntlet's retirement churn made a fixed yardstick necessary much later
+into the project -- no reason to withhold the same idea early just because
+the specific number "10" hadn't been hit). Ported `tools/track_vs_old_bots.py`
+/ `tools/plot_vs_old_bots.py` from `battlecode22-vibe`, started tracking
+`g_iter1` now instead:
+
+```
+OPPONENTS="g_iter1" MAPSET=loop tools/gauntlet.sh   # gauntlet/20260902-020745/
+tools/.venv/bin/python3 tools/track_vs_old_bots.py gauntlet/20260902-020745/
+tools/.venv/bin/python3 tools/plot_vs_old_bots.py
+```
+
+**90% vs. `g_iter1`** (18/20; both losses on `tiny`) -- `g_iter7`'s
+absolute-strength read on how far the bot has come since the very first
+accepted iteration (which itself only beat `examplefuncsplayer`, a
+non-adversarial reference, 70%). First data point in
+`progress/vs_old_bots_history.csv`/`progress/vs_old_bots.png`; the chart
+is understandably sparse with one point (a single marker, odd wide
+default x-axis) -- will become genuinely useful as future sessions add
+more checks. Add further old snapshots to the tracked roster as the
+project grows (BC22's cadence was every 10th accepted iteration; this
+project can pick its own once "every 10th" means something at this
+scale) -- append, don't replace `g_iter1`.
