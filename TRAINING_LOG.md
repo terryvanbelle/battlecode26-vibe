@@ -891,3 +891,38 @@ assumption (180-degree rotation) is unverified on any map where it's
 *wrong* -- worth checking whether a bad guess on some other map actively
 hurts (sends desperate rats the wrong way, away from both the enemy and
 useful cheese) rather than just failing to help.
+
+---
+
+## Iteration 13 attempt — trigger desperation earlier; REJECTED (regression)
+
+Followed Iteration 12's own "Next" note: dropped the `globalCheese <
+RESERVE` sub-condition, making `desperate = economyStruggling` alone (the
+trend-latch, which fires earlier -- around round 400 rather than
+round ~600-800). Reasoning: the hunt needed more runway before starvation,
+so trigger it sooner.
+
+**Smoke test:** same `whereisthecheese` game -- **worse**, not better:
+King died at round 1155 (vs. 1340 in `g_iter9`). Traced why:
+`aliveBabies` collapsed to **0 by round ~600** (vs. round ~1000+ before)
+-- committing the population to hunting/fighting earlier, while it was
+still smaller and the economy less established, got the whole army killed
+off faster than it found the enemy, and `cheeseTransferred` (795) then
+flatlined for the rest of the game with nobody left to gather or fight.
+**Full Gauntlet: 29/40 (72.5%), down from 30/40 (75%)** --
+`immediate_defector` 75%->70% (`tiny` bot=A flipped back to a loss).
+Confirmed regression, not noise.
+
+**REJECT.** Reverted; `src/bot/` is back to `g_iter9`.
+
+**Diagnosis:** the *timing* of Iteration 12's original threshold
+(cheese already below `RESERVE`) wasn't arbitrary bad luck -- it let the
+population build up to a meaningful size and establish some economy
+*before* committing to a risky hunt, which apparently matters more than
+the extra runway an earlier trigger provides. The real lever for closing
+`whereisthecheese`'s remaining gap is probably elsewhere: e.g. making the
+guessed-location hunt itself more efficient (currently a single
+`moveToward` call per turn, no coordination across rats -- several might
+independently discover the same path), or having only *some* rats commit
+to the hunt while others keep the economy alive, rather than an
+all-or-nothing population-wide switch.
