@@ -2395,3 +2395,98 @@ rat-vs-rat attrition (nine failed fix attempts across the session,
 needs a fresh angle); the delivery-path stuck-cheese bug = needs real
 pathfinding (architectural limitation). No further quick wins visible
 in the current loss set without one of these larger projects.
+
+---
+
+## Iteration 35 — Bug2 wall-following navigation for cheese delivery; accepted (mechanistic), 75.0%
+
+Took the architectural limitation identified in Iteration 33 and actually
+built the fix, guided by **BC22's `RESEARCH.md` section 2** (re-read in
+full this session on user instruction). That document records the
+cross-year convergent solution every strong Battlecode team arrives at:
+start with textbook A-star/BFS, blow the bytecode budget, and end up on
+bug-navigation -- greedy step toward the target, boundary-following when
+blocked, a memory-based escape for concave obstacles, and a randomized
+tie-break as a last-resort safety valve. That's precisely the shape of
+problem Iteration 33's four failed patches were flailing at.
+
+**Implementation** (`moveToward`): Bug2-style. Try the direct step; when
+blocked by terrain, commit to tracing the obstacle boundary, rotating
+consistently in one per-robot direction (`rc.getID() % 2`, not a fixed
+compass order -- BC22's largest recurring bug class); resume direct
+movement only once strictly closer to the target than when the obstacle
+was hit (the concave-escape condition); bail out and flip rotation
+direction after 16 rounds of fruitless following. No dynamic collections
+or allocation, per `RESEARCH.md` section 10.
+
+**Three real bugs found and fixed during development**, each caught by
+Gauntlet measurement rather than reasoning:
+
+1. **Applied to every `moveToward()` caller: 65.0%** (down from 75.0%),
+   concentrated on `minimaze` (lost all four pairings). Bug-navigation's
+   premise is monotonic progress toward a *stationary* goal -- the
+   closest-distance memory is what escapes concave obstacles. A moving
+   goal (chasing an enemy in `engage()`, fleeing a cat, re-picking the
+   nearest cheese tile as tiles deplete) invalidates that memory every
+   round, so the state thrashes and the wall-following scan displaces the
+   responsive sidestep combat actually needs. **Scoped to
+   `deliverCheese()`** -- the only caller with a genuinely fixed target
+   (the King), and exactly where the confirmed 340-round stuck-cheese bug
+   was traced.
+2. **Scoped, but still 60.0%** -- worse. Found a genuine logic inversion:
+   the "strictly closer than ever before" test gated *the direct-move
+   attempt itself*, not just the exit from wall-following. So a rat pushed
+   backwards (delivery congestion, or the King relocating to flee a cat)
+   could never satisfy it again and would wall-follow forever -- the exact
+   permanently-stuck failure class this iteration exists to remove,
+   reintroduced in a new form. Restructured to proper Bug2: always attempt
+   the direct step when not committed to a trace; the distance memory only
+   governs *leaving* the trace.
+3. **Corrected, but 62.5%** -- still below baseline, `minimaze` still
+   losing all four. Root cause: **most blockers here are other rats, not
+   terrain.** Bug-navigation assumes static obstacles; committing to a
+   multi-round boundary trace because an ally stood in the way for one
+   round is strictly worse than the old one-step sidestep, and delivery
+   traffic near the King is full of exactly that. Gated boundary-tracing
+   on `senseMapInfo(ahead).isPassable()` being genuinely false --
+   `RESEARCH.md` section 2 names this distinction directly ("treat
+   friendly units as soft, not hard, obstacles"). **Recovered 12.5
+   points**, confirming the diagnosis.
+
+**Full Gauntlet: 30/40 (75.0%) -- exactly tied with the `g_iter11`
+baseline.** `pure_cooperator` 70%->65%, `immediate_defector` 80%->85%.
+Ran a second full Gauntlet on identical code and got a **byte-identical
+result** (same 30/40, same ten losses, same round numbers) -- a useful
+methodological finding in its own right: **the Gauntlet is fully
+deterministic for identical code**, so repeat runs add no information and
+all observed run-to-run variation this session was genuinely
+cross-version RNG-cascade, not sampling noise. Don't re-run to "check
+variance" again.
+
+**Diff shape:** `closeup` -- the confirmed maze map that motivated this
+whole thread -- is now **won on both sides** (was lost on both), with
+`cheeseTransferred` 2010 vs. 715 and our King's cheese holding at
+1290-1700 all game instead of draining to zero. Offsetting that,
+`knifefight` newly lost both `pure_cooperator` sides; traced it, and it's
+a close, gradual points decision (`catDamage` 1420 vs. 1480, both sides
+healthy at round 1900) -- the same attrition/map-luck variance already
+characterized elsewhere, not a new collapse mode.
+
+**ACCEPT, on mechanistic grounds** (Step 6.4: engaged-as-designed with a
+concrete account, even absent an aggregate flip). Stated plainly: this
+does **not** improve the win rate -- it is exactly break-even. It's
+accepted because (a) it fixes the specific, user-prioritized failure the
+session was asked to target (rats stuck in a small region, not delivering
+cheese), verified directly in replay rather than inferred; (b) the
+offsetting losses are close points decisions, not new failure modes; and
+(c) it replaces a structurally-incapable movement strategy with real
+pathfinding that later work can build on, rather than another heuristic
+patch on top of one that provably can't solve mazes. Snapshotted as
+`src/g_iter12/`; new baseline `gauntlet/20260902-225556/`.
+
+**Next.** The natural follow-on is extending bug-navigation to
+`collectCheese()` -- currently excluded because cheese targets move as
+tiles deplete, but a *sticky* target (commit to one cheese tile until
+reached or depleted, per BC22's `LEARNINGS.md` "a sticky/committed target
+beats recompute-nearest-every-round," one of that project's single
+largest wins) would make it a fixed target and unlock the same fix there.
