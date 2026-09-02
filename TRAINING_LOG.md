@@ -961,3 +961,34 @@ lopsided split). Worth doing now, both because it's overdue and because
 several of this session's changes (per-robot ID-seeded RNG, ID-parity
 tiebreaks in `tryMove`, the guessed-location symmetry assumption) are
 exactly the kind of tie-breaking logic that class of bug hides in.
+
+---
+
+## Symmetry audit — mirror-match check, g_iter9 vs. itself, full map set
+
+Not a `src/bot/` code change -- a standing verification pass
+(`TRAINING_ALGORITHM.md`'s "Play symmetry" section), overdue after 12
+accepted iterations without one. `tools/snapshot.sh mirror_check`
+(byte-identical copy of `g_iter9`), `OPPONENTS=mirror_check MAPSET=full
+tools/gauntlet.sh` -- all 27 maps in `tools/bc26-maps.txt`, both sides,
+54 games.
+
+**Result: exactly 50% (27/54), and every single one of the 27 maps split
+1-1 between sides** -- not one map won or lost on both sides. This is a
+clean pass, not just "no severe skew": `TRAINING_ALGORITHM.md`'s own
+guidance expects *some* noise (the coin-flip tiebreak on tied points,
+chaos-sensitive maps), so a perfectly even per-map split is a
+better-than-expected result, not a suspicious one -- most games ran to
+the round-2000 points cap (genuinely symmetric play producing genuinely
+close outcomes), with a handful of faster, decisive games
+(`whereisthecheese` r938, `streetsofnewyork` r505, `peaceinourtime` r484)
+also splitting cleanly.
+
+**No team-correlated bias detected**, despite this session adding
+substantial new tie-breaking/symmetry-sensitive logic since the
+project's original symmetry-safety design (Iteration 1): per-robot
+`rc.getID()`-seeded RNG, `rc.getID() % 2` tiebreaks in `tryMove()` and
+the (rejected) hunter-split attempt, and the 180-degree-rotation
+enemy-King-location guess. Worth re-running this check periodically as
+more tie-breaking logic accumulates, same as BC22's own history found
+value in -- but no action needed right now.
