@@ -491,3 +491,28 @@ deliberately spread out for cheese search most of the time (Iteration
 and whether a lower threshold or an explicit "rally toward a spotted cat"
 signal (shared array, King-relayed) would let cat damage become a real
 scoring lever instead of an incidental one.
+
+### Progress charts
+
+Ported `tools/plot_progress.py` and `tools/plot_alt_metrics.py` from
+`battlecode22-vibe`, trimmed to this project's current scale (no
+benchmark-opponent overlay yet -- nothing has beaten `bot` even once this
+session; no `MIN_PEERS=14` gate -- this project has run at most 3
+opponents in a single Gauntlet so far, set to 2 instead). `tools/
+plot_vs_old_bots.py` intentionally not ported yet, per
+`TRAINING_ALGORITHM.md`'s own stated policy: not worth it before there's a
+roster of retired old snapshots to track, expected around the 10th
+accepted iteration.
+
+`progress/cumulative_iterations.png`: 5 accepted iterations, all within
+about 90 minutes (one continuous session) -- steps at each accept, with
+the `examplefuncsplayer` retirement marked. `progress/peer_win_spread.png`:
+a clear V-shape -- starts high (80-100%) while the peer roster still had
+BC22-style easy/undertuned reference bots, drops to 50-75% once
+`pure_cooperator`/`immediate_defector` were synced to `bot`'s actual
+economy (a *harder*, fairer roster, not a regression -- see the "Gauntlet
+pool update" entry above), then partially recovers after Iteration 5's
+cat-damage fix. Regenerate either with `tools/.venv/bin/python3
+tools/plot_progress.py` / `tools/plot_alt_metrics.py`; commit updated PNGs
+periodically, not after every single iteration (same casual cadence BC22
+settled on).
