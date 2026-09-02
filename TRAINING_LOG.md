@@ -2757,3 +2757,47 @@ visible to the King at all, drop back to the ordinary `RESERVE` bar.
 Checked against the traces above, the override fires in all three cases
 (e.g. `whereisthecheese` round 425: army 0, cheese 970 > 150, so it
 rebuilds instead of hoarding). Result pending.
+
+---
+
+## Iteration 40 — emergency build override when the army is gone; ACCEPTED, 95.0%
+
+Direct fix for the starvation-by-hoarding failure Iteration 39
+introduced (see the diagnostic above). When **no** allied Baby Rat is
+visible to the King at all, fall back from `REPLACEMENT_RESERVE` (1000)
+to the ordinary `RESERVE` (150). Rationale: the reserve exists to keep
+the King alive, so preserving it while the King has no army at all
+inverts its own purpose -- an undefended King with no income dies
+holding the buffer. Rats alive but outside the King's vision aren't
+defending or feeding it either, and the per-window cap still bounds the
+response, so a false positive is cheap.
+
+**Full Gauntlet: 38/40 (95.0%)**, up from `g_iter13`'s 90.0%.
+`pure_cooperator` 85%->90%; **`immediate_defector` 95%->100% (20/20)**.
+
+**Diff: exactly the three predicted losses fixed, one new.**
+Fixed `tiny` (both sides) and `whereisthecheese` bot=B -- precisely the
+three traced as sharing the hoarding mechanism, each verified in advance
+to trigger the override. New: `minimaze` bot=A, joining the existing
+`minimaze` bot=B; both remaining losses are now the same
+`catDamage`-weighted map-luck pattern long since closed out as
+not-further-pursuable. Predicting the fixed set from the traces *before*
+running the Gauntlet, and having it come out exactly, is the strongest
+confirmation yet that the mechanism is understood rather than guessed.
+
+**ACCEPT.** Snapshotted as `src/g_iter14/`; new baseline
+`gauntlet/20260902-234812/`.
+
+**Process note (my error, recorded rather than hidden):** the source
+change for this iteration was accidentally committed early, in
+`38ffc2f` ("Track g_iter13 vs-old-bots"), because that commit used
+`git add -A` while an untested edit sat in the working tree. So `main`
+briefly carried unverified bot code under a commit message about
+charts. It happened to pass, but the same slip with a *rejected*
+iteration is exactly how a regression gets baselined silently. Fixed
+going forward by staging explicit paths; noted in memory.
+
+**Watch item:** `immediate_defector` is at 100% (20/20). Per
+TRAINING_ALGORITHM.md's retirement rule, a second consecutive 100%
+means it should be retired from the peer roster and replaced, or the
+Gauntlet stops providing signal on that half of the matchup space.
