@@ -736,3 +736,47 @@ attrition race if the *replacement rate* can't keep up. Next: raise
 traces showed a healthy, competitive economy (`cheeseTransferred` roughly
 even) that could plausibly sustain a larger standing population if the
 cap weren't holding it back.
+
+---
+
+## Iteration 10 — raise MAX_POPULATION 15->25; accepted, 72.5%
+
+Following directly from Iteration 9's refined diagnosis: raised
+`MAX_POPULATION` from 15 (picked in Iteration 2 purely to solve
+`knifefight`'s spawn gridlock, never revisited) to 25.
+
+**Verified the gridlock risk first**, since that's specifically what 15
+was chosen to prevent: `bot` vs. `pure_cooperator` on `knifefight` --
+won on points at round 2000, `aliveBabies=[12,13]`, `catDamage=1090` for
+us. No sign of the old gridlock (both sides fielded healthy, active
+populations well past the old cap). `closeup` vs. `immediate_defector`
+smoke test: still a loss, and actually died a little *faster* (r1328 ->
+r1270) in this single sample -- not a promising sign in isolation, but
+single-game round count is a noisy signal on its own (see "reading a
+diff's shape"), so went to the full Gauntlet rather than reading too much
+into one game.
+
+**Full Gauntlet: 29/40 (72.5%), up from 28/40 (70%).** `pure_cooperator`
+65%->75% (`rift` bot=B and `tiny` bot=B both flipped to wins);
+`immediate_defector` 75%->70% (one new loss, `tiny` bot=A). Net +1 win.
+Round counts dropped noticeably across the board (many games now resolve
+in the 900-1300 range instead of drifting to 2000) -- larger standing
+armies clash and resolve faster, consistent with the population-cap
+theory. `knifefight` doesn't appear in the losses list at all -- won both
+games against both opponents, confirming the raised cap didn't
+reintroduce the gridlock it was originally set to prevent. **ACCEPT.**
+Snapshotted as `src/g_iter8/` (the two rejected attempts, Iterations 8-9,
+don't get snapshots -- see the vs-old-bots convention note this session
+already established: `g_iterN` tracks accepted count, not the log's
+`Iteration NNN` numbering). New baseline `gauntlet/20260902-025219/`.
+Replay: `replays/iter10_immediate_defector_closeup_botA.bc26`.
+
+**Next.** `closeup` still lost both sides against `immediate_defector`
+even with more population -- worth checking whether 25 is still the
+binding constraint there or whether the population-bleed problem (now
+resolving *faster*, not slower) has a different character at this scale.
+`whereisthecheese` was already a loss against both opponents in the
+`g_iter7` baseline (not new), but now resolves much faster (970-1030
+rounds vs. 1235-1345 before) -- worth tracing directly since it's the one
+losing map common to *both* opponents, unlike the others which are mostly
+`pure_cooperator`- or `immediate_defector`-specific.
