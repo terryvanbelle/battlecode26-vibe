@@ -431,3 +431,63 @@ three point components (cat damage %, living-rat-king %, cheese-transferred
 constant across every replay traced all session and a competent-economy
 mirror match is the first real chance to see whether that alone explains a
 loss.
+
+---
+
+## Iteration 5 — Baby Rats take a free hit on a cat already in range; accepted, 67.5%
+
+**Diagnosis.** Traced `pure_cooperator__keepout__botA.bc26` (a full
+2000-round, `MORE_POINTS` loss). Added `teamCheeseTransferred` to the
+replay tool's per-round summary (was tracking current `globalCheese`
+before, a different quantity from the scoring formula's cumulative
+`%cheese_transferred`). Both sides: `catDamage=[0,0]`, rat kings tied 1-1
+-- with the cat-damage sum at 0, that whole 0.5-weighted component
+contributes equally (0) to both sides per RULES.md's "0 if the sum is 0",
+so this **entire game, and by extension every close game this session,
+reduces to cheese-transferred % alone**, the smallest-weighted component
+(0.2) in cooperation-mode scoring.
+
+**Since `bot` and `pure_cooperator` run identical code when neither
+backstabs** (confirmed after this session's archetype sync), a 50/50
+aggregate split across the roster is exactly `TRAINING_ALGORITHM.md`'s
+"Play symmetry" mirror-match check succeeding, not a strategic weakness --
+worth recording as a positive symmetry-audit result, not chasing further.
+
+**The real finding:** grepped the full `keepout` replay for cat-attack
+actions -- **17 `CatScratch`/`DieAction` events**, our own rats dying to
+cats repeatedly the entire game, while `catDamage` never left `[0,0]`.
+Cats are being encountered constantly; we were never landing a single hit
+back. Root cause: `runBabyRat()`'s cat-response logic only ever called
+`engage()` when `>=3` allies were within range 8 of the cat, and `flee()`
+otherwise -- a lone rat *already in bite range* of a cat that's about to
+hit it anyway still fled instead of attacking, wasting the one turn where
+damage was free (the cat isn't going to skip its attack because we
+didn't take ours).
+
+**Fix.** Check `rc.canAttack(nearestCat.getLocation())` before the
+ally-count gate; if already in range, attack regardless of ally count,
+then fall through to the existing swarm/flee logic only if not. Re-tested
+`bot` vs `pure_cooperator` on `keepout`: **`catDamage=[20,0]`** -- first
+nonzero cat damage this entire session -- and the game flipped from a
+loss to a win, since a 100%-vs-0% cat-damage split is worth the full 0.5
+weight even at just 20 raw damage (out of 4000 HP).
+
+**Full Gauntlet: 27/40 (67.5%)**, vs. the pool-update baseline's
+`pure_cooperator 50%` / `immediate_defector 75%` (62.5% combined):
+**`pure_cooperator` 50%->60%**, `immediate_defector` unchanged at 75%.
+Diff by shape: mostly one-directional (loss->win) with one isolated
+opposite flip (`closeup` bot=B, pure_cooperator) -- consistent with the
+"mirror-match games are chaos-sensitive" pattern already documented, not a
+regression. **ACCEPT.** Snapshotted as `src/g_iter5/`; new baseline
+`gauntlet/20260902-014054/`. Replay:
+`replays/iter5_pure_cooperator_keepout_botA.bc26`.
+
+**Next.** 20 damage is a token amount against a 4000 HP cat -- this fix
+stops the *bleeding* (a free hit when already exposed) but doesn't make
+cat damage a real offensive strategy. The swarm-engage threshold
+(`allies >= 3` within range 8) is still probably too strict given rats are
+deliberately spread out for cheese search most of the time (Iteration
+1-4's exploration fixes) -- worth checking whether it ever actually fires,
+and whether a lower threshold or an explicit "rally toward a spotted cat"
+signal (shared array, King-relayed) would let cat damage become a real
+scoring lever instead of an incidental one.

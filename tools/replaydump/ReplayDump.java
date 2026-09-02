@@ -103,7 +103,8 @@ public class ReplayDump {
                 if (round % 25 == 0 || round < 5) {
                     System.out.println("round " + round + " " + status + "aliveBabies="
                             + vec(r::teamAliveBabyRats, r.teamAliveBabyRatsLength())
-                            + " catDamage=" + vec(r::teamCatDamage, r.teamCatDamageLength()));
+                            + " catDamage=" + vec(r::teamCatDamage, r.teamCatDamageLength())
+                            + " cheeseTransferred=" + vec(r::teamCheeseTransferred, r.teamCheeseTransferredLength()));
                 }
                 for (int k = 0; k < r.diedIdsLength(); k++) {
                     System.out.println("round " + round + " DIED id=" + label(r.diedIds(k)));
