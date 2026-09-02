@@ -2364,3 +2364,34 @@ rejected.** Not attempting a sixth today. If revisited, the design
 should probably decouple `RESERVE` (used for `desperate` triggering) from
 whatever governs the build-rate throttle specifically, rather than
 layering more logic onto the same shared constant and King loop.
+
+---
+
+## Diagnostic: minimaze (botB) -- comprehensive underperformance, not a single fixable mechanism
+
+Last untraced loss in the `g_iter11` baseline. Different shape from
+everything else this session: population gradually stabilizes at 5-6
+(vs. `pure_cooperator`'s steady 20-22) rather than crashing to 0 --
+economies on both sides keep growing the whole game (cheese and
+`cheeseTransferred` both climb steadily to round 2000 for both teams),
+and `pure_cooperator` simply leads on every single metric
+(population, cheese, `cheeseTransferred`, *and* `catDamage`) -- not a
+narrow points-margin loss like `rift`/`keepout`/earlier `minimaze`
+traces, and not a sudden collapse like the economy-cap games. Reads as
+accumulated small differences (early combat/exploration variance)
+compounding over a full 2000-round game rather than one fixable
+mechanism -- the same broad "map-luck exposure between two bots running
+identical code" territory already closed out for the `catDamage`
+investigation. Not pursuing further without a fresh, specific lead.
+
+**All losses in the `g_iter11` baseline (`gauntlet/20260902-194330/`)
+have now been traced at least once this session.** Summary: `rift`/
+`keepout`(coop)/earlier-`minimaze` = accepted map-luck `catDamage`
+variance (closed out); `sittingducks` = map-asymmetric cat danger
+(closed out); `closeup`/`tiny`/`whereisthecheese` = the King
+cumulative-build-cap lockout (five failed fix attempts, needs a bigger
+redesign); `closeup`/`knifefight`/`keepout` vs. `immediate_defector` =
+rat-vs-rat attrition (nine failed fix attempts across the session,
+needs a fresh angle); the delivery-path stuck-cheese bug = needs real
+pathfinding (architectural limitation). No further quick wins visible
+in the current loss set without one of these larger projects.
