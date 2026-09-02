@@ -28,6 +28,7 @@ Usage:
 Requires matplotlib in tools/.venv. Run from the repo root.
 """
 import csv
+import re
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -57,9 +58,25 @@ def load_results(path: Path):
         return list(csv.DictReader(f))
 
 
+def is_vs_old_bots_run(per_opp):
+    """True if every opponent is a g_iterN snapshot, i.e. this is a
+    vs-old-bots run rather than a peer-roster Gauntlet.
+
+    These are tracked separately (progress/vs_old_bots.png) and must be
+    excluded here. Including them corrupted this chart two ways once the
+    vs-old-bots roster grew past a single opponent and started clearing
+    MIN_PEERS: their win rates were plotted as if they were peer-roster
+    results, and -- worse -- retirement_events() reads the alternation
+    between peer runs and old-bot runs as opponents disappearing, so it
+    reported `pure_cooperator`/`immediate_defector` and then
+    `g_iter1`/`g_iter11` as "retired" when nothing had been retired at
+    all."""
+    return bool(per_opp) and all(re.fullmatch(r"g_iter\d+", o) for o in per_opp)
+
+
 def full_runs():
-    """(rundir, timestamp, {opponent -> [wins, total]}) for every run with
-    >= MIN_PEERS distinct peer opponents, sorted by time."""
+    """(rundir, timestamp, {opponent -> [wins, total]}) for every
+    peer-roster run with >= MIN_PEERS distinct opponents, sorted by time."""
     runs = []
     for rundir in sorted(Path(REPO_ROOT / "gauntlet").glob("*/")):
         p = rundir / "results.csv"
@@ -73,7 +90,7 @@ def full_runs():
             per_opp[opp][1] += 1
             if row["bot_result"] == "win":
                 per_opp[opp][0] += 1
-        if len(per_opp) < MIN_PEERS:
+        if len(per_opp) < MIN_PEERS or is_vs_old_bots_run(per_opp):
             continue
         runs.append((rundir, run_timestamp(rundir), per_opp))
     return runs
