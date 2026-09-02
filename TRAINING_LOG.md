@@ -780,3 +780,63 @@ resolving *faster*, not slower) has a different character at this scale.
 rounds vs. 1235-1345 before) -- worth tracing directly since it's the one
 losing map common to *both* opponents, unlike the others which are mostly
 `pure_cooperator`- or `immediate_defector`-specific.
+
+---
+
+## Iteration 11 attempt — economy-struggle latch, raised RESERVE, and a first backstab-desperation trigger; REJECTED (inert)
+
+Traced `whereisthecheese` (only 2 cheese mines) directly: `bot` was
+**crushing** `pure_cooperator` on cat damage (1770 vs. 0 by round 600, a
+near-total share of that 0.5-weighted scoring component) but our own King
+still starved to death and **auto-lost outright** regardless -- RULES.md:
+all-Rat-Kings-dead is an immediate loss overriding every other scoring
+component. Root cause: the King's own 2-cheese/round upkeep is
+unconditional (not a spending decision at all), and this map's income
+(~0.5/round from 2 mines) can't cover it for either side -- both teams'
+cheese declined the entire game, we just ran out first.
+
+**Three things tried in sequence, same motivating game, each measured
+before moving to the next:**
+
+1. **200-round economy-checkpoint latch** (stop building if cheese
+   dropped >150 over a window): re-traced the same game -- byte-identical
+   population/cheese curve at every checkpoint. Population had already
+   reached ~19 well before round 200 (the first possible checkpoint), so
+   a check that only evaluates every 200 rounds structurally can't catch
+   overspending that already happened.
+2. **Raised RESERVE 150->500**: also byte-identical. Recomputed the real
+   build-cost math this time instead of assuming: 25 rats total cost only
+   ~910 cheese out of a ~2488 starting balance -- `MAX_POPULATION`, not
+   `RESERVE`, was already the binding constraint the entire time, so
+   raising the reserve couldn't have changed anything regardless of value.
+3. **Backstab-desperation trigger**: since neither `bot` nor
+   `pure_cooperator` ever backstabs, our combat dominance had no way to
+   convert into winning the game outright. Added a King-broadcast
+   "desperate" signal (shared array slot 2: economy latched *and*
+   cheese already below `RESERVE`) that lets Baby Rats treat a sighted
+   enemy rat as attackable even pre-backstab. Full Gauntlet: **29/40
+   (72.5%), identical to the `g_iter8` baseline in every single game
+   except one round-count shift** (`tiny` bot=A vs. `pure_cooperator`:
+   r895->r1005, still a loss either way). The signal likely did latch in
+   the motivating game (economy checkpoints show a real decline crossing
+   both thresholds by round ~600-800) but apparently never had an enemy
+   rat in range to act on -- Kings spawn at opposite corners on this map
+   and neither side's Baby Rats hunt proactively, only react to what's
+   already sighted.
+
+**REJECT all three** (Step 6.4.3 -- no measurable engagement anywhere).
+Reverted; `src/bot/` is back to `g_iter8`.
+
+**Refined diagnosis, now well-evidenced across three attempts:** this
+project has a real, structural gap it's run into from multiple angles in
+a row -- Baby Rats (and the King) are entirely *reactive*. Nothing ever
+initiates contact; everything only responds to what's already in
+immediate sensor range. Fixing `whereisthecheese`'s specific starvation
+race needs either (a) proactively pathing toward the map's mirror-image
+symmetric point (a reasonable guess at the enemy King's location without
+ever having seen it, since maps are guaranteed symmetric per RULES.md) to
+actually force a decisive fight once desperate, rather than passively
+waiting to get lucky, or (b) accepting some cheese-poor maps are simply
+unwinnable via economy and finding a different lever entirely (e.g.
+`squeak`-based coordination to rally a rescue/attack party, unused all
+session). (a) is the more directly actionable next attempt.
