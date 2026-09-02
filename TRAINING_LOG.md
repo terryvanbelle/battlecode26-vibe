@@ -656,3 +656,44 @@ more checks. Add further old snapshots to the tracked roster as the
 project grows (BC22's cadence was every 10th accepted iteration; this
 project can pick its own once "every 10th" means something at this
 scale) -- append, don't replace `g_iter1`.
+
+---
+
+## Iteration 8 attempt — retreat-when-wounded during a rat chase; REJECTED (didn't engage)
+
+Targeting the Iteration 7 "Next" note directly: gave a Baby Rat chasing a
+hostile enemy rat (post-backstab) the same low-HP bail-out the cat-engage
+logic already has -- below 30 HP, retreat toward the King instead of
+continuing to close distance.
+
+**Smoke test:** re-ran the exact `closeup` vs. `immediate_defector` loss
+Iteration 7 traced -- **byte-identical result** (round 1328, same
+`catDamage`/`aliveBabies` progression at every checkpoint). No evidence
+the change ever fired in this game.
+
+**Full Gauntlet: 27/40 (67.5%), down from 28/40 (70%).** `pure_cooperator`
+unchanged (identical loss set -- expected, it never backstabs, so this
+code path never runs against it at all). `immediate_defector` gained one
+new loss (`knifefight` bot=A, previously a win). Traced it directly
+(Step 6.4.3): `catDamage=[0,0]` the entire game, no combat evidence at
+all -- a pure economic race (cheese-transferred %, close the whole game)
+that happened to go the other way this time, on `knifefight`, a map
+already flagged as chaos-sensitive. Not caused by this change; the
+retaliation code path this iteration touched was never exercised in that
+game either.
+
+**REJECT** -- no evidence the fix ever engaged anywhere in this Gauntlet
+(Step 6.4.3's third outcome: "no evidence the fix changed anything, or it
+demonstrably didn't engage"), and the one aggregate flip is independently
+explained as unrelated noise. Reverted.
+
+**Diagnosis for next time:** `RAT_BITE_DAMAGE=10` against 100 HP means a
+rat needs ~7 hits to reach the 30-HP bail-out threshold -- in practice,
+1v1-ish skirmishes against a dedicated aggressor (`immediate_defector`)
+apparently resolve faster than that (a rat wins, loses outright, or the
+encounter ends before HP drops that far), so an individual-HP-threshold
+retreat rarely has a chance to matter. A group-level response (regroup
+near the King *before* individual rats are already low, or the King
+itself sallying out to help) is more likely to be the real lever than a
+per-robot panic threshold -- `closeup`'s population-bleed problem is
+still open.
