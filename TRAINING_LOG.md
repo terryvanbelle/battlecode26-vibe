@@ -342,3 +342,43 @@ being stuck/blocked rather than run unconditionally every turn (a King-style
 other things to do most turns -- likely trigger: `explore()`'s fallback
 path, when even the random-direction attempt fails, try digging an
 adjacent dirt tile instead of giving up for the turn).
+
+---
+
+## Iteration 4 — Baby Rat digging; 100% vs examplefuncsplayer, real economy confirmed
+
+**Implementation.** `explore()`'s existing King-only `digTowardOpenSpace()`
+(Iteration 2) is already unit-type-generic (plain `RobotController` calls)
+-- just needed calling from the right place. Added it as `explore()`'s
+final fallback: preferred heading blocked, forward blocked, a fresh random
+direction also blocked -> dig the nearest adjacent dirt tile instead of
+doing nothing.
+
+**Smoke test:** `knifefight` -- **won for the first time**, `RATKING_DESTROYED`
+(not a coin flip). Team cheese: 2185 at round 100 -> **5995 at round
+1200**, real sustained positive income far exceeding the 2500 starting
+amount, while `examplefuncsplayer` (never builds) declined the whole game
+as always. This is the first genuinely functioning cheese-collection loop
+this project has produced.
+
+**Full Gauntlet: 20/20 (100%).** Complete sweep, every map, both sides.
+Snapshotted as `src/g_iter4/`; new baseline `gauntlet/20260902-012436/`.
+Replay: `replays/iter4_examplefuncsplayer_knifefight_botA.bc26` (the first
+real, non-coin-flip `knifefight` win).
+
+**Gauntlet pool decision.** `examplefuncsplayer` is now at 100% (one
+Gauntlet short of the two-consecutive-≥80% retirement threshold -- see
+"Retiring bots from the Gauntlet"). Per "Growing the Gauntlet" /
+"Backstab-policy coverage", adding `pure_cooperator` and
+`immediate_defector` (built by a fork earlier this session, smoke-tested
+but never added to a real Gauntlet run) as opponents now, rather than
+waiting for `examplefuncsplayer` to fully retire first -- `bot` has never
+actually been tested against an opponent with a real economy or that
+fights back, and both archetypes share Iteration 1-4's economy/combat code
+so this is a clean first read on backstab-policy behavior specifically,
+not a confound with base competence.
+
+**Still open** (unchanged from Iteration 2/3's findings, not yet directly
+addressed): zero cat damage in every game traced so far. Once a real
+opponent forces longer/different games this may surface on its own; if
+not, it's the next dedicated target.
