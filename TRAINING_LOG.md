@@ -1778,5 +1778,55 @@ engagements that already happen (rather than seeking out more of them),
 or should be set aside as an accepted limitation rather than continuing
 to guess at trigger conditions for this same mechanism.
 
+---
+
+## Diagnostic: pipes and knifefight vs. pure_cooperator -- closing out the catDamage question
+
+`pipes`: a different, broader shape than the other three -- `pure_cooperator`
+leads on cheese, `cheeseTransferred`, *and* `catDamage` all at once, not
+just the narrow catDamage-only gap. Only 2 total cat-combat events in
+the whole 2000-round game, though, so this reads more as general
+exploration/spawn-position variance on a corridor-constrained map
+("pipes") than a new distinct mechanism.
+
+`knifefight`: a **fourth** clean instance of the exact `rift`/`keepout`/
+`minimaze` pattern -- we dominate cheese (4950 vs. 925) and
+`cheeseTransferred` (7440 vs. 3420) by a wide margin, yet lose the game
+because `catDamage` favors the opponent 610 vs. 1460 (2.4x).
+
+**Checked whether the cat-engagement code has actually diverged between
+`bot` and `pure_cooperator`** (they're supposed to share it, differing
+only in backstab policy) rather than assuming it, given how central this
+gap has become: diffed the cat-handling block of both files with
+comments stripped. **Byte-identical.** Not a code-divergence bug.
+
+**This changes the read on the whole investigation.** Since both bots
+run the exact same combat decision logic, a recurring catDamage gap
+between them can't be a decision-*quality* problem -- it has to be a
+decision-*exposure* problem: whichever side's rats happen to path nearer
+cats (map geometry, spawn corner, exploration RNG) ends up with more
+engagements and more cumulative bite damage, independent of how good
+either side's fight-or-flee logic is. This is the same underlying
+phenomenon as the `sittingducks` map-asymmetry finding, just showing up
+as a damage-output gap between identical opponents instead of a
+lopsided-lethality gap between two different cats.
+
+It also explains, retroactively, why Iterations 21/22/27 all failed:
+none of them were actually fixing a *decision* -- `bot` was already
+making the same in-combat decisions `pure_cooperator` makes. "Seek out
+more cats when idle" was trying to force more *exposure*, but a
+scripted detour toward one remembered location isn't a reliable way to
+out-expose an opponent whose *natural, unmodified* exploration pattern
+already happens to run through better cat territory on a given map.
+
+**Conclusion: treating this catDamage variance as accepted Gauntlet
+noise from here, not a further-pursuable bug.** Four maps, one
+mechanism, three failed fix attempts, and now a code-identity check
+confirming there's no decision-logic gap left to close. Redirecting
+future investigation toward losses where `bot` is *not* already
+economically dominant -- those are more likely to reflect genuine,
+fixable decision-quality gaps rather than map-luck variance between two
+bots running identical code.
+
 **Status:** back to the clean `g_iter10` baseline (70.0%,
 `gauntlet/20260902-163148/`). No accepted changes since Iteration 24.
