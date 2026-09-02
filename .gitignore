@@ -4,6 +4,14 @@
 
 **/matches
 **/client
+/logs
+/.tools
+/gauntlet
+tools/.venv/
+**/__pycache__/
+
+# Claude Code personal project settings
+.claude/settings.local.json
 
 ###### JAVA ######
 
