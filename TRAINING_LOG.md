@@ -2261,3 +2261,20 @@ detour state) and watching it happen live, rather than reasoning from
 aggregate Gauntlet deltas alone -- four rounds of "plausible-sounding
 refinement, Gauntlet says worse" is a sign the debugging loop itself
 needs to change, not just the parameters inside it.
+
+**Follow-up before moving on:** checked the actual terrain between the
+King (`(1,1)`) and the stuck location (`(17,6)`) with a wider
+`--terrain` view -- a genuine maze of wall/dirt corridors, not a simple
+local pocket. This reframes the whole investigation: the four failed
+attempts weren't failing because of bad parameter choices, they were
+failing because **greedy direction-toward-target movement (recompute
+`directionTo()`, sidestep if blocked) cannot reliably solve maze
+navigation at all**, regardless of how the stuck-detection is tuned --
+no amount of "detect stuck, then escape" patching fixes a movement
+*strategy* that has no notion of a path, only a heading. A real fix
+needs local pathfinding (BFS over `senseNearbyMapInfos()`'s visible
+passability, similar in spirit to what the engine's own cat AI gets via
+`getBfsDir()` -- not exposed to player bots, so it'd need to be
+implemented from scratch). That's a legitimately larger project, not a
+quick iteration -- noting it as an architectural limitation rather than
+continuing to patch around it.
