@@ -5,8 +5,17 @@ completed Gauntlet run's results.csv. See tools/plot_vs_old_bots.py for
 the full picture (what this data is for, how to regenerate the chart).
 Ported from battlecode22-vibe's tools/track_vs_old_bots.py.
 
-Usage:
-    OPPONENTS="g_iter1" MAPSET=loop tools/gauntlet.sh
+The roster is **every 10th accepted snapshot** (g_iter1, g_iter11,
+g_iter21, ...), matching battlecode22-vibe's policy -- a fixed set of
+historical reference points that grows as the project does, so the chart
+shows progress against genuinely old bots rather than only the single
+oldest one. Add the next one each time a g_iterN with N ending in 1
+(11, 21, 31, ...) is accepted; never replace earlier entries.
+
+Usage (keep this list current -- see roster_opponents() below, which
+derives it automatically):
+    OPPONENTS="$(tools/.venv/bin/python3 tools/track_vs_old_bots.py --roster)" \\
+        tools/gauntlet.sh
     tools/.venv/bin/python3 tools/track_vs_old_bots.py gauntlet/<run-id>/
 
 current_snapshot is auto-detected as the highest-numbered src/g_iterN/
@@ -31,6 +40,24 @@ def current_snapshot():
     return max(names, key=lambda n: int(n[len("g_iter"):]))
 
 
+def roster_opponents():
+    """Every 10th accepted snapshot (g_iter1, g_iter11, g_iter21, ...) that
+    actually exists, excluding the current one (a bot doesn't play itself).
+
+    Derived rather than hardcoded specifically so this can't silently go
+    stale: the original port hardcoded "g_iter1" as the usage example
+    because that was the only snapshot old enough at the time, and then
+    wasn't revisited when g_iter11 was accepted -- so the chart kept
+    tracking a single reference point long after a second one existed.
+    """
+    existing = {p.name for p in (REPO_ROOT / "src").iterdir()
+                if p.is_dir() and re.fullmatch(r"g_iter\d+", p.name)}
+    current = current_snapshot()
+    newest = int(current[len("g_iter"):])
+    return [n for n in (f"g_iter{i}" for i in range(1, newest + 1, 10))
+            if n in existing and n != current]
+
+
 def run_timestamp(rundir):
     m = re.search(r"(\d{8})-(\d{6})", rundir.name)
     dt = datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
@@ -38,6 +65,9 @@ def run_timestamp(rundir):
 
 
 def main():
+    if len(sys.argv) == 2 and sys.argv[1] == "--roster":
+        print(" ".join(roster_opponents()))
+        return
     if len(sys.argv) != 2:
         print(__doc__)
         sys.exit(1)

@@ -2490,3 +2490,68 @@ tiles deplete, but a *sticky* target (commit to one cheese tile until
 reached or depleted, per BC22's `LEARNINGS.md` "a sticky/committed target
 beats recompute-nearest-every-round," one of that project's single
 largest wins) would make it a fixed target and unlock the same fix there.
+
+---
+
+## Iteration 36 attempt — sticky cheese target + bug-nav for collection; REJECTED
+
+Direct follow-on from Iteration 35's own "Next" note, combining two BC22
+lessons: `LEARNINGS.md`'s sticky-target pattern (a Miner recomputing
+"nearest lead beacon" every round ping-ponged between similar beacons,
+"wasting many rounds moving without ever mining" -- committing to one
+was worth 60.3%->69.7% there) and Iteration 35's finding that
+bug-navigation only works for *fixed* targets. `collectCheese()` had the
+identical recompute-every-turn structure, so making it sticky should fix
+the ping-pong *and* unlock pathfinding for collection.
+
+Implemented: remember the chosen cheese tile; keep it until picked up or
+sensed depleted; bound the commitment at 40 rounds so an unreachable
+tile can't recreate the old camping bug; `useBugNav=true` now that the
+target is fixed.
+
+**Smoke test** (`knifefight` vs. `pure_cooperator`, one of the two maps
+Iteration 35 regressed): flipped back to a win. **Full Gauntlet: 28/40
+(70.0%), down from 75.0%.** `pure_cooperator` 65% (unchanged),
+`immediate_defector` 85%->75%. New losses spread across `tiny` (both
+coop sides), `pipes`, `rift`, `knifefight` (both `immediate_defector`
+sides), `whereisthecheese` (both `immediate_defector` sides).
+
+**REJECT.** Reverted to `g_iter12`.
+
+**Diagnosis:** unlike delivery (one fixed King, always worth reaching),
+cheese tiles are contested and deplete -- several rats committing to the
+*same* tile, or holding a 40-round commitment to a tile another rat
+empties first, wastes more than the ping-pong it prevents. BC22's Miner
+case differs in a way that matters: lead beacons there were large and
+long-lived, so commitment paid off; cheese tiles here are small and
+frequently consumed mid-approach. A future attempt would need
+per-tile claim deconfliction (shared-array or ID-based partitioning) so
+rats commit to *different* tiles, not the same one -- untried.
+
+---
+
+## Infrastructure fix — vs-old-bots roster was tracking only g_iter1, not every 10th snapshot
+
+User caught this: "Why didn't g_iter12 play against g_iter11 in the
+old-bots graph? I thought we were playing against a gauntlet of every
+10th old bot." Correct -- BC22's `tools/track_vs_old_bots.py` documents
+the roster explicitly as `g_iter1 g_iter11 g_iter21 g_iter31 ...`. When
+ported, the usage example was hardcoded to `OPPONENTS="g_iter1"` because
+that was the only snapshot old enough at the time, and never revisited
+once `g_iter11` was accepted -- so the chart kept tracking a single
+reference point after a second one existed.
+
+Fixed properly rather than just re-running: added
+`tools/track_vs_old_bots.py --roster`, which *derives* the every-10th
+list from the snapshots that actually exist (excluding the current one),
+so it can't silently go stale again. Backfilled `g_iter12` against the
+full roster (dropping the incomplete single-opponent row first):
+**vs. `g_iter1` 16/20 (80%), vs. `g_iter11` 14/20 (70%)**.
+
+The new data point is independently informative: **`g_iter12` beats its
+immediate predecessor `g_iter11` head-to-head 70-30**, which is real
+corroboration for Iteration 35's mechanistic accept -- that change tied
+on the peer Gauntlet (75.0% both), so a direct head-to-head against the
+bot it replaced is exactly the evidence that was missing. Had the
+roster been correct at the time, this would have been available as
+accept evidence rather than found afterward.
