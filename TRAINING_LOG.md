@@ -2555,3 +2555,50 @@ on the peer Gauntlet (75.0% both), so a direct head-to-head against the
 bot it replaced is exactly the evidence that was missing. Had the
 roster been correct at the time, this would have been available as
 accept evidence rather than found afterward.
+
+---
+
+## Iteration 37 attempt — congestion-based build throttle; REJECTED (sixth economy failure)
+
+The strongest remaining untried lead, from BC22's `RESEARCH.md` section
+5: "Congestion is a real, easily-overlooked resource cost." Both Gone
+Fishin' and 4 Musketeers independently found over-producing a cheap unit
+"actively clogged pathing near the spawn point and reduced the
+throughput of everything else," and both added "explicit production
+throttling keyed off local unit density, not just 'should I afford to
+build this.'"
+
+This was genuinely promising because it identified the blind spot shared
+by all five previous economy attempts (Iterations 28-31, 34): every one
+keyed off *cheese* (affordability, scaling reserve, cooldown,
+hysteresis, rolling trend) or off `builtCount` (cumulative-ever-built,
+which can never decrease -- the classic cumulative-vs-live pitfall, and
+the direct cause of the starvation lockout). Local density is a *live*
+census by construction, so in principle it throttles the early overbuild
+*and* un-throttles after attrition, with no cap to get stuck against.
+
+**Two variants, both rejected:**
+
+1. **Density across the King's full vision, limit 8: 27/40 (67.5%)**,
+   with an unmistakable new signature -- eliminations at r387, r410,
+   r525, r541, r571, r636, r645, r652, r694, r702, r745, far faster than
+   any previous failure mode. That's death by *under*-building: 8 allies
+   loosely spread across vision's ~78 tiles is completely normal during a
+   healthy ramp, so the throttle latched almost immediately and
+   suppressed production for the rest of the game.
+2. **Density within the build radius only (radius^2 8, ~25 tiles), limit
+   6:** smoke tests still died fast (`closeup` r430, `tiny` r612) --
+   still under-building.
+
+**REJECT.** Reverted to `g_iter12`.
+
+**Stopping this thread here rather than trying a third threshold.** The
+mechanism is sound and the diagnosis of the blind spot was correct, but
+at this point I'm guessing threshold values again -- the exact pattern
+already documented as unproductive after Iterations 28-31/34. Six
+attempts across the King's build policy have now failed. What's
+consistently missing is a *principled* way to set the level rather than
+another guess: the right next step is to measure, from an accepted
+baseline replay, what near-King density and build cadence actually look
+like in games we win, and derive the threshold from that -- rather than
+proposing a number and spending a full Gauntlet finding out it's wrong.
