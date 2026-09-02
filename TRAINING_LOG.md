@@ -2152,3 +2152,38 @@ iteration's own new `tiny` weakness, see above) and both sides of
 a single frozen old snapshot are noisy, and the primary peer-roster
 signal has been climbing over the same span (67.5%->70.0%->75.0%) -- but
 worth watching if the trend continues over the next couple of accepts.
+
+---
+
+## Diagnostic: tiny vs. pure_cooperator -- the new weakness is the already-known economy issue, not a new one
+
+Traced `tiny` (20x20, genuinely small): both Kings spawn close together
+near the top (`(7,2)`/`(12,2)`), both cats sit south (`(2,15)`/`(16,15)`),
+and the only two cheese mines (`(6,9)`/`(13,9)`) sit squarely between
+them -- there's no way to reach the map's entire cheese supply without
+passing through cat territory. Combat starts almost immediately (round
+33) and is heavy for both sides (40 cat-attack events and 208
+`RatAttack` events in just the first 300 rounds). Death tally through
+round 550: 25 ours vs. 18 theirs -- real but not overwhelming.
+
+**The decisive asymmetry is that our population hit zero and stayed
+there, while `pure_cooperator` kept a standing population of ~7 the
+whole game.** Checked why: our King had already hit exactly 25 builds
+(`MAX_POPULATION`) well before the crash. This is not a new bug from
+Iteration 32 -- it's the identical cumulative-cap starvation lockout
+already diagnosed and left unsolved across Iterations 28-31 (root cause:
+`builtCount` is cumulative-ever-built, and once it hits the cap the King
+can never rebuild losses no matter how low live population drops).
+`tiny` is newly exposed to it specifically *because* Iteration 32 fixed
+exploration -- rats that used to get passively trapped near spawn on
+this map (accidentally avoiding the cat-dense middle) now actually reach
+it, take real combat losses, and then hit a King that's already spent
+its entire cumulative build allowance with no way to recover.
+
+**Not re-attempting the economy fix right now** -- four prior attempts
+(28 unbounded cap, 29 scaling reserve, 30 build cooldown, 31 hysteresis)
+already showed this needs a genuine spending-model redesign, not another
+parameter guess, and `tiny` doesn't add a new angle on *how* to fix it,
+just a second confirmed instance of *why* it needs fixing. Recording
+this now so a future redesign attempt has two independent motivating
+maps (`closeup` and `tiny`) to validate against instead of one.
