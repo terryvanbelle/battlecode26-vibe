@@ -2187,3 +2187,77 @@ parameter guess, and `tiny` doesn't add a new angle on *how* to fix it,
 just a second confirmed instance of *why* it needs fixing. Recording
 this now so a future redesign attempt has two independent motivating
 maps (`closeup` and `tiny`) to validate against instead of one.
+
+---
+
+## Iteration 33 attempts — fix cheese held forever without delivery; four attempts, all REJECTED
+
+Traced the new `closeup` loss (task, not Step 4 self-direction) with
+`--robot`: `id12609` carried `cheese=20` for **340+ rounds** (round 519
+through at least 859), cycling through 4 distinct tiles `(17,5)-(17,8)`
+near a maze pocket, `deliverCheese()` never once succeeding. Root cause:
+`moveToward()` recomputes direction-to-King fresh every turn, and the
+shared `stuckCycles` escape (`tryMove()`) only catches an *exact*
+2-round-ago repeat -- a clean period-4 cycle never matches "2 rounds
+ago" at all (A->B->C->D->A..., 2 rounds prior to C is A, never C), so it
+silently never fires. This is directly on-topic for the user's original
+"stuck in a small region" report -- Iteration 32 fixed the exploration
+path, but this is the same class of bug in the delivery path, which
+Iteration 32 didn't touch.
+
+Four attempts, in order, each one a reasoned refinement of the last, and
+each one **worse** than the last -- a real signal to stop, not push
+harder:
+
+1. **Widen the shared detection window** (match any of last 2-4 rounds,
+   not just exactly 2) using the existing single-hop escape. Full
+   Gauntlet: **67.5%, down from 75.0%.** Diagnosis: checking 3 reference
+   points instead of 1 is inherently more likely to false-positive on
+   ordinary non-cyclic movement, and this fires for *every* caller
+   (`explore()`'s own inner movement, `collectCheese()`, not just
+   delivery).
+2. **Raise the confirmation threshold to 3** (same shared widened
+   window). Full Gauntlet: **72.5%**, better than #1 but still down from
+   baseline. `knifefight` (a known tight, crowded-spawn map) still showed
+   collateral false positives.
+3. **Scope to `deliverCheese()` alone** (dedicated 4-call-deep position
+   history, mirroring Iteration 32's `explore()`-specific pattern) plus a
+   **sustained 6-round random detour** once confirmed stuck, since a
+   single hop isn't enough before the very next call recomputes
+   direction-to-King and walks straight back into the same pocket. Full
+   Gauntlet: **67.5%**, no better than #1 despite being properly scoped
+   -- diagnosis revised: a crowded King with several rats jostling for
+   the same nearby tiles can incidentally revisit a tile within a few
+   rounds *without* being in a real maze trap, and forcing 6 wasted
+   rounds on that false positive is far more costly than the old
+   single-hop escape ever was.
+4. **Exclude "near the King" from stuck-tracking entirely** (skip the
+   whole apparatus within `distanceSquared <= 20` of the King, on the
+   theory that congestion there resolves itself) plus a shortened
+   4-round detour. Full Gauntlet: **60.0%, the worst of all four** --
+   `keepout` lost on all four possible pairings.
+
+**All four reverted. Nothing accepted.** `src/bot/RobotPlayer.java` is
+back to the clean `g_iter11` state.
+
+**Honest assessment:** the bug is real and confirmed (340+ rounds
+undelivered cheese is not in dispute), but four attempts each getting
+*worse* than the last -- not converging, not oscillating around
+baseline, actually trending down -- means the mental model behind these
+fixes is missing something. Possibilities not yet investigated: (a) the
+Gauntlet's per-game results may be more RNG-cascade-sensitive at this
+resolution than these comparisons assume, since each code change shifts
+every subsequent robot's random draw sequence for the whole game --
+40-game samples may not be enough to reliably rank these four variants
+against each other, only against the much larger swing Iterations 24/32
+produced; (b) the "sustained detour" mechanism itself may have an
+un-diagnosed side effect (e.g. interacting badly with the priority order
+in `runBabyRat()` -- a rat mid-detour still re-checks
+`deliverCheese()` first every subsequent call, so the detour and the
+delivery-seeking logic may be fighting each other in a way not
+accounted for). **Not attempting a fifth guess.** If this is picked up
+again, start by instrumenting a specific map (`indicatorString` showing
+detour state) and watching it happen live, rather than reasoning from
+aggregate Gauntlet deltas alone -- four rounds of "plausible-sounding
+refinement, Gauntlet says worse" is a sign the debugging loop itself
+needs to change, not just the parameters inside it.
