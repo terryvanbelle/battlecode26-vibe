@@ -2663,3 +2663,53 @@ building them at high population is priced completely differently.
 -- a much larger cheese buffer for refreshes than for the opening burst
 (the opening burst can safely spend down to `RESERVE`; a replacement
 burst cannot), and/or a partial rather than full budget refresh.
+
+---
+
+## Iteration 39 — cost-aware replacement reserve; ACCEPTED, 90.0% (largest jump of the project)
+
+Follows directly from Iteration 38's replay finding: replacement
+building was bankrupting the King because `BUILD_ROBOT_COST_INCREASE =
+10*floor(pop/4)` makes build cost scale with *current* population, so a
+budget refresh to "25 builds" at population ~19 costs far more than the
+identical 25 builds at population 0.
+
+**Fix:** the opening burst keeps spending down to `RESERVE` exactly as
+before (unchanged, proven -- rounds 1-25, one rat per round), but
+replacement windows require a much deeper buffer
+(`REPLACEMENT_RESERVE = 1000`): topping the army back up may draw only
+on genuine surplus, never on the King's survival margin. This is the
+escalating-threshold pattern BC22's `LEARNINGS.md` records for
+discretionary spending -- a committed investment (the opening army) and
+a discretionary one (replacing losses) should not be gated at the same
+bar.
+
+**Smoke test** (`minimaze`, the map Iteration 38 broke): loss -> win, and
+the mechanism is visible in the economy trace -- treasury stabilizes at
+~1000-1050 (the reserve floor) instead of collapsing to 18, population
+sustains at 23-32 against the opponent's 17-19, `cheeseTransferred`
+6970 vs. 4745, `catDamage` 1160 vs. 20.
+
+**Full Gauntlet: 36/40 (90.0%)**, up from the `g_iter12` baseline's
+75.0%. `pure_cooperator` 70%->85%, `immediate_defector` 80%->95%.
+
+**Diff shape: six losses fixed, zero new.** Every remaining loss was
+already a loss at baseline -- `tiny` (both), `minimaze` bot=B,
+`whereisthecheese` bot=B. A purely one-directional improvement with no
+regression on any map or side, which is the cleanest accept signal this
+project has produced.
+
+**ACCEPT.** Snapshotted as `src/g_iter13/`; new baseline
+`gauntlet/20260902-233818/`.
+
+**Why this took seven attempts, recorded as the methodology lesson:**
+Iterations 28-31, 34 and 37 all failed because they *proposed a
+threshold and let a 40-game Gauntlet adjudicate it*, and every one of
+them throttled the opening burst -- the single behavior every winning
+game depends on. What finally worked was measuring first: extracting the
+actual build cadence from a winning replay (25 builds, rounds 1-25, then
+silence) reframed the problem from "the King builds too fast" to "the
+King can never rebuild," and tracing the resulting regression falsified
+the next obvious guess (congestion) in favor of the real one (cost
+scaling). Two measurements replaced seven guesses. **Measure the target
+behavior before proposing a threshold for it.**
