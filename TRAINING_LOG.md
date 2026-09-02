@@ -1121,3 +1121,50 @@ than a blanket "prefer capture" rule -- but per `TRAINING_ALGORITHM.md`'s
 "prefer fresh territory," the next attempt should look elsewhere first
 rather than immediately re-entering this same combat-tuning area a sixth
 time.
+
+---
+
+## Iteration 18 attempt — high-risk structural exploration: opportunistic multi-King formation; REJECTED (catastrophic)
+
+Fifth consecutive incremental reject (13-17) is exactly
+`TRAINING_ALGORITHM.md`'s trigger for "High-risk structural
+exploration" -- a first-class move, not a last resort. Multi-King
+formation (`RULES.md`: a Baby Rat with >=7 allied rats in its
+surrounding 3x3 can upgrade for 50 cheese, consuming all of them into
+the new King) was completely unused all session. Hypothesis: several
+recurring losses trace back to single-King structural limits (one
+shared-array writer, one production source, cheese-transport distance
+from mines) that a second, well-placed King could route around. First
+cut deliberately opportunistic: any Baby Rat calls `becomeRatKing()`
+whenever eligible, no engineered placement.
+
+**Smoke test on `closeup` vs. `immediate_defector`: catastrophic --
+round 229, vs. the `g_iter9` baseline's 1270.** Traced immediately (no
+full Gauntlet needed, Step 6.5's "unambiguous regression already visible
+at small scale" carve-out): **`kings=3` by round 100.** Each Rat King
+consumes `RAT_KING_CHEESE_CONSUMPTION=2`/round from the *same shared
+global cheese pool* -- three Kings means 6/round base upkeep instead of
+2, with no proportional income increase, plus each formation directly
+cannibalized 7 Baby Rats' worth of population and HP into the new King.
+Cheese crashed from ~200 (round 50, 1 extra King already) to 23 (round
+100, 2 extra) to effectively 0 by round 150, and stayed there. The
+Kings themselves then started starving each other via the shared
+upkeep drain.
+
+**REJECT, decisively.** Reverted; `src/bot/` is back to `g_iter9`. Also
+noted: `tools/replaydump/ReplayDump.java` has no case for
+`Action.UpgradeToRatKing` (silently dropped by the default case) --
+formation was only visible via the `teamAliveRatKings`-packed `kings=N`
+field, not a direct action log. Worth adding a case if multi-King is
+revisited.
+
+**This was still a valuable, real exploration**, not a wasted attempt --
+per `TRAINING_ALGORITHM.md`'s own framing, a rejected structural attempt
+is not a failure state, and this one produced an unambiguous,
+mechanistically-clear answer instead of another inconclusive small-scale
+tweak: **uncontrolled King formation is a hard no** given the shared,
+per-King upkeep cost. A future attempt in this space would need
+formation gated on a specific, verified payoff (e.g. only forming near
+an already-discovered, currently-unreached cheese mine, where the new
+King's *income* would plausibly exceed its own 2/round upkeep quickly)
+rather than opportunistic triggering whenever 7 rats happen to cluster.
