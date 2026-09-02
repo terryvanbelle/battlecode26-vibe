@@ -1552,3 +1552,85 @@ then getting walked over by a wandering cat while stationary
 action required). `catDamage` looking dominant (1450 vs. 240 on
 `closeup`) was real but beside the point -- the King was starving from
 population loss that had nothing to do with fighting cats at all.
+
+---
+
+## Diagnostic pass over the new baseline's remaining losses
+
+With `g_iter10` as the new baseline (`gauntlet/20260902-163148/`, 28/40),
+traced two more losing games before attempting anything:
+
+**`rift` vs. `pure_cooperator`** (newly picked up a second losing side
+this iteration): genuinely healthy, not a regression to chase. Both
+sides thriving (20-21 alive babies steady all game, cheese growing into
+the thousands for both), and we actually *lead* on cheese (11465 vs.
+8090) and `cheeseTransferred` (13935 vs. 10545) by round 2000 -- lose
+narrowly on `catDamage` (200 vs. 270), which carries the heaviest
+scoring weight (0.5 in coop mode per TRAINING_ALGORITHM.md). A close,
+clean points decision, not a bug.
+
+**`keepout`** turned out to have two *different* failure modes depending
+on opponent:
+- vs. `pure_cooperator`: the same shape as `rift` -- we lead economically
+  (population 9 vs. 6, cheese 5850 vs. 3605) but lose on points via the
+  `catDamage` gap (270 vs. 380). Not chased further this round -- see
+  "Next" below.
+- vs. `immediate_defector`: a real population collapse (25->2 over the
+  full game), and *not* a cat problem (`catDamage` actually favors us,
+  370 vs. 320). Death tally in the first 400 rounds: 19 of ours vs. 10 of
+  theirs, 173 `RatAttack` events vs. only 20 cat-related ones -- rat-vs-rat
+  attrition, the same functional area as the 7 straight rejects in
+  Iterations 13-20.
+
+---
+
+## Iteration 25 attempt — cap exploration distance from King; REJECTED (broad regression)
+
+Traced the `keepout` vs. `immediate_defector` population collapse with
+`tools/replay-dump.sh --robot`: `id10869` spawned near our King at
+`(41,23)` and walked in a dead-straight line the *entire* width of the
+44-tile map -- its fixed `preferredExploreDir` (assigned once from
+`rc.getID()` in Iteration 4's 8-way fanout) happened to point roughly
+toward the enemy side, and nothing in `explore()` has any notion of
+"far enough." It died at `(15,21)`, 10 tiles from the enemy King, HP
+dropping 100->20 across 4 rounds with -30 jumps -- multiple simultaneous
+attackers, not a 1v1 fight. A genuinely fresh mechanism: exploration-
+range control, not reactive combat-decision tuning (distinct from
+everything tried in Iterations 13-20).
+
+**Fix:** `explore()` now takes `kingLoc`; once a rat wanders past half
+the map's larger dimension from its own King, it heads home instead of
+continuing in its preferred direction.
+
+**Smoke test** (the motivating `keepout` game): flipped from a loss to a
+win. **Full Gauntlet: 24/40 (60.0%), down sharply from 70.0%** --
+`pure_cooperator` 60%->45% (10 of 20 games now losses, up from 8, spread
+across `closeup`/`keepout`(both sides)/`knifefight`/`minimaze`/`pipes`/
+`sittingducks`/`rift`(both sides)/`whereisthecheese`/`thunderdome`),
+`immediate_defector` 80%->75%. Broad-based regression, not concentrated
+on the motivating map.
+
+**REJECT** (Step 6.5). Reverted `src/bot/RobotPlayer.java`.
+
+**Diagnosis:** the fix is real for the specific case it targeted, but
+the cap (half the map's larger dimension) is evidently too aggressive
+across most maps -- turning a rat back home mid-search, even one that
+hasn't found trouble, likely produces wasted back-and-forth ("yo-yo")
+travel that costs real cheese-search time on maps where wandering that
+far is normal and safe, not evidence of having wandered into danger.
+**Untried refinement:** condition the retreat on some signal of actual
+danger (e.g. only cap distance once an enemy has been sighted recently,
+or only on maps large enough that half-width is already a very long
+walk) rather than applying a blanket distance cap on every map
+regardless of that map's actual risk profile.
+
+**Next.** Two open, well-evidenced but unresolved threads: (1) the
+`catDamage`-vs-economy tradeoff seen on `rift`/`keepout` vs.
+`pure_cooperator` -- we're economically ahead but lose the heavily-
+weighted `catDamage` score component; Iterations 21/22 already showed
+naive fixes here regress broadly, so this needs a more conditional
+approach than "seek cats when idle." (2) `keepout`'s rat-vs-rat
+attrition vs. `immediate_defector` -- Iteration 25 found and partially
+addressed the "lone wanderer" mechanism but the fix was too blunt;
+refining it (danger-conditional retreat instead of a blanket distance
+cap) is the natural next attempt, not a new area.
