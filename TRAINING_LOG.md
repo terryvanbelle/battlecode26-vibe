@@ -382,3 +382,52 @@ not a confound with base competence.
 addressed): zero cat damage in every game traced so far. Once a real
 opponent forces longer/different games this may surface on its own; if
 not, it's the next dedicated target.
+
+---
+
+## Gauntlet pool update — synced archetypes, retired examplefuncsplayer
+
+Not a `src/bot/` code change (no new iteration), so no accept/reject
+decision here -- this is "Growing/retiring the Gauntlet" (TRAINING_ALGORITHM.md).
+
+**Kept archetypes in sync.** First real test of `pure_cooperator`/
+`immediate_defector` (`OPPONENTS="pure_cooperator immediate_defector"
+tools/gauntlet.sh`) landed at 80%/100% -- suspiciously easy. Reading the
+source showed why: both were frozen at Iteration 1's *very first* cut,
+before any of Iterations 2-4's fixes (no cheese reserve, no population
+cap, no King dirt-digging, no fix for the permanent-stuck bug, no
+exploration fan-out). They'd have inherited the same starvation/gridlock/
+freeze failures `bot` no longer has, which would dominate the result and
+say nothing about backstab policy specifically -- the whole point of
+these archetypes. Rewrote both to share `src/bot/`'s current economy/
+search/movement code exactly, keeping only their distinctive policy logic
+(pure_cooperator: no retaliation clause, ever; immediate_defector: attacks
+on sight from turn 1 + stays leashed near its King). Re-ran:
+**`pure_cooperator` 50%, `immediate_defector` 75%** -- both now genuine
+peers (30-90% range), `pure_cooperator` especially: many games run the
+full 2000 rounds to the points cap rather than a kill, which never
+happened once before this session (every prior game ended by starvation,
+coin flip, or `RATKING_DESTROYED` well under round 1300).
+
+**Full Gauntlet with the updated pool (`gauntlet/20260902-013402/`):
+45/60 (75%) overall -- `examplefuncsplayer` 20/20 (100%), `pure_cooperator`
+10/20 (50%), `immediate_defector` 15/20 (75%).**
+
+**Retirement.** `examplefuncsplayer` has now hit 100% in two consecutive
+Gauntlets it appeared in (`gauntlet/20260902-012436/` and this one) --
+meets the ≥80%-in-two-consecutive-Gauntlets retirement rule. Removed from
+`tools/gauntlet.sh`'s default `OPPONENTS`. `pure_cooperator` and
+`immediate_defector` are the standing peer roster going forward (both
+30-90%, no benchmark opponents exist yet -- nothing has beaten `bot` even
+once this session).
+
+**Next (the real Step 4 target now):** pick a losing game against
+`pure_cooperator` -- it's the hardest, most informative opponent available
+and the only one currently forcing full 2000-round games decided by
+points. `keepout`/`knifefight`/`minimaze`/`sittingducks`/`rift`/
+`thunderdome` all lost this way; worth tracing one to see which of the
+three point components (cat damage %, living-rat-king %, cheese-transferred
+%) is actually costing the game, since "zero cat damage" has been a
+constant across every replay traced all session and a competent-economy
+mirror match is the first real chance to see whether that alone explains a
+loss.

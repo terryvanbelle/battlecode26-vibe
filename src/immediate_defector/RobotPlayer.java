@@ -12,7 +12,10 @@ import java.util.Random;
  * `src/pure_cooperator/RobotPlayer.java` (never fights back at all). Baby
  * Rats stay on a short leash around their home Rat King ("turtle") rather
  * than roaming far for cheese, prioritizing defense of the King over
- * economy once any enemy is sighted.
+ * economy once any enemy is sighted. Otherwise identical to `src/bot/` as
+ * of Iteration 4 (economy/search fixes included -- see TRAINING_LOG.md's
+ * "kept archetypes in sync" note; this file is meant to isolate the
+ * backstab-policy dimension specifically, not also be a weaker economy).
  *
  * Purpose: tests our own bot's resilience to a worst-case early betrayal
  * (whichever team meets first likely triggers a backstab almost
@@ -21,6 +24,7 @@ import java.util.Random;
 public class RobotPlayer {
 
     static Random rng;
+    static int builtCount = 0;
     static final int LEASH_RADIUS_SQUARED = 100; // ~10 tiles from home King
 
     public static void run(RobotController rc) throws GameActionException {
@@ -45,16 +49,53 @@ public class RobotPlayer {
         }
     }
 
+    // ---------------------------------------------------------------- King
+
     static void runRatKing(RobotController rc) throws GameActionException {
         rc.writeSharedArray(0, rc.getLocation().x + 1);
         rc.writeSharedArray(1, rc.getLocation().y + 1);
 
         attackNearestHostile(rc);
+
+        RobotInfo[] nearby = rc.senseNearbyRobots();
+        RobotInfo nearestCat = nearestOfType(rc, nearby, UnitType.CAT);
+        if (nearestCat != null && nearestCat.getLocation().distanceSquaredTo(rc.getLocation()) <= 20) {
+            flee(rc, nearestCat.getLocation());
+        }
+
         pickUpBestNearbyCheese(rc);
 
+        final int RESERVE = 150;
+        final int MAX_POPULATION = 15;
         MapLocation buildLoc = findBuildLocation(rc);
-        if (buildLoc != null && rc.canBuildRat(buildLoc)) {
+        if (buildLoc != null && rc.canBuildRat(buildLoc)
+                && rc.getGlobalCheese() - rc.getCurrentRatCost() >= RESERVE
+                && builtCount < MAX_POPULATION) {
             rc.buildRat(buildLoc);
+            builtCount++;
+        } else if (buildLoc == null) {
+            digTowardOpenSpace(rc);
+        }
+
+        rc.setIndicatorString("king cheese=" + rc.getGlobalCheese()
+                + (nearestCat != null ? " cat@" + nearestCat.getLocation() : ""));
+    }
+
+    static void digTowardOpenSpace(RobotController rc) throws GameActionException {
+        MapLocation me = rc.getLocation();
+        MapLocation best = null;
+        int bestDist = Integer.MAX_VALUE;
+        for (MapInfo info : rc.senseNearbyMapInfos()) {
+            if (!info.isDirt()) continue;
+            if (!rc.canRemoveDirt(info.getMapLocation())) continue;
+            int d = info.getMapLocation().distanceSquaredTo(me);
+            if (d < bestDist) {
+                bestDist = d;
+                best = info.getMapLocation();
+            }
+        }
+        if (best != null) {
+            rc.removeDirt(best);
         }
     }
 
@@ -72,6 +113,8 @@ public class RobotPlayer {
         }
         return best;
     }
+
+    // ------------------------------------------------------------ Baby Rat
 
     static void runBabyRat(RobotController rc) throws GameActionException {
         RobotInfo[] nearby = rc.senseNearbyRobots();
@@ -109,15 +152,14 @@ public class RobotPlayer {
         if (enemy != null) {
             // An enemy is visible but out of attack range: close in rather
             // than wander off, since defection is already committed.
-            moveToward(rc, enemy.getLocation());
-            return;
+            if (moveToward(rc, enemy.getLocation())) return;
         }
 
-        // No enemy in sight: stay on the leash. Collect cheese only within
-        // leash range of home; otherwise head back toward the King.
+        // No enemy in sight (or unreachable): stay on the leash. Collect
+        // cheese only within leash range of home; otherwise head back
+        // toward the King.
         if (kingLoc != null && rc.getLocation().distanceSquaredTo(kingLoc) > LEASH_RADIUS_SQUARED) {
-            moveToward(rc, kingLoc);
-            return;
+            if (moveToward(rc, kingLoc)) return;
         }
 
         if (collectCheese(rc)) return;
@@ -137,8 +179,7 @@ public class RobotPlayer {
             rc.transferCheese(kingLoc, rc.getRawCheese());
             return true;
         }
-        moveToward(rc, kingLoc);
-        return true;
+        return moveToward(rc, kingLoc);
     }
 
     static boolean collectCheese(RobotController rc) throws GameActionException {
@@ -157,10 +198,9 @@ public class RobotPlayer {
         MapLocation loc = best.getMapLocation();
         if (rc.canPickUpCheese(loc)) {
             rc.pickUpCheese(loc);
-        } else {
-            moveToward(rc, loc);
+            return true;
         }
-        return true;
+        return moveToward(rc, loc);
     }
 
     static boolean engage(RobotController rc, MapLocation target) throws GameActionException {
@@ -168,14 +208,15 @@ public class RobotPlayer {
             rc.attack(target);
             return true;
         }
-        moveToward(rc, target);
-        return true;
+        return moveToward(rc, target);
     }
 
     static boolean flee(RobotController rc, MapLocation threat) throws GameActionException {
         Direction away = rc.getLocation().directionTo(threat).opposite();
         return tryMove(rc, away);
     }
+
+    // ------------------------------------------------------------- Shared
 
     static void attackNearestHostile(RobotController rc) throws GameActionException {
         MapLocation me = rc.getLocation();
@@ -258,9 +299,9 @@ public class RobotPlayer {
         return count;
     }
 
-    static void moveToward(RobotController rc, MapLocation target) throws GameActionException {
-        if (rc.getLocation().equals(target)) return;
-        tryMove(rc, rc.getLocation().directionTo(target));
+    static boolean moveToward(RobotController rc, MapLocation target) throws GameActionException {
+        if (rc.getLocation().equals(target)) return true;
+        return tryMove(rc, rc.getLocation().directionTo(target));
     }
 
     static boolean tryMove(RobotController rc, Direction want) throws GameActionException {
@@ -289,13 +330,25 @@ public class RobotPlayer {
         return false;
     }
 
+    static Direction preferredExploreDir;
+
     static void explore(RobotController rc) throws GameActionException {
+        if (preferredExploreDir == null) {
+            Direction[] dirs = Direction.allDirections();
+            preferredExploreDir = dirs[Math.floorMod(rc.getID(), dirs.length)];
+        }
+        if (rc.getDirection() == preferredExploreDir && rc.canMoveForward()) {
+            rc.moveForward();
+            return;
+        }
+        if (tryMove(rc, preferredExploreDir)) return;
         if (rc.canMoveForward()) {
             rc.moveForward();
             return;
         }
         Direction[] dirs = Direction.allDirections();
-        tryMove(rc, dirs[rng.nextInt(dirs.length)]);
+        if (tryMove(rc, dirs[rng.nextInt(dirs.length)])) return;
+        digTowardOpenSpace(rc);
     }
 
     static void reportBytecodeBudget(RobotController rc, int roundAtTurnStart) {
@@ -304,6 +357,8 @@ public class RobotPlayer {
         boolean overran = rc.getRoundNum() != roundAtTurnStart;
         boolean nearMiss = used > (int) (limit * 0.9);
         String status = overran ? "OVERRAN" : (nearMiss ? "near-limit" : "ok");
-        rc.setIndicatorString("bytecode " + used + "/" + limit + " (" + status + ")");
+        if (rc.getType() != UnitType.RAT_KING) {
+            rc.setIndicatorString("bytecode " + used + "/" + limit + " (" + status + ")");
+        }
     }
 }

@@ -193,6 +193,15 @@ public class ReplayDump {
                     System.out.println("round " + round + " " + who + " SpawnAction -> " + lbl + " at (" + sp.x() + "," + sp.y() + ")");
                     break;
                 }
+                case Action.IndicatorStringAction: {
+                    IndicatorStringAction d = new IndicatorStringAction();
+                    d.__init(pos, bb);
+                    String v = d.value();
+                    if (v != null && v.contains("OVERRAN")) {
+                        System.out.println("round " + round + " " + who + " indicator: " + v);
+                    }
+                    break;
+                }
                 case Action.RatNap: {
                     System.out.println("round " + round + " " + who + " RatNap");
                     break;

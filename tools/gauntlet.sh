@@ -37,7 +37,7 @@ gscp () { scp "${SSHO[@]}" "$@"; }
 wait_ssh () { for _ in $(seq 1 40); do gssh true 2>/dev/null && return 0; sleep 8; done; return 1; }
 
 BOT="${BOT:-bot}"
-OPPONENTS="${OPPONENTS:-examplefuncsplayer}"
+OPPONENTS="${OPPONENTS:-pure_cooperator immediate_defector}"
 MAXJOBS="${MAXJOBS:-6}"          # concurrent games on the VM (8 vCPU)
 MAPSET="${MAPSET:-loop}"
 
