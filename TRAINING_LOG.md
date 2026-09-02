@@ -2801,3 +2801,36 @@ going forward by staging explicit paths; noted in memory.
 TRAINING_ALGORITHM.md's retirement rule, a second consecutive 100%
 means it should be retired from the peer roster and replaced, or the
 Gauntlet stops providing signal on that half of the matchup space.
+
+---
+
+## Infrastructure: archetypes had gone stale again (second occurrence)
+
+Checked the peer roster against `src/bot/` after Iteration 40's accept,
+per the standing rule added the first time this happened. Both
+archetypes were missing **every** significant change since roughly
+Iteration 24 -- greps for `exploreStuckCycles` (Iteration 32's
+exploration fix), `bugRoundsFollowing` (Iteration 35's bug-navigation),
+`buildWindowStart` (Iteration 38's sliding build budget) and
+`REPLACEMENT_RESERVE` (Iteration 39) all returned **zero** in both
+files. They were 336 and 379 lines against `src/bot/`'s 943.
+
+That means the headline numbers for Iterations 32-40 were measured
+against opponents progressively further behind -- the same silent
+score inflation documented the first time, recurring despite the rule,
+because the check is only triggered by remembering to run it. **The
+95.0% should be treated as provisional until re-measured.**
+
+**Re-synced both** by re-basing them on current `src/bot/` and
+re-applying only their distinctive policy, which is the part that makes
+them useful as a roster:
+- `pure_cooperator`: `desperate` hard-disabled at both the King
+  (never broadcasts) and the Baby Rat (never reads), so it never
+  initiates a backstab under economic pressure -- it retaliates only
+  once actually backstabbed.
+- `immediate_defector`: hostile to enemy rats from turn 1 regardless of
+  cooperation state, plus its `LEASH_RADIUS_SQUARED = 100` turtle
+  behavior restored on top of the new movement code.
+Both compile clean against the engine.
+
+Re-measurement against the corrected roster follows.
