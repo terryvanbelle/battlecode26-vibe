@@ -1305,3 +1305,102 @@ e.g. only chase past `dist<=8` when already at high HP and the target
 is fleeing *toward* our own King rather than into unknown territory --
 is untried and more promising than trying to special-case King
 proximity again.
+
+**This was Iteration 19/20's rejection -- 7 consecutive rejects now
+(13-20), all in the combat-targeting-vs-rats / backstab-trigger-policy
+functional area. Per *MaxConsecutiveRejects* (TRAINING_ALGORITHM.md,
+threshold 3), the next attempt must leave that area** -- picked
+"High-risk structural exploration" in a genuinely fresh area (cat
+behavior) as an equally-legitimate first move, not a last resort.
+
+---
+
+## Iteration 21 attempt — flee only when actually inside a cat's vision cone; REJECTED (confirmed inert)
+
+**Mechanism research (verified against engine source, not guesswork):**
+RULES.md already states a cat's scratch only hits "in vision cone," but
+traced the actual enforcement path to confirm exactly how it's gated --
+`RobotControllerImpl.assertCanAttackCat` -> `assertCanActLocation` ->
+`assertCanSenseLocation`, which applies the same cone test as
+`MapLocation.isWithinDistanceSquared(..., facingDir, theta)` (dot
+product of facing direction and target-relative vector >= 0 for a
+180-degree cone). Also confirmed in `InternalRobot.java`'s cat AI: in
+Attack mode, target acquisition itself scans `senseNearbyRobots()`,
+which is *also* cone-filtered -- a cat doesn't just miss an out-of-cone
+rat, it can't select one as a target at all, and loses lock entirely if
+a locked target steps out of the cone. This is a hard, provable,
+already-exposed-data (`RobotInfo.getDirection()`) exploit, not a guess.
+
+**Implementation:** added `inCatVisionCone()` (dot-product test,
+approximating the cat's 2x2 cone origin as its reported tile -- a
+disclosed, small, boundary-only error since
+`usesBottomLeftLocationForDistance()` isn't exposed via
+`RobotController`). Gated the existing critically-low-HP-no-ally flee
+fallback on it: only flee if actually inside the cone.
+
+**Smoke test:** compiled clean, sane result. **Full Gauntlet: 27/40
+(67.5%), byte-identical to the baseline** -- not just the same win
+count, the exact same 13 losses on the exact same maps/sides, at the
+exact same round numbers, across all 40 games. Stronger than a null
+result: this is Step 6.4.3's "confirmed non-engagement" signature.
+
+**Diagnosis:** correct per Iteration 6's own text -- the flee fallback
+only fires when critically low HP (`<=30`) *and* no ally nearby *and*
+not yet adjacent, an already-narrow combination Iteration 6 flagged as
+rare. The cone mechanism is real and confirmed; this specific
+integration point just has no surface area for it to matter.
+
+**REJECT** (Step 6.4.3, no engagement anywhere -- not a wrong idea, a
+too-narrow application of a right one).
+
+---
+
+## Iteration 22 attempt — seek remembered cat location when idle; REJECTED (broad regression)
+
+Refined target for the same underlying idea (`catDamage` is a real
+scoring component -- 0.3-0.5 weight depending on coop/backstab mode --
+and 8 of 9 `pure_cooperator` losses are decided on points at the r2000
+cap) plus Iteration 6's own still-outstanding "Next" note: Baby Rats
+never seek a cat beyond whatever's already visible. Added
+`lastKnownCatLoc` (updated for free whenever a cat's already sensed),
+and -- as the lowest-priority fallback, only after cheese-delivery,
+cat-handling, backstab-hunt, and cheese-collection all decline the turn
+-- move toward it instead of plain `explore()`. Included the same
+"don't claim the turn if we arrive and it's not there" fix as
+`collectCheese()`/`deliverCheese()`/`engage()` (clear the memory and
+fall through to `explore()` on arrival) to avoid re-creating Iteration
+3's stuck-forever bug.
+
+**Smoke test** (`sittingducks` vs. `pure_cooperator`): compiled clean,
+but died early to RATKING_DESTROYED at r1443 -- baseline lost this exact
+matchup too, but on points at r2000, not elimination. Went to the full
+Gauntlet rather than reading one game, per this project's own precedent.
+
+**Full Gauntlet: 22/40 (55.0%), down sharply from 67.5%.**
+`pure_cooperator` 55%->45%, `immediate_defector` 80%->65%. New
+early-elimination losses appeared broadly, not on one map: both sides
+of `closeup`, both sides of `knifefight`, both sides of `sittingducks`,
+`tiny`, and both `immediate_defector` sides of `keepout`. Broad-based
+and decisive.
+
+**REJECT** (Step 6.5, unambiguous regression, no further verification
+needed). Reverted `src/bot/RobotPlayer.java` to the `g_iter9` baseline.
+
+**Diagnosis:** sending an otherwise-idle rat to go looking for a cat
+trades away real, ongoing cheese-collection/King-defense time across
+*every* map, for a payoff (extra `catDamage` points) that's only
+decisive in the narrow subset of games that end in a points decision
+anyway. The opportunity cost is paid every game; the benefit only shows
+up in some. Diverting an otherwise-idle rat toward economic value
+(cheese search) instead of combat value would need a much cheaper way
+to bias the search than a full dedicated detour -- e.g. weighting
+`explore()`'s own direction choice slightly toward the remembered
+location instead of overriding it outright, so cheese-search isn't
+fully abandoned. Untried.
+
+**8 consecutive rejects now** across two functional areas
+(combat-targeting-vs-rats, then cat-behavior). Both cat-behavior
+attempts confirmed the underlying mechanism was real and correctly
+understood (cone-gating verified against engine source; catDamage's
+scoring weight is real) -- the failures were in integration point and
+opportunity-cost accounting, not in the reasoning about the game.
