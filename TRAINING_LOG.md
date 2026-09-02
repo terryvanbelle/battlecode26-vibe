@@ -2042,3 +2042,99 @@ one" task -- everything in the current model (flat cap, flat reserve,
 flat cooldown, flat hysteresis margin) has now been shown to have a
 real failure mode once population and combat losses interact with it in
 a high-attrition matchup.
+
+---
+
+## Iteration 32 — permanently redirect a rat once its exploration heading is confirmed stuck; accepted, 75.0%
+
+**User-reported priority, not self-directed:** Baby Rats tend to get
+stuck in one small region rather than moving freely to and from cheese.
+Investigated directly rather than continuing the previous Step 4 loop.
+
+Generated a fresh clean-baseline replay (`bot` vs. `pure_cooperator` on
+`rift`, a large 60x30 open map) and used `tools/replay-dump.sh --robot`
+to trace individual rat lifetimes. `id11086` (spawned round 2 at
+`(4,23)`) was tracked for the *entire* 2000-round game and never once
+carried cheese (`max cheese=0` across all 1998 tracked rounds) --
+confined the whole time to a roughly 4x7 tile box (`x: 0-3, y: 23-29`).
+Its early movement showed exactly what was happening: steady progress
+toward `(0,29)` -- the map's exact corner -- reached by round ~15, then
+permanent in-place oscillation for the remaining ~1985 rounds.
+
+**Root cause:** `preferredExploreDir` (Iteration 4) is a fixed, ID-based
+heading a robot commits to for its entire lifetime and "returns to...
+whenever unblocked" -- a deliberate design choice to keep the
+population fanned out, but one that never accounted for map boundaries.
+A rat whose fixed heading points at a nearby edge or corner reaches it
+quickly, and every subsequent round `explore()` unconditionally retries
+the *same* heading -- the existing stuck-cycle escape (`tryMove()`) can
+nudge it one tile away for a turn, but next round it immediately
+re-attempts the doomed heading and re-hits the same boundary. A
+one-off escape move can't fix a heading that's permanently wrong for
+that robot's spawn position; only replacing the heading does.
+
+Also fixed a related latent bug found while reading this code:
+`Direction.allDirections()` returns 9 values including `CENTER`
+(`tryMove` treats `CENTER` as an immediate no-op), so roughly 1 in 9
+robots got an initial preferred heading that never did anything at all,
+purely from `rc.getID()` arithmetic. Switched the initial assignment
+and all fallback direction picks in `explore()` to `ALL_DIRECTIONS`
+(the 8 real headings, already defined for Iteration 24's stuck-escape
+shuffle).
+
+**First attempt (reused the shared `stuckCycles` counter) regressed
+broadly:** 23/40 (57.5%), down from 70.0%, despite fixing the
+motivating `rift` game cleanly (turned a loss into a win with `catDamage`,
+cheese, and `cheeseTransferred` all flipping in our favor). Root cause:
+the shared counter (tracked once per round, also driving `tryMove()`'s
+one-turn escape for `deliverCheese()`/`collectCheese()`) fires on *any*
+2-tile repeat regardless of cause -- a rat briefly jammed delivering
+cheese near a crowded King (common and totally benign) would get its
+perfectly fine exploration heading needlessly reassigned the next time
+it happened to call `explore()`, undermining the population fan-out
+Iteration 4 relied on.
+
+**Fix:** a dedicated explore-call-to-explore-call position history,
+completely separate from the shared per-round one -- only repeated,
+consecutive *exploration* stalls (not incidental blocking during
+delivery/collection) trigger a heading reassignment.
+
+**Re-verified the motivating case still fixed:** `rift` smoke test
+still a clean win. Re-traced `id11086` in the new replay: instead of
+2000 rounds trapped near the corner, it covered a 20x11 tile area in
+just 80 rounds before dying to a cat while actively exploring far from
+home -- a normal gameplay risk, not a bug, and a night-and-day
+difference from being permanently useless.
+
+**Full Gauntlet: 30/40 (75.0%), up from 70.0%.** `pure_cooperator`
+60%->70%, `immediate_defector` steady at 80%. Diffed the loss lists
+precisely: 8 losses fixed (`keepout`/coop-A, `knifefight`/coop-B,
+`pipes`/coop-A, both `rift` losses, `whereisthecheese`/coop-A,
+`knifefight`/id-A, `keepout`/id-B), 6 new losses appeared (`tiny`
+newly weak against both opponents on both/one side, `closeup`/coop-A,
+`whereisthecheese`/coop-B and `knifefight`/id-B both side-flips from
+already-losing maps), 4 unchanged. Net +2 wins.
+
+Traced the most concentrated new weakness (`tiny`, 3 new losses) before
+accepting: a genuine, fast attrition loss (population 21->1 within 150
+rounds, `catDamage` already past 1000 for both sides by round
+200-350) -- `tiny` is a small, cat-dense map, and the believable
+mechanism is that rats now explore more aggressively into it sooner
+instead of being passively kept safer by the old stuck-near-spawn bug.
+A real, bounded trade-off with a comprehensible cause, not a sign of a
+new fundamental bug.
+
+**ACCEPT.** Exceeds *WinPct* comfortably, exceeds the running baseline,
+and the diff is broad-based improvement with a believable, bounded new
+weak spot, not a concentrated regression. Snapshotted as `src/g_iter11/`;
+new baseline `gauntlet/20260902-194330/`.
+
+**Next.** `tiny` is now the standout weak map (worth a future trace to
+see if it's fixable, e.g. gating early-exploration aggressiveness on a
+sensed cat, or whether it's an inherent tight-map tradeoff). The three
+still-open threads from before this fix remain queued: a
+danger-conditional retreat trigger for exploration safety generally
+(now partially addressed by this fix, but not the same mechanism as
+Iterations 25/26's rejected distance-cap attempts), a full King
+spending-model redesign (Iterations 28-31), and `catDamage`-vs-
+`pure_cooperator` is closed out as accepted map-luck noise.
