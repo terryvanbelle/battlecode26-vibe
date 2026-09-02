@@ -926,3 +926,38 @@ guessed-location hunt itself more efficient (currently a single
 independently discover the same path), or having only *some* rats commit
 to the hunt while others keep the economy alive, rather than an
 all-or-nothing population-wide switch.
+
+---
+
+## Iteration 14 attempt — split hunters vs. economy by ID parity; REJECTED (regression)
+
+Tried Iteration 13's other suggested angle: kept the original (later)
+desperation trigger timing, but only half the Baby Rats (`rc.getID() %
+2 == 0`) join the proactive hunt when desperate; the other half keep
+gathering/defending normally.
+
+**Smoke test:** same `whereisthecheese` game -- worse than `g_iter9`
+(round 1050 vs. 1340), though still better than the pre-Iteration-12
+baseline (1020). Matches identically through round 800 (desperate hasn't
+triggered yet), then the halved hunting force reaches/uses the guessed
+location much less effectively than the full population did. **Full
+Gauntlet: 29/40 (72.5%), down from 30/40 (75%)** -- confirmed regression,
+same shape as Iteration 13's.
+
+**REJECT.** Reverted; `src/bot/` is back to `g_iter9`.
+
+**This is the third attempt in a row targeting `whereisthecheese`
+specifically** (Iterations 11, 13, 14 -- with only Iteration 12's
+original full-population, late-trigger version actually working). Two
+consecutive rejects since the last accept -- one more failed attempt in
+this exact area would hit `MaxConsecutiveRejects=3`. Per
+`TRAINING_ALGORITHM.md`'s "prefer fresh territory" guidance, moving to a
+different functional area next rather than a fourth narrow tweak to the
+same desperation/hunt mechanism: `g_iter9`'s own commit trail spans 12
+iterations without ever running a formal mirror-match check
+(`TRAINING_ALGORITHM.md`'s own standing "Play symmetry" requirement --
+`bot` vs. a byte-identical copy of itself, both sides, checking for a
+lopsided split). Worth doing now, both because it's overdue and because
+several of this session's changes (per-robot ID-seeded RNG, ID-parity
+tiebreaks in `tryMove`, the guessed-location symmetry assumption) are
+exactly the kind of tie-breaking logic that class of bug hides in.
