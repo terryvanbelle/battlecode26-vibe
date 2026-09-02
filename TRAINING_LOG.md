@@ -840,3 +840,54 @@ waiting to get lucky, or (b) accepting some cheese-poor maps are simply
 unwinnable via economy and finding a different lever entirely (e.g.
 `squeak`-based coordination to rally a rescue/attack party, unused all
 session). (a) is the more directly actionable next attempt.
+
+---
+
+## Iteration 12 — proactive hunt toward a guessed enemy-King location when desperate; accepted, 75%
+
+Directly implements Iteration 11's refined diagnosis: re-added the
+economy-struggle latch and desperation signal, and this time also
+broadcast a **guessed enemy-King location** (shared array slots 3/4) --
+`mapWidth-1-x, mapHeight-1-y` (a 180-degree-rotation guess off our own
+King's own location; the actual symmetry type isn't exposed by
+`RobotController`, only width/height are, so this is a real, accepted
+source of error, same caveat BC22's LEARNINGS.md logged for the
+equivalent guess there). When desperate with no enemy currently sighted,
+a Baby Rat paths toward that guess instead of continuing normal
+cheese/explore behavior -- deliberately forcing a crossing instead of
+passively waiting for one, which is exactly what Iteration 11 showed
+never happens on its own.
+
+**Smoke test:** same `whereisthecheese` vs. `pure_cooperator` game --
+still a loss (King starvation), but the guess happened to be exactly
+correct on this map (symmetry actually is 180-degree rotational here),
+and the effect was dramatic: `cheeseTransferred` **more than doubled**
+(520->1160 by round 1300, vs. the `g_iter8` baseline's 520 total by
+round 1000) -- rats hunting toward the guessed location evidently pass
+near the map's other cheese mine en route, so the "hunt" doubles as
+better map coverage. We actually **took the lead** on cheese-transferred
+late in the game (1160 vs. 1010) while still dominating cat damage (1870
+vs. 0) -- had the King survived another ~50-100 rounds, this specific
+game likely flips to a decisive points win. The King still starves just
+before that would matter (round 1340 vs. 1020 baseline -- 320 rounds
+later, a real improvement, just not enough).
+
+**Full Gauntlet: 30/40 (75%), up from 29/40 (72.5%).** `immediate_defector`
+70%->75% (`tiny` bot=A flipped to a win); `pure_cooperator` unchanged at
+75% in win/loss count but with meaningfully different round numbers on
+the `whereisthecheese` losses (longer, closer games). **ACCEPT.**
+Snapshotted as `src/g_iter9/`; new baseline `gauntlet/20260902-031317/`.
+Replay: `replays/iter12_pure_cooperator_whereisthecheese_botA.bc26` (the
+`whereisthecheese` game showing the cheese-transferred lead).
+
+**Next.** `whereisthecheese` is now a near-miss rather than a blowout --
+the King dying ~50-100 rounds too early is the last piece. Candidates:
+tighten the desperation trigger to fire earlier (currently gated on
+cheese already below `RESERVE=150`, i.e. very late), or have the King
+itself dig in defensively / stop all further spending the instant
+`economyStruggling` latches rather than waiting for the separate
+`desperate` threshold. Separately, the guessed-location symmetry
+assumption (180-degree rotation) is unverified on any map where it's
+*wrong* -- worth checking whether a bad guess on some other map actively
+hurts (sends desperate rats the wrong way, away from both the enemy and
+useful cheese) rather than just failing to help.
