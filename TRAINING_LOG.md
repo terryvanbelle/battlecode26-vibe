@@ -1080,3 +1080,44 @@ system entirely, instead of each new spending feature needing to
 independently avoid tripping it. Worth doing before another attempt in
 this neighborhood, rather than continuing to discover the same
 interaction from a new angle each time.
+
+---
+
+## Iteration 17 attempt — prefer ratnap over biting an enemy rat; REJECTED (asymmetric trade)
+
+Fresh area (ratnap/throw unused all session): when a post-backstab/
+desperate Baby Rat has both `canCarryRat` and `canAttack` available
+against an enemy, prefer carrying (`RULES.md`: adjacent enemy eligible if
+facing away, lower HP, or allied; carried = stunned, immune to
+everything but a cat, for up to 10 rounds) over biting -- reasoning: a
+capture costs nothing (no damage exchanged) versus a bite trade.
+
+**Smoke test:** `closeup` vs. `immediate_defector` -- unchanged (round
+1270, matches baseline exactly), ratnap never engaged there. **Full
+Gauntlet: 29/40 (72.5%), down from 30/40 (75%)**, one new loss
+(`knifefight` vs. `immediate_defector`, previously a win). That specific
+game showed ratnap engaging heavily (76 logged events) -- traced it
+directly and found the real mechanism: `aliveBabies=[2, 6-7]` the entire
+game, a severe, sustained population deficit that wasn't there before.
+**Preferring capture over biting means we stopped landing permanent
+kills on `immediate_defector`'s rats** -- a captured rat auto-drops and
+re-enters the fight after 10 rounds, unharmed, while `immediate_defector`
+itself keeps landing real, permanent kills on us the whole time (it never
+carries, only attacks). Trading a permanent kill for a temporary
+inconvenience is a bad exchange against an opponent that's still killing
+us for real.
+
+**REJECT.** Reverted; `src/bot/` is back to `g_iter9`.
+
+**Fifth consecutive reject** (Iterations 13-17). The diagnosis here is
+clean and specific enough to be directly actionable, unlike the more
+diffuse King-economy interactions of 13/14/16: ratnap's value proposition
+depends on the trade actually being favorable, which requires *not*
+replacing kills we'd otherwise land, only supplementing situations where
+we couldn't win the fight anyway (e.g. outnumbered, or the enemy is about
+to reach the King/economy and delaying it matters more than killing it).
+A future attempt should gate ratnap on those specific conditions rather
+than a blanket "prefer capture" rule -- but per `TRAINING_ALGORITHM.md`'s
+"prefer fresh territory," the next attempt should look elsewhere first
+rather than immediately re-entering this same combat-tuning area a sixth
+time.
