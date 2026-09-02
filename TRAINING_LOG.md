@@ -1227,3 +1227,81 @@ smaller staleness could hide for a long time. Worth adding a periodic
 "are the archetypes still in sync" check to this project's own version
 of BC22's periodic-maintenance habits (progress charts, vs-old-bots
 tracking), not just a one-time fix.
+
+---
+
+## Iteration 19 attempt — unconditional enemy-rat chase; REJECTED (fixed one map, broke two others)
+
+Traced the corrected baseline's `knifefight` vs. `immediate_defector`
+loss (`gauntlet/20260902-141237/losses/immediate_defector__knifefight__botA.bc26`,
+r1422 RATKING_DESTROYED). Round-by-round: our cheese drained steadily
+2452->1 over 1400 rounds while population stayed flat at 3-5 the whole
+game (never approaching `MAX_POPULATION=25`) -- a slow-bleed attrition
+loss, not a specific tactical bug, similar in shape to `closeup`'s
+original Iteration 8/9 context but showing up here against
+`immediate_defector` specifically.
+
+**Root cause found:** cat-engagement (`engage(rc, nearestCat...)`)
+chases a sighted cat unconditionally, out to full vision (radius^2 20).
+Enemy-rat engagement had an extra `dist<=8` gate before chasing -- a
+sighted-but-not-yet-close enemy rat was simply ignored, ceding the
+first-move initiative to an always-hostile opponent in *every* single
+encounter, all game. Dropped the gate to mirror cat-engagement.
+
+**Smoke test on the motivating game:** `knifefight` vs. `immediate_defector`
+died *faster* (r1100, down from r1422) -- a bad sign. Traced it: at
+round 100 we led 18 alive babies to their 1; by round 200 that had
+flipped to 1 vs. 13. Death tally in that window: 17 of ours vs. 10 of
+theirs, and critically, the enemy's own RAT_KING (attack range^2 8, far
+larger than a Baby Rat's bite range^2 2) directly killed 3 of our rats.
+**Mechanism:** chasing a retreating enemy rat with no distance limit
+walks straight into its King's kill zone. Cats have no equivalent
+ranged backup, so the logic that's safe against a cat is a trap against
+a rat.
+
+**Iteration 20 refinement, same turn:** kept the free chase (fixes the
+original ceded-initiative problem) but added a guard -- fall back to the
+old conservative `dist<=8` gate specifically when a visible enemy
+RAT_KING is within its own attack range of the target, so a pursuit
+still finishes off anything already close but won't press into
+contested territory near their King.
+
+**Re-ran the smoke test: clean win**, r1585 (`bot (A) wins`), confirmed
+again on repeat (r1500). The exact motivating loss flipped to a win.
+
+**Full Gauntlet: 26/40 (65.0%), down from the 67.5% baseline.**
+`pure_cooperator` unchanged at 55% -- byte-identical loss list to the
+baseline run, as expected (this branch only fires once cooperation is
+already broken, which barely happens against a non-hostile peer).
+`immediate_defector` 80%->75%: `knifefight` flipped win as intended, but
+two *new* losses appeared that weren't losses before -- `tiny` (r937)
+and `closeup` (r1003). Net -1 win. The entire delta is concentrated in
+the `immediate_defector` column (a real, one-directional effect of this
+change, not scattered noise), so trusted the result without needing a
+second run.
+
+Traced the new `closeup` loss
+(`gauntlet/20260902-155035/losses/immediate_defector__closeup__botA.bc26`):
+the identical slow-bleed shape as `knifefight`'s original problem --
+population 25 at r50 (healthy!) declining steadily to 0 by r625 despite
+a commanding `catDamage` lead (740 vs. 460) the whole time, cheese
+draining in lockstep. The guard (checking for a *visible* enemy King)
+evidently doesn't catch every case where chasing overextends a Baby Rat
+into a losing exchange -- on a tight map like `closeup`, a King doesn't
+need to be in vision for the chase to still be a bad trade.
+
+**REJECT** (net regression on the full Gauntlet despite a confirmed,
+worthwhile mechanism and a clean fix for the motivating case). Reverted
+`src/bot/RobotPlayer.java` to the `g_iter9` baseline.
+
+**Refined diagnosis for a future attempt:** the King-proximity guard is
+too narrow a condition -- it only prevents the *specific* mechanism
+found on `knifefight` (dying to the enemy King's own attack), not the
+broader problem that unconditionally chasing a retreating rat is
+sometimes just a bad trade on its own (overextending away from the
+King's cheese-delivery range, walking past a cat, etc.), independent of
+whether an enemy King happens to be nearby. A more conservative guard --
+e.g. only chase past `dist<=8` when already at high HP and the target
+is fleeing *toward* our own King rather than into unknown territory --
+is untried and more promising than trying to special-case King
+proximity again.
