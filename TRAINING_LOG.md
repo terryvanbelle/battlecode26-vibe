@@ -1404,3 +1404,151 @@ attempts confirmed the underlying mechanism was real and correctly
 understood (cone-gating verified against engine source; catDamage's
 scoring weight is real) -- the failures were in integration point and
 opportunity-cost accounting, not in the reasoning about the game.
+
+---
+
+## Iteration 23 attempt — flee once critically low HP even while already adjacent; REJECTED (confirmed inert)
+
+Went back to Step 4's normal single-losing-game process rather than
+another broad structural swing. Traced `closeup` vs. `pure_cooperator`
+(`gauntlet/20260902-141237/losses/pure_cooperator__closeup__botA.bc26`,
+r1240 RATKING_DESTROYED) with the round-summary tracker: `catDamage`
+1450 vs. 240 (we dominate decisively) yet our own King still starves --
+the identical death-spiral shape as `whereisthecheese`. Since
+`pure_cooperator` never backstabs, this attrition can't be from enemy
+rats -- it has to be from cats killing our own Baby Rats faster than the
+economy can replace them.
+
+**Found a real gap while reading the code:** the very first line of
+cat-handling is `if (rc.canAttack(cat)) { attack; return; }` --
+unconditional, no HP check at all. The `allies>1 || health>30`
+threshold only ever gated the *approach* decision (`engage()`), never
+whether an already-adjacent rat should keep fighting. Since a 100 HP
+Baby Rat can never actually kill a 4000 HP cat solo, an adjacent rat
+with no exit condition fights to the death on every single engagement.
+
+**Fix:** reused the existing threshold to also gate the already-adjacent
+attack, falling back to `flee()` once critically low HP with no ally,
+even mid-fight.
+
+**Smoke test** (the motivating `closeup` game): same exact loss, same
+exact round (r1240) as baseline -- suspicious. Full round-by-round diff
+against the baseline replay: **byte-identical**, not just similar.
+Checked a second map (`whereisthecheese`) showing the same failure
+shape: also byte-identical (r938, full diff clean). **Full Gauntlet:
+27/40 (67.5%), byte-identical loss list and round numbers to baseline
+across all 13 losses.** Confirmed non-engagement on two independent
+maps before trusting the aggregate result.
+
+**REJECT** (Step 6.4.3). Reverted `src/bot/RobotPlayer.java`.
+
+**Root cause of the inertness, found via `tools/replay-dump.sh --robot`
+tracking a specific dying rat (`id10405` on `closeup`):** it sat at HP=100
+the *entire* time right up until one round before death -- this map's
+population attrition isn't from gradual multi-hit combat damage at all,
+so a HP-threshold flee gate has nothing to catch. See Iteration 24 for
+what's actually killing these rats.
+
+---
+
+## Iteration 24 — break 2-tile oscillation traps in tryMove(); [pending Gauntlet result]
+
+Following directly from Iteration 23's dead end: traced `id10405`
+(`closeup` vs. `pure_cooperator`, `tools/replay-dump.sh --robot 10405`)
+end to end. It spawned round 7, and from at least round 43 through its
+death at round 95 it did **not move at all in any net sense** -- position
+alternated between exactly `(19,8)` and `(20,9)` for 50+ rounds straight,
+`cheese=40` the entire time (carrying cheese it could never deliver),
+`hp=100` unchanged. Then: one `CatScratch` at round 93 (100->80 HP), and
+by round 95 it's dead with **no further logged scratch or pounce action**
+-- RULES.md: "moving onto a baby rat's tile also instantly kills it." The
+cat didn't hunt it down; it just walked through on its own patrol and
+happened to step on a stationary target.
+
+**Terrain at `(19,8)`/`(20,9)`** (`tools/replay-dump.sh --terrain`):
+a comb-like alternating wall pattern (`# # #`) immediately adjacent.
+`tryMove()`'s only escape logic when blocked is a single 45-degree
+sidestep, tie-broken deterministically by `rc.getID() % 2` -- no real
+pathfinding, no backtracking. Against this specific terrain shape, the
+direction recomputed fresh each round from the new tile apparently
+points right back the way the rat came, producing a stable 2-cycle the
+existing sidestep logic can never break out of on its own.
+
+**This is the same class of problem the engine's own cat AI hits and
+explicitly fixes** (`InternalRobot.java`'s `EXPLORE` state: after
+`catTurnsStuck >= 4`, turn to a random direction instead of retrying the
+same blocked path) -- precedent for the fix, not a novel technique.
+
+**Fix:** track position from 2 rounds ago once per round (top of
+`runBabyRat`, so it's exactly once per round regardless of how many
+`tryMove()` attempts happen within a turn -- `deliverCheese()`/
+`collectCheese()`/`engage()`/`flee()` can each fall through to a further
+attempt in the same turn on failure). If the current tile matches the
+tile from 2 rounds ago, increment a stuck-cycle counter; reset it
+whenever a genuinely new tile is reached. Once the counter hits 2 (two
+full oscillations confirmed, not just one -- avoids overreacting to a
+single incidental repeat), `tryMove()`'s blocked-path fallback switches
+from the deterministic left/right-of-`want` sidestep to a randomly
+shuffled search across all 8 directions, using the already-seeded
+per-robot `rng` (no new import needed; avoided `java.util`
+collections/`Collections.shuffle` entirely -- manual Fisher-Yates on a
+plain `Direction[]` array, to stay clear of `AllowedPackages.txt` risk
+for a change this far from anything previously exercised).
+
+**Smoke tests:** `closeup` and `whereisthecheese` vs. `pure_cooperator`
+(the two games that originally motivated Iteration 23's dead end) both
+flipped from losses to clean wins (r1135, r936).
+
+**First full Gauntlet (stuck-escape applied everywhere, unscoped): 26/40
+(65.0%), down from 67.5%.** `pure_cooperator` improved 55%->60% (both
+`whereisthecheese` losses fixed) but `immediate_defector` dropped
+80%->70%, with `knifefight` newly losing on both sides. Traced the new
+`knifefight` loss: population collapsed 13->2 within 75 rounds, much
+faster than baseline -- diagnosed as the random-direction escape firing
+during legitimate combat back-and-forth (which can trip the same
+2-tile-repeat detector as a genuine terrain trap) against a mobile,
+always-hostile opponent, on a map where Kings spawn only 5 tiles apart
+and combat starts almost immediately (Iteration 19's own finding).
+
+**Refinement:** scoped `allowStuckEscape` to "economic" travel only --
+`deliverCheese()`, `collectCheese()`, the backstab-hunt guessed-location
+chase, and `explore()`'s two movement attempts all pass `true`;
+`engage()` and `flee()` keep the old deterministic tiebreak
+unconditionally (`false`, via the existing no-arg overloads, so their
+call sites needed no changes at all).
+
+**Re-smoke-tested:** `closeup` still a clean win (r1077). `knifefight`
+vs. `immediate_defector` and `whereisthecheese` vs. `pure_cooperator`
+both still showed single-game results similar to pre-refinement (one
+still a loss, one flipped back to a loss) -- read as RNG-cascade noise
+rather than the refinement failing, since disabling `rng` consumption in
+`engage()`/`flee()` shifts the entire downstream random stream for that
+game regardless of whether the *logic* is better or worse; went straight
+to the full Gauntlet rather than over-reading single flipped games (this
+project's own repeated precedent).
+
+**Full Gauntlet with the scoped fix: 28/40 (70.0%), up from 67.5%.**
+`pure_cooperator` 55%->60% (`closeup` now wins on both sides,
+`thunderdome` also newly wins). `immediate_defector` steady at 80%
+(16/20, same count as baseline, `minimaze`/`pipes` newly won balancing
+`closeup`/`keepout` newly lost -- reshuffled, not concentrated).
+`rift` picked up a second losing side (`pure_cooperator` bot=A, was only
+bot=B before) -- the one loose thread in an otherwise clean improvement,
+not chased further this iteration since it's a single new loss amid
+several fixes, not a concentrated pattern.
+
+**ACCEPT.** Meets *WinPct* (60%) with margin, exceeds the running
+baseline (70.0% vs. 67.5%), and the diff reads as real improvement with
+reshuffled-not-regressed noise elsewhere, not an unresolved regression.
+Snapshotted as `src/g_iter10/`; new baseline `gauntlet/20260902-163148/`.
+
+This closes out the death-spiral investigation that started with
+Iteration 23's dead end: the actual mechanism killing rats on
+`closeup`/`whereisthecheese` was never gradual combat attrition (no HP
+threshold could ever have caught it) -- it was rats getting physically
+trapped in a 2-tile movement oscillation against maze-like terrain,
+then getting walked over by a wandering cat while stationary
+(RULES.md: moving onto a Baby Rat's tile is an instant kill, no combat
+action required). `catDamage` looking dominant (1450 vs. 240 on
+`closeup`) was real but beside the point -- the King was starving from
+population loss that had nothing to do with fighting cats at all.
