@@ -579,3 +579,50 @@ that cats are deterministic/predictable (RULES.md: waypoint cycling,
 ~8-round Attack-mode windows) to approach safely during a cat's harmless
 Explore-mode phase, remains unexplored and is probably the next real lever
 once this round of tuning settles.
+
+---
+
+## Iteration 7 — chase a fleeing/distant enemy rat post-backstab; accepted (mechanistic, no aggregate flip)
+
+**Traced the `closeup` vs. `immediate_defector` loss directly** (the fresh
+weak spot Iteration 6 flagged). Both Kings dug out fine and built normally
+(economy itself healthy) -- the actual cause: `aliveBabies` for `bot`
+dropped to **0 by round ~800** (all Baby Rats killed by
+`immediate_defector`'s always-hostile rats, which actively hunt) while
+`immediate_defector` still had 5+ alive; the King then starved alone with
+no economy left, dying at round 1318. Root cause: post-backstab
+retaliation (`!rc.isCooperation()`) only ever attacked an enemy rat
+already in bite range -- a Baby Rat that could *see* a hostile enemy but
+wasn't yet adjacent just continued its normal cheese-priority behavior,
+never closing distance. Purely passive defense against an opponent that
+actively pursues.
+
+**Fix.** Chase like cat-engagement already does: if a hostile enemy rat is
+sighted within range 8 but not yet attackable, move toward it instead of
+ignoring it.
+
+**Smoke test:** `closeup` vs. `immediate_defector` -- still a loss
+(round 1318 -> 1328, barely moved), but the underlying mechanism improved
+measurably: `catDamage` 540->690 (chasing enemies evidently doesn't come
+at the cost of cat engagement) and the population wipeout point moved from
+round ~800 to round ~1200 (`aliveBabies` still hits 0 eventually, but
+survives ~400 rounds longer). **Full Gauntlet: 28/40 (70%), unchanged in
+aggregate** -- `pure_cooperator` identical loss set; `immediate_defector`
+same 5 losses by count with one flip each direction (`tiny` bot=A: loss->win;
+`whereisthecheese` bot=A: win->loss), reading as noise, not regression.
+
+**ACCEPT on mechanistic grounds** (Step 6.4.2, same basis as Iteration 3):
+demonstrably engaged as designed (measurable cat-damage and survival-time
+improvement) with no unresolved regression, even without an aggregate
+Gauntlet flip. Snapshotted as `src/g_iter7/`; new baseline
+`gauntlet/20260902-020332/`. Replay:
+`replays/iter7_immediate_defector_closeup_botA.bc26`.
+
+**Next.** `bot` still has no organized response to a sustained hunt --
+each Baby Rat reacts individually with no coordination (no rally point, no
+retreat-to-King-for-safety-in-numbers), so a persistent aggressor can still
+attrit the population down one rat at a time even though each individual
+fight is now winnable. Worth checking whether Baby Rats retreating toward
+the King when threatened (concentrating defenders near where the King can
+also help fight, per `attackNearestHostile`) would end the slow bleed
+`closeup` still shows.
