@@ -269,3 +269,76 @@ or both. Recommend tracing one more currently-losing map
 picking between (a) and (b) -- if they're also dirt-ringed beyond the
 spawn pocket, (a) is the higher-leverage fix; if they're open and just
 never searched effectively, (b) is.
+
+---
+
+## Iteration 3 — fixed a permanent-stuck bug in cheese/delivery/engage; accepted (mechanistic, no benchmark flip)
+
+**User instruction, standing from here on:** "Once an iteration finishes,
+I'd like you to immediately start the next iteration." Recorded in memory.
+
+**Investigating the Iteration 2 "Next" lead.** Added `--robot <id>` to
+`tools/replaydump/ReplayDump.java` (prints one robot's `x/y/dir/health/
+cheese/moveCooldown/turningCooldown` every round it acts) and tracked three
+independently-spawned Baby Rats on the `knifefight` loss. **All three got
+permanently stuck** at a fixed `(x,y)` after ~15-60 initial rounds of real
+movement -- `moveCooldown=0, turningCooldown=0` (fully able to act) every
+single round, yet position and facing never changed again for hundreds of
+rounds straight (one case: stuck from round ~34 to round ~274, then
+suddenly moved once). That "occasionally unsticks" pattern ruled out a
+pure-luck explanation (0.75^240 consecutive-miss probability if it were
+really a 25%-per-round random retry) and pointed at a deterministic logic
+bug instead.
+
+**Root cause.** `collectCheese()` (and, same shape, `deliverCheese()` and
+`engage()`) unconditionally returned `true` once *any* target was
+identified -- a sighted cheese tile, the King's location, a cat -- even
+when the single-step `moveToward()` call right before it completely failed
+to move. Since `runBabyRat()` treats a `true` return as "handled this
+turn, don't fall through," a robot that ever sighted an unreachable target
+(behind an obstacle its naive `directionTo()`-based routing can't route
+around) would re-select the *same* unreachable target every subsequent
+round, forever, and `explore()` would never run again for that robot.
+
+**Fix.** `moveToward()` now returns whether it actually moved (delegates
+`tryMove()`'s result); `collectCheese()`/`deliverCheese()`/`engage()` now
+return that result instead of an unconditional `true`, so a blocked path
+falls through to the next priority (ultimately `explore()`) the very next
+call instead of camping forever.
+
+**Verification.** Re-traced the same three robot IDs on a fresh
+`knifefight` run: all now move and turn continuously for the full 1200+
+round game -- the permanent-freeze pattern is gone, mechanistically
+confirmed via direct before/after position tracking (Step 6.4.2's
+"demonstrably engaged and produced the behavior change it was designed to
+produce" standard). **Full Gauntlet: 12/20 (60%), identical losing maps at
+essentially identical rounds** (`knifefight` 1200->1230, `closeup`
+1242->1242 exactly, `pipes`/`whereisthecheese` unchanged) -- no regression,
+but no benchmark movement either. Expected: `examplefuncsplayer` never
+fights or builds, so a zero-cheese-income economy starves the same way
+whether the Baby Rats are frozen in place or wandering uselessly nearby --
+this fix's value won't show up against *this* opponent regardless of how
+real and important it is. **ACCEPT** on mechanistic grounds per Step 6.4.2,
+same as several of BC22's best-verified iterations took this path.
+Snapshotted as `src/g_iter3/`; new baseline `gauntlet/20260902-012034/`.
+Replay: `replays/iter3_examplefuncsplayer_knifefight_botA.bc26`.
+
+**Bonus finding while verifying:** the now-unstuck rat still only wanders
+within a small ~5x8 pocket the entire 1200-round game, never reaching any
+of the map's 6 cheese mines (nearest one ~10 tiles from spawn). Added
+`--terrain X,Y` to the replay tool (was previously hardcoded to King spawn
+locations only) and rendered the pocket directly: it's a real wall/dirt
+chokepoint (`knifefight`'s namesake, presumably) with **dirt tiles the rat
+could dig through to escape, but Baby Rats have no digging code at all** --
+only the King digs, from Iteration 2, and only when finding zero build
+tiles specifically. This directly answers Iteration 2's open (a)-vs-(b)
+question: it's (a), not (b) -- confirmed by direct visual terrain evidence,
+not inference.
+
+**Next.** Give Baby Rats the same dirt-digging capability as the King
+(generalize `digTowardOpenSpace()` rather than duplicating it), gated on
+being stuck/blocked rather than run unconditionally every turn (a King-style
+"no build location -> dig" trigger doesn't apply to Baby Rats, who have
+other things to do most turns -- likely trigger: `explore()`'s fallback
+path, when even the random-direction attempt fails, try digging an
+adjacent dirt tile instead of giving up for the turn).

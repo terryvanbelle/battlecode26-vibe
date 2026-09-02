@@ -22,11 +22,19 @@ public class ReplayDump {
     static int mapWidth = -1;
     static int fromRound = 0;
     static int toRound = Integer.MAX_VALUE;
+    static int trackRobot = -1;
+    static int terrainX = Integer.MIN_VALUE, terrainY = Integer.MIN_VALUE, terrainR = 8;
 
     public static void main(String[] args) throws Exception {
         for (int i = 1; i < args.length - 1; i++) {
             if (args[i].equals("--from")) fromRound = Integer.parseInt(args[++i]);
             else if (args[i].equals("--to")) toRound = Integer.parseInt(args[++i]);
+            else if (args[i].equals("--robot")) trackRobot = Integer.parseInt(args[++i]);
+            else if (args[i].equals("--terrain")) {
+                String[] xy = args[++i].split(",");
+                terrainX = Integer.parseInt(xy[0]);
+                terrainY = Integer.parseInt(xy[1]);
+            }
         }
         byte[] raw = readAll(args[0]);
         byte[] bytes;
@@ -59,6 +67,15 @@ public class ReplayDump {
                 mapWidth = map.size().x();
                 System.out.println("=== MatchHeader map=" + map.name() + " size=" + map.size().x() + "x" + map.size().y()
                         + " symmetry=" + map.symmetry() + " maxRounds=" + mh.maxRounds());
+                if (terrainX != Integer.MIN_VALUE) printTerrain(map, terrainX, terrainY, terrainR);
+                VecTable mines = map.cheeseMines();
+                if (mines != null) {
+                    StringBuilder sb = new StringBuilder("  cheese mines (" + mines.xsLength() + "): ");
+                    for (int k = 0; k < mines.xsLength(); k++) {
+                        sb.append("(").append(mines.xs(k)).append(",").append(mines.ys(k)).append(") ");
+                    }
+                    System.out.println(sb);
+                }
                 InitialBodyTable ibt = map.initialBodies();
                 if (ibt != null) {
                     for (int k = 0; k < ibt.spawnActionsLength(); k++) {
@@ -94,6 +111,11 @@ public class ReplayDump {
                 for (int ti = 0; ti < r.turnsLength(); ti++) {
                     Turn turn = r.turns(ti);
                     dumpActions(turn, round);
+                    if (trackRobot >= 0 && turn.robotId() == trackRobot) {
+                        System.out.println("round " + round + " TRACK id" + trackRobot + " at (" + turn.x() + "," + turn.y()
+                                + ") dir=" + turn.dir() + " hp=" + turn.health() + " cheese=" + turn.cheese()
+                                + " moveCD=" + turn.moveCooldown() + " turnCD=" + turn.turningCooldown());
+                    }
                 }
             } else if (t == Event.MatchFooter) {
                 MatchFooter mf = (MatchFooter) ew.e(new MatchFooter());
