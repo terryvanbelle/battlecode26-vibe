@@ -1944,3 +1944,53 @@ reserve that scales too slowly). Both are real, replay-confirmed
 mechanisms with failed-but-informative first attempts, not
 speculation -- worth returning to with fresh design rather than more
 parameter guesses.
+
+---
+
+## Iteration 30 attempt — hard per-round build cooldown; REJECTED (still net negative, new mechanism found)
+
+One more direct attempt at Iteration 28/29's target: instead of a
+cheese-based throttle at all, a hard cooldown between builds
+(`BUILD_COOLDOWN_ROUNDS = 4`), independent of cheese affordability, on
+the theory that the early-game burst (36 rats by round 50) needed a
+*rate* cap that no cheese-based check could express cleanly.
+
+**Smoke test** (`closeup` vs. `immediate_defector`): the initial ramp
+was genuinely fixed -- population growth now matches roughly the
+original pace (25ish by round 50-75, not 36) -- but the game still
+ended worse than baseline, dying at r430. Traced it: this time the
+population/combat picture is *strong* right up to the end -- ahead on
+population (18 vs. 9), `catDamage` (1090 vs. 330), and
+`cheeseTransferred` (635 vs. 575) at round 425 -- but the King's own
+cheese hit 0 by round 375 and stayed there while its unconditional 2/
+round upkeep (RULES.md) bled it out, dying roughly 55 rounds later
+(600 HP / 10 HP-loss-per-round-unpaid ~= 60 rounds, consistent).
+
+**REJECT without a full Gauntlet run** (still net worse than baseline
+on the motivating game). Reverted `src/bot/RobotPlayer.java`.
+
+**A third, distinct mechanism in this same investigation, not a repeat
+of 28/29's finding:** the King correctly *stopped* building once cheese
+approached `RESERVE` (no further overspend), but by then cumulative
+spending had already left too thin a margin -- the flat 2/round upkeep
+alone (with no more builds happening at all) was enough to finish the
+job. This is the *original* Iteration 1 problem ("King was spending
+itself into starvation") resurfacing in a new form: `RESERVE=150` was
+calibrated for the old, slower/lower spending pattern, and evidently
+isn't a large enough buffer once the King is allowed to build more
+aggressively for longer. Notably, the army itself was *winning*
+decisively when the King died -- this isn't a combat-quality problem at
+all, purely a King-side cash-management one.
+
+**Closing this investigation arc for this session.** Three attempts (28
+unbounded cap, 29 scaling reserve, 30 hard cooldown) found three
+distinct, real mechanisms (cumulative-cap lockout, boom-bust overbuild,
+King-bankruptcy-despite-army-strength) but none produced a net
+improvement. The population-cap system has more moving parts interacting
+than a single-parameter fix can address -- a proper solution likely
+needs a fundamentally different building policy (e.g. hysteresis: stop
+well above `RESERVE` and don't resume until cheese has recovered with
+real margin above it, rather than a hard threshold either direction) --
+real design work for a future session, not another quick guess. Back to
+the clean `g_iter10` baseline (70.0%, `gauntlet/20260902-163148/`). No
+accepted changes since Iteration 24.
