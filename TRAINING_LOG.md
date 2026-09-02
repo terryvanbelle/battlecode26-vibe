@@ -2138,3 +2138,17 @@ danger-conditional retreat trigger for exploration safety generally
 Iterations 25/26's rejected distance-cap attempts), a full King
 spending-model redesign (Iterations 28-31), and `catDamage`-vs-
 `pure_cooperator` is closed out as accepted map-luck noise.
+
+**Standing habit change (user request):** run the vs-old-bots comparison
+(`OPPONENTS="g_iter1" tools/gauntlet.sh` + `track_vs_old_bots.py` +
+`plot_vs_old_bots.py`) after *every* accepted iteration from now on,
+not periodically -- added to memory as
+`update-vs-old-bots-every-accept`. Backfilled for this iteration:
+`g_iter11` vs. `g_iter1`, `gauntlet/20260902-195419/` -- **16/20
+(80.0%)**, continuing a gradual decline from `g_iter7`'s 90.0% and
+`g_iter10`'s 85.0%. Losses: both sides of `tiny` (consistent with this
+iteration's own new `tiny` weakness, see above) and both sides of
+`whereisthecheese`. Not alarming on its own -- 20-game samples against
+a single frozen old snapshot are noisy, and the primary peer-roster
+signal has been climbing over the same span (67.5%->70.0%->75.0%) -- but
+worth watching if the trend continues over the next couple of accepts.
