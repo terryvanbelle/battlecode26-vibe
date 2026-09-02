@@ -66,6 +66,9 @@ public class ReplayDump {
                         String lbl = "id" + sp.id() + "(team" + sp.team() + "," + RobotType.name(sp.robotType()) + ")";
                         robotLabel.put(sp.id(), lbl);
                         System.out.println("  initial body " + lbl + " at (" + sp.x() + "," + sp.y() + ")");
+                        if (sp.robotType() == RobotType.RAT_KING) {
+                            printTerrain(map, sp.x(), sp.y(), 4);
+                        }
                     }
                 }
             } else if (t == Event.Round) {
@@ -191,6 +194,20 @@ public class ReplayDump {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < len; i++) sb.append(f.get(i)).append(i < len - 1 ? "," : "");
         return sb.append("]").toString();
+    }
+
+    static void printTerrain(GameMap map, int cx, int cy, int radius) {
+        int w = map.size().x(), h = map.size().y();
+        System.out.println("  terrain around (" + cx + "," + cy + ") [# wall, . dirt, blank open]:");
+        for (int y = Math.min(h - 1, cy + radius); y >= Math.max(0, cy - radius); y--) {
+            StringBuilder row = new StringBuilder("    ");
+            for (int x = Math.max(0, cx - radius); x <= Math.min(w - 1, cx + radius); x++) {
+                int idx = x + w * y;
+                char c = (x == cx && y == cy) ? 'K' : map.walls(idx) ? '#' : map.dirt(idx) ? '.' : ' ';
+                row.append(c);
+            }
+            System.out.println(row);
+        }
     }
 
     static String label(int id) {

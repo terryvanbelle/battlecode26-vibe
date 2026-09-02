@@ -195,3 +195,77 @@ next fix (better cheese-mine seeking -- map memory via the shared array
 written by the King instead of only ever-forgetting local vision, since
 Baby Rats currently have no way to remember or share a cheese sighting once
 out of vision) is higher-priority than anything specific to the 3 losses.
+
+---
+
+## Iteration 2 — King dirt-digging; accepted at exactly WinPct
+
+**User instruction this session:** "Once an iteration finishes, I'd like
+you to immediately start the next iteration" -- standing rule from here on,
+recorded in memory, not just this session.
+
+**Investigating the "Next" lead above.** Re-ran `bot` vs `examplefuncsplayer`
+on `closeup` directly (not from a saved Gauntlet replay, since Gauntlet only
+keeps losses) -- and it *flipped to a loss* on a repeat run, same round
+1310, same `COIN_FLIP` win type. Confirms the suspicion directly: these
+aren't stable wins, they're noise. Dumped the replay: `aliveBabies=[0,0]`
+for **both teams**, the entire game -- our King never built a single Baby
+Rat on this map, ever.
+
+**Root cause (needed a new tool feature to see):** added a terrain
+dump to `tools/replaydump/ReplayDump.java` (prints wall/dirt in a radius
+around each Rat King's spawn, reading `GameMap.walls()/dirt()` directly,
+row-major index `x + width*y` confirmed from the engine's own
+`GameMapIO.java`). Both Kings on `closeup` spawn completely boxed in by
+**dirt** (impassable until dug -- not a permanent wall). Iteration 1
+explicitly never implemented dirt digging (`RobotController.canRemoveDirt`/
+`removeDirt`, `DIG_DIRT_CHEESE_COST=5`), so `findBuildLocation()` always
+returned `null` and the King just... did nothing, forever, on this map.
+
+**Fix.** When `findBuildLocation()` finds no open build tile, the King digs
+the nearest adjacent dirt tile instead (`digTowardOpenSpace()`). Re-tested
+on `closeup`: King dug through in round 1-2, started building at round 3,
+reached population 7 -- but still lost, `RATKING_DESTROYED` at round 1242
+(a *real* loss now, not a coin flip). Traced it: cheese declined smoothly
+to 0 with **zero cat damage and zero cheese collected the entire 1200+
+round game**, exactly the same "never actually finds anything" signature
+as the coin-flip games. So the dig fix is real and mechanistically
+confirmed (King builds now, where it categorically couldn't before), but
+it exposes rather than solves the deeper problem.
+
+**Full Gauntlet: 12/20 (60%) -- ACCEPT, exactly at `WinPct=60%`.** Diff vs.
+the Iteration 1 baseline (`gauntlet/20260902-004554/`): `closeup` flipped
+win->loss on both sides -- by "reading a diff's shape" this looks like the
+one-directional, single-map pattern the algorithm says to treat as a likely
+real regression, *except* it's already understood and intentional: the old
+"win" was the coin-flip artifact the dig fix was specifically meant to
+replace with real economic activity, and the new result is a real,
+consistent `RATKING_DESTROYED` loss, not noise (see Step 3.1's carve-out
+for "real-but-already-intentional changes this iteration was specifically
+trying to make"). Nothing else changed outcome. Snapshotted as
+`src/g_iter2/`; this Gauntlet run (`gauntlet/20260902-011100/`) is the new
+baseline. Replay checked in:
+`replays/iter2_examplefuncsplayer_closeup_botA.bc26`.
+
+**The real finding, now confirmed across two independent maps
+(`knifefight` post-fix, `closeup` post-fix):** a *working*, unblocked,
+freely-roaming population of 7-15 Baby Rats still finds **zero cheese and
+zero cats over 1000+ rounds**. This is no longer explainable by gridlock or
+being boxed in -- both of those are now fixed on the traced maps. The
+bottleneck is exploration/search itself: `explore()`'s per-robot preferred
+heading (Iteration 1's fix 2) gives *initial* directional diversity but no
+map memory, no systematic coverage, and no digging for Baby Rats (only the
+King digs) -- a rat that wanders into a *second* ring of dirt farther from
+spawn just stops making progress in that direction the same way the King
+used to.
+
+**Next.** This is now the dominant, best-evidenced lead and should be
+Step 4's target over anything map-specific: either (a) Baby Rats need
+dirt-digging too, not just the King, or (b) the search strategy itself
+needs real map coverage (e.g. King-relayed "go look over there" via the
+shared array, or a systematic sweep instead of a fixed personal heading),
+or both. Recommend tracing one more currently-losing map
+(`knifefight`/`pipes`/`whereisthecheese`) with the terrain dump before
+picking between (a) and (b) -- if they're also dirt-ringed beyond the
+spawn pocket, (a) is the higher-leverage fix; if they're open and just
+never searched effectively, (b) is.

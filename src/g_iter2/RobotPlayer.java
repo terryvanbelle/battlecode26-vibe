@@ -1,4 +1,4 @@
-package bot;
+package g_iter2;
 
 import battlecode.common.*;
 
