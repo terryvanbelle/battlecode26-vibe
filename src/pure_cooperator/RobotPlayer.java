@@ -8,11 +8,20 @@ import java.util.Random;
  * Synthetic Gauntlet reference archetype (see TRAINING_ALGORITHM.md's
  * "Backstab-policy coverage"): a **pure cooperator**. Never attacks an
  * enemy rat under any circumstance, even after the other team has already
- * backstabbed us -- unlike `src/bot/RobotPlayer.java`, which retaliates
- * once `!rc.isCooperation()`. Otherwise identical to `src/bot/` as of
- * Iteration 4 (economy/search fixes included -- see TRAINING_LOG.md's
- * "kept archetypes in sync" note; this file is meant to isolate the
- * backstab-policy dimension specifically, not also be a weaker economy).
+ * backstabbed us, and never uses `src/bot/`'s desperation/backstab-hunt
+ * system (Iterations 11-12) -- that system exists specifically to trigger
+ * a *deliberate* backstab under economic pressure, which contradicts this
+ * archetype's whole identity. Otherwise identical to `src/bot/` as of
+ * `g_iter9` (Iteration 10) -- economy (RESERVE/MAX_POPULATION/King
+ * digging) and cat-engagement fixes fully synced.
+ *
+ * Re-synced 2026-09-02 (TRAINING_LOG.md): the original sync (after
+ * Iteration 4) had gone stale for 6 more iterations of `bot` changes
+ * (MAX_POPULATION 15 vs. `bot`'s 25 in particular) without anyone
+ * noticing -- found while tracing an unrelated `tiny` loss and seeing an
+ * implausible 13x cheese-income gap between `bot` and this archetype
+ * despite them running near-identical code. See TRAINING_LOG.md for the
+ * standing "keep archetypes in sync" lesson this produced.
  *
  * Purpose: tests whether our own bot recognizes a genuinely safe opponent
  * and doesn't waste effort or risk an unforced backstab against it.
@@ -61,7 +70,7 @@ public class RobotPlayer {
         pickUpBestNearbyCheese(rc);
 
         final int RESERVE = 150;
-        final int MAX_POPULATION = 15;
+        final int MAX_POPULATION = 25;
         MapLocation buildLoc = findBuildLocation(rc);
         if (buildLoc != null && rc.canBuildRat(buildLoc)
                 && rc.getGlobalCheese() - rc.getCurrentRatCost() >= RESERVE
@@ -128,7 +137,11 @@ public class RobotPlayer {
         RobotInfo nearestCat = nearestOfType(rc, nearby, UnitType.CAT);
         if (nearestCat != null) {
             int allies = countAlliesNear(rc, nearby, nearestCat.getLocation(), 8);
-            if (allies >= 3) {
+            if (rc.canAttack(nearestCat.getLocation())) {
+                rc.attack(nearestCat.getLocation());
+                return;
+            }
+            if (allies > 1 || rc.getHealth() > 30) {
                 if (engage(rc, nearestCat.getLocation())) return;
             } else if (nearestCat.getLocation().distanceSquaredTo(rc.getLocation()) <= 8) {
                 if (flee(rc, nearestCat.getLocation())) return;
@@ -136,6 +149,7 @@ public class RobotPlayer {
         }
 
         // No retaliation clause, ever -- the whole point of this archetype.
+        // No desperation/backstab-hunt system either (see class docstring).
 
         if (collectCheese(rc)) return;
 

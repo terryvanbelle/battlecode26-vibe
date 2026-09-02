@@ -13,9 +13,20 @@ import java.util.Random;
  * Rats stay on a short leash around their home Rat King ("turtle") rather
  * than roaming far for cheese, prioritizing defense of the King over
  * economy once any enemy is sighted. Otherwise identical to `src/bot/` as
- * of Iteration 4 (economy/search fixes included -- see TRAINING_LOG.md's
- * "kept archetypes in sync" note; this file is meant to isolate the
- * backstab-policy dimension specifically, not also be a weaker economy).
+ * of `g_iter9` (Iteration 10) -- economy (RESERVE/MAX_POPULATION/King
+ * digging) and cat-engagement fixes fully synced; the desperation/
+ * backstab-hunt system (Iterations 11-12) is deliberately *not* included,
+ * since this archetype is already always-hostile from turn 1 (doesn't
+ * need permission to fight) and already has its own distinctive
+ * "leash" answer to "what to do with no enemy in sight" that a
+ * hunt-toward-a-guess would just override.
+ *
+ * Re-synced 2026-09-02 (TRAINING_LOG.md): the original sync (after
+ * Iteration 4) had gone stale for 6 more iterations of `bot` changes
+ * without anyone noticing -- found while tracing an unrelated `tiny` loss
+ * against `pure_cooperator` (this archetype's sibling, same staleness
+ * bug) and seeing an implausible cheese-income gap between `bot` and the
+ * archetype despite them running near-identical code.
  *
  * Purpose: tests our own bot's resilience to a worst-case early betrayal
  * (whichever team meets first likely triggers a backstab almost
@@ -66,7 +77,7 @@ public class RobotPlayer {
         pickUpBestNearbyCheese(rc);
 
         final int RESERVE = 150;
-        final int MAX_POPULATION = 15;
+        final int MAX_POPULATION = 25;
         MapLocation buildLoc = findBuildLocation(rc);
         if (buildLoc != null && rc.canBuildRat(buildLoc)
                 && rc.getGlobalCheese() - rc.getCurrentRatCost() >= RESERVE
@@ -142,7 +153,11 @@ public class RobotPlayer {
         RobotInfo nearestCat = nearestOfType(rc, nearby, UnitType.CAT);
         if (nearestCat != null) {
             int allies = countAlliesNear(rc, nearby, nearestCat.getLocation(), 8);
-            if (allies >= 3) {
+            if (rc.canAttack(nearestCat.getLocation())) {
+                rc.attack(nearestCat.getLocation());
+                return;
+            }
+            if (allies > 1 || rc.getHealth() > 30) {
                 if (engage(rc, nearestCat.getLocation())) return;
             } else if (nearestCat.getLocation().distanceSquaredTo(rc.getLocation()) <= 8) {
                 if (flee(rc, nearestCat.getLocation())) return;

@@ -1168,3 +1168,62 @@ formation gated on a specific, verified payoff (e.g. only forming near
 an already-discovered, currently-unreached cheese mine, where the new
 King's *income* would plausibly exceed its own 2/round upkeep quickly)
 rather than opportunistic triggering whenever 7 rats happen to cluster.
+
+---
+
+## Infrastructure fix — archetypes had gone stale again since Iteration 10, silently inflating the score
+
+While investigating `tiny` (a loss against both opponents in every
+recent Gauntlet, never directly root-caused) as the next Step 4 target
+after six straight rejects, found something more important than a
+per-map bug: `pure_cooperator` was gathering cheese **13x faster** than
+`bot` (2905 vs. 215 by round 800) despite the two archetypes being
+supposed to run near-identical economy code. Checked directly:
+`pure_cooperator`/`immediate_defector` were still at `MAX_POPULATION=15`
+and missing every fix since Iteration 4 (the cat-engagement DPS fix,
+Iteration 5-6; unconditional engage, Iteration 6; `MAX_POPULATION`
+raised to 25, Iteration 10) -- the one-time sync during the "Gauntlet
+pool update" episode was never repeated as `bot` kept evolving.
+
+**This means every accept/reject decision from Iteration 10 onward
+(10, 12, and the rejected 13-18) was partly measured against a
+stale, weaker-than-intended `pure_cooperator`.** The `pure_cooperator`
+side of those Gauntlets was easier than the "current bot's real peer
+strength" the algorithm is supposed to be tracking -- not stale enough
+to flip WinPct below 60% on any of them retroactively (checked: none of
+Iterations 10-18's WinPct margins were close enough to 60% that a ~20
+percentage-point-easier opponent on one side of the roster would flip
+the verdict), but the peer-spread and absolute-strength picture
+(`progress/peer_win_spread.png`, `progress/vs_old_bots.png`) has been
+overstating `bot`'s edge against `pure_cooperator` specifically for the
+last 6+ iterations.
+
+**Re-synced both archetypes properly** this time (`MAX_POPULATION=25`,
+full cat-engagement/King-dig fixes; deliberately did *not* add the
+Iteration 11-12 desperation/backstab-hunt system to either -- it
+contradicts `pure_cooperator`'s identity outright, and would override
+`immediate_defector`'s own distinctive leash behavior for no benefit
+since it's already always-hostile). Verified the fix directly:
+re-ran the same `tiny` game, and the suspicious 13x gap is gone --
+a real, close, back-and-forth economy race (both sides trading cat-
+damage and cheese-transferred leads) resolving in a genuine win, not an
+artifact.
+
+**Full Gauntlet with corrected opponents: 27/40 (67.5%)**, down from the
+stale-opponent reading of 30/40 (75%) -- `pure_cooperator` 75%->55% (a
+real, much harder peer now, many games running the full 2000-round
+cap), `immediate_defector` 70%->80%. **This 67.5% is the honest current
+reading of `g_iter9`'s strength** -- not a regression to act on (no
+`src/bot/` code changed), but the corrected baseline every future
+Gauntlet comparison should measure against. `gauntlet/20260902-141237/`
+is the new reference run.
+
+**Standing lesson, added to memory:** synchronizing the archetypes once
+isn't enough -- they need to be checked (and re-synced) periodically as
+`bot` keeps evolving, or the peer roster silently drifts easier over
+time and inflates every subsequent Gauntlet reading without any signal
+that it's happening. A 13x gap on one map is what made this visible;
+smaller staleness could hide for a long time. Worth adding a periodic
+"are the archetypes still in sync" check to this project's own version
+of BC22's periodic-maintenance habits (progress charts, vs-old-bots
+tracking), not just a one-time fix.
