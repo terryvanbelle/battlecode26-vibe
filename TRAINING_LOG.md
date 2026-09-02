@@ -992,3 +992,45 @@ the (rejected) hunter-split attempt, and the 180-degree-rotation
 enemy-King-location guess. Worth re-running this check periodically as
 more tie-breaking logic accumulates, same as BC22's own history found
 value in -- but no action needed right now.
+
+---
+
+## Iteration 15 attempt — rat traps near the King as surplus defense; REJECTED (never engages)
+
+Fresh functional area, explicitly deferred since Iteration 1 (traps,
+ratnap/throw, cheese-spend-on-bite were all listed as unexplored).
+King places a rat trap (20 cheese, 50 dmg + 3-turn stun, enemy-only) on
+an adjacent tile once population is capped and cheese is comfortably
+above `RESERVE` -- pure discretionary spending of genuine surplus,
+targeting `closeup`'s unresolved `immediate_defector` loss.
+
+**Added `PlaceTrap`/`TriggerTrap` cases to `tools/replaydump/ReplayDump.java`
+first** (previously silently dropped by the default case) specifically
+to verify this mechanistically, not just by outcome. Smoke test on
+`closeup`: 5 traps placed in quick succession right after hitting the
+population cap (round 34-40, all adjacent to the King) -- **zero ever
+triggered**, the entire game. `immediate_defector`'s hunters go after
+individual scattered Baby Rats, not the King's own tile specifically, so
+traps sitting in the King's build ring are never in anyone's path.
+
+**Full Gauntlet: 30/40 (75%), unchanged in aggregate** -- but
+`pure_cooperator` 75%->80% and `immediate_defector` 75%->70%, a mixed,
+scattered, net-zero shape consistent with noise, not a real effect
+either direction (traps costing cheese but essentially never triggering
+is mechanistically incapable of producing a real directional effect).
+
+**REJECT** (Step 6.4.3: confirmed non-engagement, not just absence of
+a Gauntlet flip) despite the nominally-unchanged aggregate -- keeping
+code that provably never does anything, while still spending real
+cheese, isn't worth carrying forward on the strength of "didn't measurably
+hurt." Reverted; `src/bot/` is back to `g_iter9`. The
+`PlaceTrap`/`TriggerTrap` replay-tool support is kept (real, reusable
+diagnostic capability, independent of this specific attempt's outcome).
+
+**Diagnosis for a future attempt:** placement needs to target where the
+enemy actually goes, not just "near the King because there's spare
+cheese." Candidates: place along the path between the King and the
+map's cheese mines (where both economies' traffic concentrates) rather
+than in the build ring specifically, or gate placement on an enemy
+having been *recently sighted* nearby rather than blind post-cap
+surplus spending.

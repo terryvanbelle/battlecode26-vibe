@@ -203,6 +203,19 @@ public class ReplayDump {
                     }
                     break;
                 }
+                case Action.PlaceTrap: {
+                    PlaceTrap d = new PlaceTrap();
+                    d.__init(pos, bb);
+                    System.out.println("round " + round + " " + who + " PlaceTrap "
+                            + (d.isRatTrapType() ? "RAT" : "CAT") + " loc=" + loc(d.loc()));
+                    break;
+                }
+                case Action.TriggerTrap: {
+                    TriggerTrap d = new TriggerTrap();
+                    d.__init(pos, bb);
+                    System.out.println("round " + round + " " + who + " TriggerTrap");
+                    break;
+                }
                 case Action.RatNap: {
                     System.out.println("round " + round + " " + who + " RatNap");
                     break;
