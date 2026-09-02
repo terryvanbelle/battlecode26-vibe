@@ -1830,3 +1830,22 @@ bots running identical code.
 
 **Status:** back to the clean `g_iter10` baseline (70.0%,
 `gauntlet/20260902-163148/`). No accepted changes since Iteration 24.
+
+---
+
+## Diagnostic: remaining immediate_defector losses -- same known pattern, no new mechanism
+
+`knifefight` (bot=A): same game already traced in depth during the
+Iteration 19/20 investigation (population collapse to near-zero by
+round 125). `closeup` (bot=A): 18 vs. 11 rat deaths in the first 300
+rounds, 143 `RatAttack` events vs. only 17 cat-related ones -- the same
+rat-vs-rat attrition mechanism as `knifefight` and `keepout`, not a new
+finding. This is the same functional area behind 9 rejected attempts
+this session (Iterations 13-20's combat-targeting tuning, plus 25/26's
+lone-wanderer distance-cap attempts). Not attempting a repeat
+implementation without a genuinely new angle -- the untried lead
+remains the danger-conditional retreat trigger noted after Iteration 26
+(condition on an actual signal of danger, e.g. distance to last sighted
+enemy or a near-death HP event, rather than a distance-only threshold),
+which needs real design work before another attempt, not a quick
+variation.
