@@ -1683,3 +1683,38 @@ show this axis alone doesn't reliably separate "safe" from "dangerous."
 
 **Status:** back to the clean `g_iter10` baseline (70.0%,
 `gauntlet/20260902-163148/`). No accepted changes since Iteration 24.
+
+---
+
+## Diagnostic: sittingducks vs. pure_cooperator -- map-asymmetric cat danger, not a bot bug
+
+Fresh-territory trace per Step 4 (not yet examined this session). Unlike
+`rift`/`keepout`, this one isn't close: by round 300 we're already at
+12 alive babies vs. their 20, ending 7 vs. 14, behind on `catDamage`
+(1700 vs. 1930) and `cheeseTransferred` (4095 vs. 4820) too.
+
+Tallied cat kills by attacker and victim team across the full game: cat
+`id10` killed **18 of our rats and 1 of theirs**; cat `id9` killed **10
+of theirs and 0 of ours**. A heavily lopsided split -- one cat is almost
+purely a threat to us, the other almost purely a threat to them, and
+the one near us is nearly twice as lethal.
+
+Since `pure_cooperator` runs the *same* economy/exploration code as
+`bot` (only its backstab policy differs -- see the "Infrastructure fix"
+entry), this isn't an asymmetry in either side's AI. It has to be a
+genuine map-geometry effect: whichever cat happens to patrol nearer a
+given King's side is simply more dangerous on this specific map. Maps
+are guaranteed symmetric *in principle* (RULES.md), but this project's
+own King-location-guess heuristic already documents the precedent that
+"several maps turned out non-rotational" in BC22 -- not every map's
+symmetry is as clean in practice as the guarantee suggests, and this
+reads as the same class of issue playing out through cat danger instead
+of King-position guessing.
+
+**Not treating this as a fixable bug for now** -- no code change
+attempted. If a future session wants to pursue it, the plausible lever
+would be adaptive rather than reactive: detect an unusually lethal
+nearby cat (e.g. track own-team death rate attributable to a specific
+cat ID over a rolling window) and respond with more conservative
+population/exposure near it, rather than anything that assumes cat
+danger is symmetric across a match by default.
