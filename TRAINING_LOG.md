@@ -1634,3 +1634,52 @@ attrition vs. `immediate_defector` -- Iteration 25 found and partially
 addressed the "lone wanderer" mechanism but the fix was too blunt;
 refining it (danger-conditional retreat instead of a blanket distance
 cap) is the natural next attempt, not a new area.
+
+---
+
+## Iteration 26 attempt — raise the exploration-distance cap to 85%; REJECTED (net zero, no improvement)
+
+Refinement of Iteration 25's rejected fix rather than a new idea: same
+mechanism, same threshold-based retreat, but raised from 50% to 85% of
+the map's larger dimension, on the theory that the traced failure case
+(a rat crossing essentially the *entire* map width) was extreme enough
+that a much higher bar would still catch it without interrupting the
+far more common case of moderate, safe exploration that Iteration 25's
+50% threshold was needlessly cutting off.
+
+**Smoke test** (`keepout` vs. `immediate_defector`, the motivating
+game): a loss this time (points, not elimination) -- different from
+Iteration 25's clean win on the same matchup. Went straight to the full
+Gauntlet rather than reading into one flipped game (RNG-cascade
+sensitivity, same reasoning as Iteration 24's refinement pass).
+
+**Full Gauntlet: 28/40 (70.0%), exactly tying the baseline.** Diffed the
+two loss lists precisely rather than eyeballing percentages: 2 losses
+fixed (`keepout` bot=A vs. `pure_cooperator`, `sittingducks` bot=A vs.
+`pure_cooperator`), 2 new losses appeared (`tiny` bot=A vs.
+`pure_cooperator`, `whereisthecheese` bot=A vs. `immediate_defector`),
+the other 10 losses unchanged either way. Notably, `keepout` vs.
+`immediate_defector` -- the matchup that originally motivated this whole
+investigation -- is completely unaffected by the higher threshold: both
+sides still lose, same as the `g_iter10` baseline before either attempt.
+
+**REJECT** (net zero -- ties *WinPct*'s 60% floor comfortably but shows
+no improvement over the running baseline, and the diff is a straight
+swap rather than a directional fix). Reverted `src/bot/RobotPlayer.java`.
+
+**Diagnosis:** two attempts at the same lever (blanket exploration-
+distance cap, at 50% then 85% of map size) have now shown opposite
+failure modes -- too aggressive costs real search time broadly (25), too
+conservative doesn't reliably catch the actual "lone wanderer" case
+either (26, still loses `keepout`/`immediate_defector` outright). A
+*fixed threshold* fraction of map size isn't the right lever regardless
+of where it's set; the earlier "Next" note's suggestion (condition the
+retreat on some direct signal of danger -- e.g. distance to the last
+sighted enemy, or only retreating after an actual near-death encounter
+rather than a distance-only trigger) remains the untried, more
+promising direction. Not attempting a third threshold value without a
+qualitatively different trigger condition -- two data points already
+show this axis alone doesn't reliably separate "safe" from "dangerous."
+
+**Status:** back to the clean `g_iter10` baseline (70.0%,
+`gauntlet/20260902-163148/`). No accepted changes since Iteration 24.
