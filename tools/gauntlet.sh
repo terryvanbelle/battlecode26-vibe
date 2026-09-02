@@ -55,6 +55,33 @@ mkdir -p "$OUT/losses"
 NGAMES=$(( $(echo "$OPPONENTS" | wc -w) * $(echo "$MAPS" | wc -w) * 2 ))
 echo "gauntlet $RUN_ID   bot=$BOT   opponents=[$OPPONENTS]   maps=$(echo "$MAPS" | wc -w)   games=$NGAMES   parallel=$MAXJOBS"
 
+# Archetype staleness guard. The synthetic peers (pure_cooperator,
+# immediate_defector) are supposed to share src/bot/'s economy/movement code
+# and differ only in backstab policy. Twice now they have silently fallen
+# behind -- once for 6+ iterations, once again across Iterations 32-40 --
+# each time inflating every win rate measured in between, with no signal
+# that it was happening. A memory note didn't prevent the second occurrence
+# because it only fires if someone remembers to run it, so the check lives
+# here instead, where it runs automatically on every Gauntlet.
+#
+# Heuristic, deliberately cheap: compare each archetype's line count to
+# src/bot/'s. They legitimately differ by a few dozen lines of policy, so
+# only a large gap is flagged. This is a warning, not a hard failure -- a
+# stale-peer run is still worth having, it just must not be mistaken for a
+# clean baseline.
+BOT_LINES=$(wc -l < "$REPO/src/bot/RobotPlayer.java" 2>/dev/null || echo 0)
+for _opp in $OPPONENTS; do
+  case "$_opp" in g_iter*) continue ;; esac   # frozen snapshots; drift is the point
+  _f="$REPO/src/$_opp/RobotPlayer.java"
+  [ -f "$_f" ] || continue
+  _lines=$(wc -l < "$_f")
+  if [ "$BOT_LINES" -gt 0 ] && [ "$(( (BOT_LINES - _lines) * 100 / BOT_LINES ))" -gt 25 ]; then
+    echo "  !! WARNING: $_opp is $_lines lines vs bot's $BOT_LINES -- likely stale."
+    echo "  !! Re-sync it to src/bot/ before trusting this run's win rate."
+    echo "  !! (See TRAINING_LOG.md's archetype-staleness entries.)"
+  fi
+done
+
 state=$(gcloud compute instances describe "$VM" --zone="$ZONE" --project="$PROJECT" --format='value(status)' 2>/dev/null || true)
 [ "$state" = RUNNING ] || { echo "  starting VM ..."; gcloud compute instances start "$VM" --zone="$ZONE" --project="$PROJECT" >/dev/null; }
 IP="$(vm_ip)"; RVM="$USER_NAME@$IP"
