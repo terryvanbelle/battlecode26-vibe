@@ -1034,3 +1034,49 @@ map's cheese mines (where both economies' traffic concentrates) rather
 than in the build ring specifically, or gate placement on an enemy
 having been *recently sighted* nearby rather than blind post-cap
 surplus spending.
+
+---
+
+## Iteration 16 attempt — King spends cheese on cat bites for bonus damage; REJECTED (regression, real interaction effect found)
+
+RULES.md's bite formula (`10 + ceil(sqrt(X))` for `X` cheese spent) had
+gone completely unused all session. Had the King spend up to 100 bonus
+cheese (floored at the same 150 `RESERVE`) when attacking a cat
+specifically -- doubling down on cat damage, this bot's most consistent
+strength, rather than patching a weakness, and restricted to the King
+(reliable large cheese reserves) rather than Baby Rats (carried cheese
+almost never survives to an attack -- delivery is priority 1).
+
+**Smoke test:** `whereisthecheese` vs. `pure_cooperator` -- worse
+(round 912 vs. 1340). Traced why: the King *did* engage and spend (cheese
+900 at round 400 vs. 1000 baseline, 160 at round 600 vs. 660) -- real
+mechanistic engagement, unlike Iterations 14/15. But faster cheese
+depletion pulled the `economyStruggling`/`desperate` trigger **much**
+earlier than intended, recreating Iteration 13's already-rejected
+regression (population committing to the hunt too early, collapsing to 0
+by round 800) through a different mechanism -- a genuine interaction
+effect between two features that each work fine in isolation.
+
+**Full Gauntlet: 29/40 (72.5%), down from 30/40 (75%)** -- confirmed
+broadly, not just on the motivating map: `closeup` dropped to r749/r770
+(from ~r1260/r1270), a new loss appeared (`sittingducks` vs.
+`immediate_defector`), consistent with the same premature-desperation
+pattern firing on multiple maps, not just `whereisthecheese`.
+
+**REJECT.** Reverted; `src/bot/` is back to `g_iter9`.
+
+**This is the fourth consecutive reject** (Iterations 13, 14, 15, 16),
+past `MaxConsecutiveRejects=3` even counting only genuinely distinct
+areas (desperation-tuning x2, traps, cheese-bite-bonus). The common
+thread across three of these four: anything that touches the King's
+cheese balance interacts with the `economyStruggling`/`desperate` latch
+in ways that are easy to get wrong, because that latch currently reacts
+to *any* decline, not specifically to the structural income-vs-upkeep
+problem it was built to detect. A more targeted trigger -- e.g. tracking
+net income (cheese delivered) against base upkeep specifically, rather
+than total cheese-on-hand -- would decouple discretionary King spending
+(traps, bite bonuses, whatever comes next) from the starvation-detection
+system entirely, instead of each new spending feature needing to
+independently avoid tripping it. Worth doing before another attempt in
+this neighborhood, rather than continuing to discover the same
+interaction from a new angle each time.
