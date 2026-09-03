@@ -7278,3 +7278,49 @@ wait there until eight are present.
 Also corrects a claim from the capability audit: `bench_stroke` upgrades too.
 The earlier two-replay check that showed only `bench_finalist` doing it was
 too small a sample.
+
+## Reference — squeak/readSqueaks, verified against engine source
+
+Written while Iteration 107 ran, so that whichever iteration uses this does
+not repeat Iteration 106's mistake of designing against preconditions I had
+skimmed rather than read.
+
+    squeak(int content)        RobotControllerImpl:1285
+      - NO type restriction. Baby Rats can call it. This is the channel the
+        King-only shared array (writeSharedArray throws CANT_DO_THAT for
+        non-kings) always implied we were missing -- it is why Iteration 80
+        crashed and why Iteration 100 had to broadcast King-side.
+      - NOT gated by assertIsActionReady. Costs no action cooldown, so unlike
+        a bite or a cheese transfer it does not compete with the economy.
+        Bytecode only.
+      - returns false rather than throwing when over quota; no exception risk.
+
+    MAX_MESSAGES_SENT_ROBOT = 1     but sentMessagesCount is reset in
+                                    InternalRobot.processBeginningOfTurn(), so
+                                    the real budget is ONE SQUEAK PER RAT PER
+                                    ROUND, not one per game.
+    SQUEAK_RADIUS_SQUARED   = 16    radius 4 tiles.
+    MESSAGE_ROUND_DURATION  = 5     readSqueaks(-1) returns the last 5 rounds.
+
+    Message carries: content, senderID, round, and the SENDER'S LOCATION
+    (GameWorld.squeak builds it from robot.getLocation()), so a receiver learns
+    where the sender was without spending any of the content field.
+
+    Delivered to allied robots AND to cats within the radius. Harmless: no
+    engine code reads a cat's message queue -- InternalRobot.getMessages() is
+    called only from RobotControllerImpl, i.e. only by player code.
+
+**Why this is worth an iteration.** Every coordination attempt so far has gone
+through the shared array, which only the King may write, so all our
+"communication" is one broadcaster talking to everyone. Squeaks are local,
+free, per-round and rat-to-rat. Candidates, in rough order of fit with what
+this session measured:
+
+1. **Propagate a sighted enemy King.** Today only the King broadcasts, and it
+   broadcasts a *guess* derived from assumed 180-degree symmetry (slots 3/4),
+   which the map-geometry measurement showed is often the wrong symmetry.
+   A rat that actually sees the enemy King could relay it.
+2. **Rally formation.** Iteration 107 rallies to a fixed geometric point; with
+   squeaks rats could converge on an actual cluster instead of a guessed spot.
+3. **Cheese mine locations**, given the far-map finding that our per-capita
+   income is the deficit.
