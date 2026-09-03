@@ -3516,3 +3516,27 @@ more than doubled (r33 -> r77) while `bench_spaark` (r21 -> r19) and
 `bench_stroke` (r46 -> r36) drifted the wrong way. Given the measured
 +-9-game noise floor, single games cannot separate those; running the
 full 60-game tournament benchmark for a real reading.
+
+**Two engine findings that reframe trap warfare:**
+
+1. **Enemy traps are invisible.** `getMapInfo()` calls
+   `gw.getTrap(loc, this.getTeam())`, and `GameWorld.getTrap` indexes
+   `trapLocations[team.ordinal()]` -- so `MapInfo.getTrap()` only ever
+   reveals *our own* traps. Neither side can see or route around the
+   other's. Trap damage is therefore unavoidable by design, and trap
+   warfare is a pure **volume exchange**: whoever has more traps down
+   collects more triggers. No amount of pathfinding cleverness helps.
+
+2. **We are losing that exchange because only the King places traps.**
+   In the `bench_finalist` game: they placed 32, we placed 18; their
+   rats triggered ours 13 times, **our rats triggered theirs 27 times**
+   -- 650 damage dealt against 1350 taken. The replay shows why they
+   out-place us: their *Baby Rats* lay traps
+   (`id10949(team2,RAT) PlaceTrap`), while Iteration 48 only ever lets
+   the King do it. One placer against twenty-five. `BUILD_DISTANCE_SQUARED`
+   applies to rats, so rats laying traps is legal and we simply never
+   used it -- the same "mechanic sat unused" pattern as traps themselves.
+
+So Iteration 48 as written is likely *net negative on the trap exchange
+alone*, and its survival gains have to be coming from the stun component
+rather than from winning the trap trade.
