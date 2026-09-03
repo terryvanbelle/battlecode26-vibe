@@ -7104,3 +7104,21 @@ needlessly lethal. The untested question is not whether to approach but
 whether to *disengage* -- bite, then leave before the fourth scratch lands --
 which keeps the share and stops paying a whole rat for it. That is a
 different iteration from this one, and this result does not speak to it.
+
+### Correction to Iteration 103: this result was already known
+
+Iteration 103 re-derived **Iteration 63**. That iteration tightened the same
+cat-engagement gate (to `allies >= 3`) and measured **41/108 = 38.0%** on the
+peer set, with our `catDamage` against `pure_cooperator` collapsing
+4644 -> 480 while theirs held near 6000. Iteration 103 removed the approach
+instead of tightening it and measured **21/54 = 38.9%** on the mirror.
+
+Two different instruments, two different implementations of the same idea,
+forty iterations apart, agreeing to within one percentage point. The `+11
+points` figure and the mirror measurement are new; the conclusion was not.
+The cost of the repeat was one 54-game run, and it was avoidable by reading
+the log entry for Iteration 63 before writing the hypothesis.
+
+Recorded so the next attempt on cat behaviour starts from "abstention has
+been measured twice and costs ~11 points" rather than rediscovering it a
+third time.
