@@ -6724,3 +6724,42 @@ game decided in 20-60 rounds.
 So the next hypothesis needs trap avoidance that requires no learning — the
 enemy traps on `knifefight` sit in the corridor between two Kings five tiles
 apart, which is knowable from map geometry alone at round 1.
+
+## Iteration 100 — geometry-based threat-direction avoidance — REJECTED
+
+    benchmark early wipes (primary):  14% -> 14%   (no change)
+    benchmark wins:                   5/162 -> 4/162
+    knifefight TriggerTrap:           30 -> 27
+    knifefight King spawns:           25 -> 25   (unchanged, as intended)
+    knifefight game length:           rd 64 -> rd 71
+
+Reverted; code verified identical to `g_iter20`.
+
+**The mechanism barely fired — three fewer trap triggers out of thirty.** The
+design has a flaw I should have seen before running it: the avoidance was
+placed in `explore()`, which only executes when a rat has *nothing better to
+do*. A rat heading for cheese goes through `moveToward`/`collectCheese` and
+never reaches that code, and cheese-seeking is most of our movement. So the
+change steered only idle rats.
+
+The second flaw is geometric and was visible in my own measurement. Their
+traps average **4.6 tiles from OUR King** — they ring the place our rats
+spawn and must leave from. "Head away from the threat direction" cannot help
+when the danger surrounds the origin rather than lying along one bearing.
+
+### What this says about the target
+
+Early wipes have now resisted two distinct trap-avoidance designs — learned
+zones (Iteration 69, 16% vs 16%) and geometric steering (this, 14% vs 14%) —
+while the one thing that *did* move the counter was giving the King its build
+action back (Iteration 99, 16% → 14%, three wipes fixed and none added).
+
+That is a consistent signal: on rush maps our problem is that we are
+outproduced in the opening, not that we route badly. They spawn every round
+from round 1 and place a trap almost every round from round 2; the traps kill
+rats we could afford to lose if we had built more of them. The productive
+direction is therefore more early production, not better early evasion — and
+`MAX_POPULATION`/`REPLACEMENT_RESERVE` are the constants that throttle it,
+both of which were reverted today for costing benchmark games in their
+*general* form. A version scoped to the opening on rush maps has not been
+tried.
