@@ -3084,3 +3084,55 @@ cats. Check whether a ported technique's *premise* holds before porting
 its conclusion; three of this session's rejects (this, Iteration 41's
 tie-break randomization, and the congestion throttle) were all sound
 advice imported without validating that its precondition applied here.
+
+---
+
+## Diagnostic: every points-loss is lost on catDamage and won on cheese
+
+Extracted final-round score components from all seven r2000 points-losses
+in the honest baseline (`gauntlet/20260902-235707/`), being careful with
+team indexing -- for a `bot=B` replay the bot is **team 2**, which
+inverts a naive reading of the dump:
+
+    map            ourCatDmg  theirCatDmg    ourCheese  theirCheese
+    closeup   B         1470        4320         6560         5645
+    rift      B         1950        4000        21305        12855
+    thunderdome B       2270        4600        16365        11030
+    closeup   B         1610        3360         8560         4670
+    keepout   A         3210        4460        23490        19570
+    minimaze  B          330        2950         7275         7100
+    rift      B         3020        4450        21035        20260
+
+**In all seven we lose `catDamage` and win `cheeseTransferred`.** Not
+six of seven -- all seven, across three maps and both sides.
+
+That is exactly backwards relative to the scoring weights. Coop-mode
+score is `0.5*catDamage% + 0.3*livingKings% + 0.2*cheeseTransferred%`,
+so we are winning the 0.2-weight metric, often by 2x, while losing the
+0.5-weight one. Worked through on `closeup`:
+
+    ours   0.5*25.4 + 0.3*50 + 0.2*53.7 = 38.4
+    theirs 0.5*74.6 + 0.3*50 + 0.2*46.3 = 61.6
+
+With `catDamage` merely *equalized* and everything else unchanged, that
+becomes 50.7 vs. 49.3 -- a win. **Closing the cat-damage gap alone flips
+these games**, and no economic improvement can, because the economy is
+already won and capped at a fifth of the weight.
+
+This reframes several earlier results. Iterations 21/22/27 all tried to
+raise cat damage and were rejected for costing economy -- but those ran
+*before* Iterations 38-40 fixed the build economy, in a regime where
+cheese was genuinely scarce and any diversion hurt. We now finish with
+2x the opponent's `cheeseTransferred` and a King sitting on surplus, so
+the trade those iterations couldn't afford is now affordable. It also
+explains why Iteration 42's kiting was so damaging (it cut the exact
+metric that decides these games by 3.4x) and why Iteration 43's
+low-HP-flee removal was inert (that condition rarely fires, and it
+wasn't where the contact time is being lost).
+
+**Caveat kept honest:** the opponent runs the same cat-engagement code,
+so part of this gap is the map-geometry exposure effect characterized in
+the true-mirror entry rather than a decision-quality difference. That
+argues for *adding* proactive cat-seeking rather than trying to
+fight the exposure asymmetry directly, which two projects have now
+failed to fix.
