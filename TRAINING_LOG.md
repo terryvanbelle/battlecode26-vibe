@@ -4059,3 +4059,103 @@ Rule going forward, added to the accept criteria: **a treatment and its
 baseline must be measured on the identical map set, in the same
 session, with the revert verified by diff.** Reusing a remembered
 baseline number from a different configuration is not a control.
+
+---
+
+## Iteration 56 — kill-efficiency targeting vs enemy rats — REJECTED (inert)
+
+Swapped `nearestEnemyRat` for a new `weakestEnemyRat` (target the lowest-HP
+enemy rat in range, per BC22 RESEARCH.md §4 kill-efficiency).
+
+| measurement | control | Iteration 56 |
+|---|---|---|
+| benchmarks (162 games, 27 maps) | 5/162 | **5/162** |
+| peers, `immediate_defector` (54) | 36/54 = 66.7% | 37/54 = 68.5% |
+| peers, `pure_cooperator` (54) | 29/54 = 53.7% | 27/54 = 50.0% |
+| **peers overall (108)** | **65/108 = 60.2%** | **64/108 = 59.3%** |
+
+Inert on both instruments. Rejected.
+
+**The map-set rule from Iterations 54/55 paid for itself immediately.** The
+last recorded peer baseline was 10/20 = 50.0% and 5/20 = 25.0%, measured on
+the **10-map loop**. Against those numbers Iteration 56 looked like a large
+win, especially the apparent 25% -> 50% jump vs `pure_cooperator`. Running
+the control on the **same 27-map set** showed the real baseline is 53.7%,
+so that jump never existed — it was entirely the map-set change, the exact
+error that manufactured the Iteration 54 "breakthrough". Second time this
+specific trap has been caught by the same rule.
+
+**Per user guidance, the peer Gauntlet was run even though the benchmark
+result was flat** ("a change might not win any new benchmark runs, but
+still make progress against the peer gauntlet"). Here both were flat, so
+the verdict is clean — but the benchmark set alone could not have
+established that, being floor-bound at 0-10% with no resolution to
+distinguish "inert" from "helped but not enough to flip a game".
+
+---
+
+## Finding: three failed cat-hunting iterations were tuning unreachable code
+
+Not an iteration — a root cause, found while investigating why our
+`catDamage` is always near zero.
+
+`runBabyRat` ordered its logic as:
+
+    if (rc.getRawCheese() > 0 && kingLoc != null) {
+        if (deliverCheese(rc, kingLoc)) return;   // <-- returns here
+    }
+    RobotInfo nearestCat = ...                    // <-- cat policy, below
+
+Our rats carry cheese nearly all the time, so **the entire cat
+engage/bite policy was unreachable for most robots on most turns.**
+Iterations 22, 27 and 44 all tried to make us fight cats and all measured
+as inert; they were tuning a branch that mostly never ran.
+
+Measured in `bench_finalist__hatefullattice__botB`:
+
+| | bench_finalist | us |
+|---|---|---|
+| `RatAttack` | **1015** | 57 |
+| cat damage | **9720** | 142 |
+
+9720/1015 ≈ 9.6 ≈ `RAT_BITE_DAMAGE` 10 — essentially every one of their
+attacks is a bite on a cat. Across a 15-replay sample our share of all cat
+damage dealt was **14.6%** (5134 vs 29984).
+
+### Three claims of mine that the evidence overturned
+
+1. **"catDamage is unreachable because cats have 4000 HP."** Non-sequitur.
+   `addDamageToCats` accrues per point of damage and the score uses each
+   team's *proportion*, so **the cat never has to die**.
+2. **"So it must come from CAT_TRAPs."** Wrong mechanism, caught before
+   shipping: `bench_finalist` places **81 rat traps and zero cat traps**
+   while scoring 9720 cat damage. Cat-trap code was written and reverted
+   unrun. Lesson: confirm the opponent actually *uses* a mechanism before
+   building it.
+3. **"catDamage is weighted 0.5."** Only while cooperating. Coop ends at
+   round 39 in that game and cat damage is still `[0,0]` at round 75, so
+   effectively all of it accrues under backstab weights — catDamage **0.3**,
+   `livingKings` **0.5**. Since 91% of our losses are King-death losses,
+   King survival is plausibly the larger lever.
+
+### Loss-mode census (control, 157 losses vs the three tournament bots)
+
+    <100 rounds (early King wipe)   25  (16%)
+    100-499                         47  (30%)
+    500-1999                        71  (45%)
+    2000 (timeout / score loss)     14  ( 9%)
+
+91% are King-death losses; only 9% are decided on points. Early wipes
+concentrate on small maps (`knifefight` 6, `tiny` 6, `thunderdome` 5,
+`dirtfulcat` 4). The A/B side asymmetry seen in peer mirrors is absent
+here (79 A / 78 B).
+
+### Backstab mechanic (engine-verified)
+
+`GameWorld.triggerTrap` calls `backstab(robot.getTeam().opponent())` where
+`robot` is the *triggering* robot — so **the backstabber is the trap's
+owner**, and it latches on the first trigger of the game only. The
+backstabber is permanently barred from placing cat traps
+(`catTrapsAllowed`). In the traced game our rat tripped their trap at round
+39, making *them* the backstabber. Relevant to Iteration 48's rat-trap ring,
+which risks handing that label to us.
