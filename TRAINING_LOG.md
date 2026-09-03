@@ -3201,3 +3201,24 @@ but only one game clear of even. Since the Gauntlet is deterministic for
 fixed code, re-running adds nothing; the way to get more confidence is a
 larger *sample of maps*. Re-running on the full 27-map set (54 games)
 before deciding.
+
+**Full 27-map head-to-head: 29/54 (53.7%)** -- consistent in direction
+with the 10-map loop's 55%, but a one-tailed binomial test gives
+**p = 0.34**. That is not significant. Two samples agreeing is weaker
+evidence than it looks, too, since the loop maps are a subset of the
+full set, so the runs are not independent.
+
+**Did not snapshot it.** A 53.7% result with p=0.34 is exactly the kind
+of marginal number that, accepted uncritically, quietly becomes a
+"baseline improvement" no one can later reproduce -- and this project
+has already been burned once by treating an unreliable number as
+progress (the 95.0%). Deleted the premature `g_iter15` snapshot.
+
+**Better test than more repetitions: dose-response.** The Gauntlet is
+deterministic, so re-running the same code yields the identical answer
+and adds nothing. But if the cheese-boost genuinely helps, the effect
+should *scale with the boost*: 4 cheese buys +2 damage, 16 buys +4.
+Running the same 54-game head-to-head at `BITE_BOOST_CHEESE = 16`.
+A clearly larger win rate is real evidence of a causal mechanism;
+a flat or worse result means the 53.7% was noise and the whole approach
+should be rejected regardless of how good the theory looks.
