@@ -4685,3 +4685,56 @@ First thing to check is not the win rate but whether the run still comes
 back identical to the control. If it does, thresholds are the wrong lever
 entirely and the count has to move to the King (360° vision) or to a
 shared-array census.
+
+---
+
+## Iteration 67 — `raceLost = enemyRatsNear >= 2` — REJECTED. Closing the cat-engagement line.
+
+Benchmarks **4/162** against a 5/162 control. This time the gate genuinely
+fired — **127/162 identical to control**, versus Iteration 66's 161/162 —
+so the conditional strategy was finally exercised, and it is worse than both
+the control and the unconditional refusal.
+
+### Why the proxy was anti-correlated with the need
+
+Rats die to cats when they are **alone with one**. That is precisely the
+situation in which `enemyRatsNear >= 2` is *false*, so `raceLost` stays low
+and the rat engages anyway. When enemy rats *are* visible, refusing to fight
+the cat saves little. The gate fires almost exactly when it should not.
+
+### The whole line, five iterations, in one table
+
+| variant | benchmarks | peers | our catDamage vs `pure_cooperator` |
+|---|---|---|---|
+| control (`allies > 1 \|\| health > 30`) | 5/162 | **65/108 = 60.2%** | **4644** |
+| 63 `allies >= 3` | **7/162** | 41/108 = 38.0% | 480 |
+| 64 never engage | 6/162 | — | — |
+| 65 `allies >= 2` | 5→ n/a | 45/108 = 41.7% | 360 |
+| 66 conditional, `> 2*(allies+1)` | 5/162 (inert) | — | — |
+| 67 conditional, `>= 2` | 4/162 | — | — |
+
+**Conclusion: the trade-off is real and has no local fix.** Refusing cat
+engagement buys survival worth ~2 benchmark games and costs ~24 peer games
+by conceding a proportional term we were splitting 4644-to-6010. No
+*locally observable* proxy separates the two cases, because the deciding
+variable — who is winning the global cat-damage race — is not visible from
+inside a 90° vision cone. Iteration 67 was the honest test of that idea and
+it failed for a structural reason, not a tuning one.
+
+Reverted to the control gate, verified by grep.
+
+### What this line did produce
+
+- The proportional-share principle: *contesting a term pays exactly when
+  the race is close, and refusing pays when it is already lost* — the same
+  code change was right against tournament bots and wrong against peers.
+- `BABY_RAT.visionConeAngle = 90`: sensing is a facing-dependent wedge, not
+  a radius, so every per-rat "count what's near me" heuristic is a noisy
+  lower bound. This invalidated Iteration 66 outright and is now recorded.
+- A correction: our bot *does* manage facing (`tryMove` turns then moves
+  forward), contrary to my first reading.
+- A new lead (#57): `TURNING_COOLDOWN` 10 vs `COOLDOWNS_PER_TURN` 10 means
+  one turn per round, and `tryMove` **returns without moving at all** when
+  `canTurn` is false — a candidate root cause for the "rats stuck in a small
+  region" behaviour that Iteration 32 only palliated. To be measured before
+  any change.
