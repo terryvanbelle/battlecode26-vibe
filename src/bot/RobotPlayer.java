@@ -544,7 +544,56 @@ public class RobotPlayer {
             // stronger dose. Flat -> Iteration 63's +2 was noise. Inverted
             // -> some cat contact is genuinely worth it and 3 was near the
             // optimum.
-            final int CAT_ENGAGE_MIN_ALLIES = Integer.MAX_VALUE;
+            // DOSE-RESPONSE RESULT (benchmarks, 162 games each):
+            //
+            //     control (allies > 1 || health > 30)   5/162
+            //     allies >= 3                          **7/162**
+            //     never engage (MAX_VALUE)               6/162
+            //
+            // Both doses beat the control, from two independently compiled
+            // code versions -- that agreement is what makes this causal
+            // rather than a map-specific accident, and it is stronger
+            // evidence than either arm on its own. The curve is not
+            // monotone, though: the extreme arm gives back a game, so a
+            // little cat contact is worth having and 3 is at or near the
+            // optimum. Keeping the better arm.
+            //
+            // Where the two arms actually differ is narrower than it looks.
+            // On `bench_finalist__hatefullattice__botB` they are *identical*
+            // -- deaths 62, CatScratch 220, catDamage 24, same final round --
+            // because three allies never gather near a cat on that map, so
+            // `allies >= 3` is already equivalent to "never engage" there.
+            // The one-game gap between the arms therefore comes entirely
+            // from maps where a real swarm DOES form, and on those, engaging
+            // is worth it. That is the useful reading: the gate is not
+            // "avoid cats", it is "only fight one when genuinely mobbed".
+            // ITERATION 65. The dose curve above is only half the story --
+            // it was measured on benchmarks alone. On PEERS, `allies >= 3`
+            // was a disaster: 41/108 = 38.0% against a 65/108 = 60.2%
+            // control, a 24-game collapse.
+            //
+            // The cause is exact and shows up in one number. Against
+            // `pure_cooperator` our catDamage fell 4644 -> 480 while theirs
+            // held near 6000, i.e. we handed over a component we had been
+            // splitting almost evenly. Every score term is a PROPORTION, so
+            // conceding a contested one is worth up to its whole weight.
+            //
+            // That also explains why the same change GAINED on benchmarks:
+            // there our share was already 142 against their 9720 (1.4%), so
+            // there was nothing left to concede and the survival saving was
+            // pure profit. The correct generalisation is not "cats are a
+            // trap" or "cats are worth fighting" -- it is that contesting
+            // cat damage pays exactly when the race is close, and refusing
+            // to pays when it is already lost.
+            //
+            // So the fix is not a threshold at all, it is removing the ONE
+            // clause that was indefensible. The old gate was
+            // `allies > 1 || rc.getHealth() > 30`: engage with a swarm, OR
+            // engage ALONE whenever merely healthy. Swarm engagement is what
+            // earns the catDamage share; the solo clause is what feeds rats
+            // to a 4000 HP unit one at a time. Keep the first, drop the
+            // second -- which is what `allies >= 2` says.
+            final int CAT_ENGAGE_MIN_ALLIES = 2;
             if (allies >= CAT_ENGAGE_MIN_ALLIES) {
                 if (engage(rc, nearestCat.getLocation())) return;
             } else if (nearestCat.getLocation().distanceSquaredTo(rc.getLocation()) <= 8) {

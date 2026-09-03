@@ -4519,3 +4519,63 @@ never deliberately close on a cat — while leaving the free opportunistic
 bite in place. Monotone improvement means causal; flat means Iteration 63
 was noise; inverted means some cat contact is worth it and 3 was near
 optimal.
+
+---
+
+## Iterations 63/64 — cat-engagement gate — REJECTED on peers, but they located the real trade-off
+
+The dose curve on **benchmarks** looked causal and clean:
+
+| variant | benchmarks |
+|---|---|
+| control (`allies > 1 \|\| health > 30`) | 5/162 |
+| `allies >= 3` | **7/162** |
+| never engage | 6/162 |
+
+Both arms beat the control from two independently compiled builds, and the
+win-set comparison showed **3 genuinely new wins shared by both arms**
+(`bench_finalist|whatsthecatdoin|A`, `bench_stroke|uneruesansfin|A` and `|B`)
+against 2 shared losses — so +1 robust, plus one arm-specific `bench_spaark`
+win. Not the clean +2 the totals implied, but real.
+
+**Then the peer run destroyed it: 41/108 = 38.0% against a 65/108 = 60.2%
+control.** A 24-game collapse dwarfs a 2-game benchmark gain.
+
+### One number explains both results
+
+`pure_cooperator__hatefullattice__botB`, our catDamage:
+
+| | control | `allies >= 3` |
+|---|---|---|
+| ours | **4644** | **480** |
+| theirs | 6010 | 6070 |
+
+We were splitting cat damage nearly evenly with the peer and we handed the
+whole component over. Every score term is a *proportion*, so conceding a
+contested one costs up to its full weight (0.3 after backstab, 0.5 while
+cooperating).
+
+Against the tournament bots the same change cost nothing, because our share
+was already 142 to their 9720 — **1.4%**. There was nothing left to concede,
+so the survival saving was pure profit.
+
+The generalisation is neither "cats are a trap" nor "cats are worth
+fighting":
+
+> **Contesting cat damage pays exactly when the race is close, and refusing
+> to pays when it is already lost.**
+
+This is the first result this session where a change was genuinely *right on
+one opponent class and wrong on another*, rather than simply inert. It is
+also a caution about the benchmark set as sole arbiter: measured only there,
+`allies >= 3` looked like the session's breakthrough.
+
+### Iteration 65
+
+The threshold was the wrong knob. The control gate was
+`allies > 1 || rc.getHealth() > 30` — engage with a swarm, **or** engage
+*alone* whenever merely healthy. Swarm engagement is what earns the
+catDamage share; the solo clause is what feeds rats to a 4000 HP unit one at
+a time, and it is the only indefensible part. `allies >= 2` keeps the first
+and drops the second, and is being measured on peers first, where the risk
+now demonstrably lies.
