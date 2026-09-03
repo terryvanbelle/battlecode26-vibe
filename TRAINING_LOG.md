@@ -7043,3 +7043,12 @@ and representativeness are different properties. Here the instrument that
 poses the threat (benchmarks, 22 wipes) is the one that moved, and the
 instrument that cannot pose it stayed flat. That is the expected signature,
 not a conflict.
+
+### Iteration 102 post-accept: vs_old_bots
+
+    g_iter20   95/108 = 88.0%   (g_iter1 46/54, g_iter11 49/54)
+    g_iter21   99/108 = 91.7%   (g_iter1 49/54, g_iter11 50/54)
+
+Best of the session, and it moves in the same direction as the benchmark set
+rather than trading against it. Charts regenerated: `vs_old_bots.png`,
+`cumulative_iterations.png` (now g_iter1..g_iter21), `peer_win_spread.png`.
