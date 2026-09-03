@@ -3750,3 +3750,29 @@ Notable that every previous cat-damage attempt -- hunting (x3), kiting,
 paying cheese per bite, growing the army -- adjusted *how much* damage
 we deal. None addressed *concentration*, which is what converts damage
 into a completed kill.
+
+**Iteration 52 REJECTED (inert).** Benchmark byte-identical to Iteration
+48: `finalist` 1250, `stroke` 703, `spaark` 748. Rats rarely see two
+cats at once, so "weakest visible" and "nearest visible" pick the same
+target and nothing changes.
+
+**But checking why produced the decisive number of this whole thread:**
+
+    our attack events per game        349
+    max damage if ALL hit one cat     3490
+    cat HP                            4000   -> kill IMPOSSIBLE
+    observed catDamage                3770   (~377 bites, i.e. essentially
+                                              all our attacks already hit cats)
+
+**Even with perfect focus we cannot finish a single cat**, and our
+attacks are already almost entirely spent on cats. So target selection
+was never the constraint and Iteration 52 was inert *by construction* --
+the arithmetic ruled it out before the Gauntlet did. The binding
+constraint is **contact volume**: ~30 rats over 2000 rounds manage about
+a dozen cat attacks each.
+
+That also retroactively explains why every cat-damage attempt has
+failed. Hunting (x3), kiting, cheese-boosted bites, army size and
+targeting were all attempts to get *more or better damage per contact*.
+None of them created more contact, and contact is the term that is
+short by 5x.

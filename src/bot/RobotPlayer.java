@@ -44,6 +44,7 @@ public class RobotPlayer {
     static int exploreStuckCycles = 0;
     // Bug-navigation state (Iteration 35, see moveToward) -- per-robot, since
     // static fields are per-robot instances in Battlecode, not team-shared.
+    static MapLocation catHotspot;  // Iteration 53: first cat sighting, never overwritten
     static MapLocation bugTarget;
     static int bugClosestDistSq = Integer.MAX_VALUE;
     static boolean bugRotateLeft = false;
@@ -425,6 +426,7 @@ public class RobotPlayer {
         // acted on until the replay showed exactly this failure.
         RobotInfo nearestCat = weakestOfType(rc, nearby, UnitType.CAT);
         if (nearestCat != null) {
+            if (catHotspot == null) catHotspot = nearestCat.getLocation();
             int allies = countAlliesNear(rc, nearby, nearestCat.getLocation(), 8);
             // Replay evidence (TRAINING_LOG.md, `pure_cooperator` mirror-match
             // trace): catDamage stayed [0,0] all session despite cats visibly
@@ -540,6 +542,38 @@ public class RobotPlayer {
                 if (gx != 0 && gy != 0) {
                     if (moveToward(rc, new MapLocation(gx - 1, gy - 1), true)) return;
                 }
+            }
+        }
+
+        // Iteration 53 (TRAINING_LOG.md): **camp a cat waypoint.** The
+        // arithmetic is now unambiguous: a cat has 4000 HP, and across a
+        // whole 2000-round game our rats land ~349 attacks total -- so
+        // even if every single one hit the same cat we would deal 3490 and
+        // still not kill it. Our `catDamage` of 3770 corresponds to ~377
+        // bites, i.e. essentially all of our attacks already land on cats.
+        // Target selection (Iteration 52) was therefore inert by
+        // construction, and the binding constraint is **contact volume**:
+        // ~30 rats over 2000 rounds manage about a dozen cat attacks each.
+        //
+        // Cats cycle fixed waypoints (RULES.md) -- measured earlier at 93
+        // scratches over 61 tiles with the busiest sites revisited 3-6
+        // times -- so a tile that had a cat will have one again. The three
+        // failed hunts (Iterations 22/27/44) all *chased* a
+        // constantly-overwritten last-known position and arrived after the
+        // cat had moved on. Camping inverts that: go to a remembered
+        // waypoint and **stay**, so the cat comes to you on its own cycle.
+        // `catHotspot` is deliberately set once and never overwritten, so
+        // it cannot churn the way `lastKnownCatLoc` did.
+        //
+        // Half the army by ID parity, so the economy keeps running; cheese
+        // is a 0.2-weight component where we already hold ~47% share,
+        // while `catDamage` is 0.5 weight where we hold 16.5% -- the
+        // scoring math makes this trade strongly favourable.
+        if (catHotspot != null && rc.getID() % 2 == 0) {
+            if (rc.getLocation().distanceSquaredTo(catHotspot) > 8) {
+                if (moveToward(rc, catHotspot, true)) return;
+            } else {
+                return; // hold station on the waypoint and wait for the patrol
             }
         }
 
