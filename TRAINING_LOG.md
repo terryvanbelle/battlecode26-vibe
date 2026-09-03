@@ -3473,3 +3473,46 @@ rewrite of the combat layer, not another parameter iteration. Recorded
 as the project's central open problem rather than attempted as a quick
 fix -- and the benchmark now measures it honestly, which nothing before
 today could.
+
+---
+
+## Iteration 48 — ring the King with rat traps (first new mechanic in 47 iterations)
+
+The benchmark established that rearranging existing units cannot stop a
+King rush (a standing guard of a third of the army changed the outcome
+by exactly zero rounds). So this is the first iteration to add a
+*mechanic* rather than tune behaviour.
+
+**Why traps, from the engine's own numbers:** `TrapType.RAT_TRAP` is
+`buildCost=20, damage=50, stunTime=30, maxCount=25,
+triggerRadiusSquared=2`. Fifty damage is **half an attacking rat's 100
+HP**, and a 30-round stun removes it from a fight that only lasts ~20
+rounds. A full set of 25 costs 500 cheese against a treasury averaging
+4220. This was sitting unused the entire project.
+
+**Why Iteration 15's rejection didn't apply any more.** That iteration
+laid traps and observed they never triggered -- correctly, because the
+peers of the day never attacked the King, so King-adjacent traps were
+inert by construction. Against opponents whose entire opening *is* a
+King rush, the identical traps sit directly on the attack path. The
+mechanic didn't change; the opposition did. This is the second time a
+past rejection has been overturned by a change in regime rather than a
+change in idea (the first was Iterations 21/22/27's cat-hunting being
+re-evaluated once the economy was fixed).
+
+Placement is interleaved with building from `builtCount >= 5`, not
+deferred until after the opening burst: the burst runs rounds 1-25 and
+`bench_spaark` finishes us at round 21, so post-burst traps would arrive
+after we are dead. Traps are aimed at the ring around distance^2 ~5
+rather than flush against the King, so an attacker crosses them *before*
+reaching bite range.
+
+**Engagement confirmed** (the check three earlier inert iterations
+lacked): 15-50 traps placed and **12-40 triggered** per game, so the
+mechanic demonstrably fires.
+
+**Single-game smoke results were mixed** -- `bench_finalist` survival
+more than doubled (r33 -> r77) while `bench_spaark` (r21 -> r19) and
+`bench_stroke` (r46 -> r36) drifted the wrong way. Given the measured
++-9-game noise floor, single games cannot separate those; running the
+full 60-game tournament benchmark for a real reading.

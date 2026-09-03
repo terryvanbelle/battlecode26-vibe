@@ -32,6 +32,7 @@ public class RobotPlayer {
     static int builtCount = 0;
     static int buildWindowStart = 0;      // Iteration 38, see runRatKing
     static boolean replacementMode = false; // Iteration 39, see runRatKing
+    static boolean lastBuildWasTrap = false; // Iteration 48, see runRatKing
     static int cheeseCheckpoint = -1;
     static int cheeseCheckpointRound = 0;
     static boolean economyStruggling = false;
@@ -258,12 +259,50 @@ public class RobotPlayer {
             }
         }
         int buildReserve = (replacementMode && !noVisibleArmy) ? REPLACEMENT_RESERVE : RESERVE;
+        // Iteration 48 (TRAINING_LOG.md): **ring the King with rat traps.**
+        // The external benchmark showed tournament bots killing us in
+        // 21-46 rounds by swarming the King with 7-10 rats, and proved
+        // that rearranging our own units cannot stop it (a standing guard
+        // of a third of the army changed the result by zero rounds).
+        // Traps are the counter we already had and never used:
+        // `TrapType.RAT_TRAP` is **50 damage and a 30-round stun for 20
+        // cheese, with maxCount 25** -- half an attacker's 100 HP and it
+        // is removed from the fight for 30 rounds, at a total cost of 500
+        // cheese for a full set against a treasury averaging 4220.
+        //
+        // Iteration 15 tried traps and rejected them as "never triggered",
+        // but that was against peers that never rushed the King; traps
+        // laid around a King that nobody attacks are inert by
+        // construction. Against opponents whose whole opening is a King
+        // rush, the same traps sit exactly on the attack path. The
+        // mechanic didn't change -- the opposition did.
+        //
+        // Interleaved with building rather than deferred until after it:
+        // the opening burst runs rounds 1-25 and `bench_spaark` finishes
+        // us at round 21, so traps laid only after the burst would arrive
+        // after we are already dead. Alternating from round 5 yields
+        // roughly ten traps down by round 25 while still building most of
+        // the army.
+        boolean placedTrap = false;
+        if (builtCount >= 5 && !lastBuildWasTrap && rc.getGlobalCheese() > RESERVE + 100) {
+            MapLocation trapSpot = findTrapLocation(rc);
+            if (trapSpot != null && rc.canPlaceRatTrap(trapSpot)) {
+                rc.placeRatTrap(trapSpot);
+                placedTrap = true;
+                lastBuildWasTrap = true;
+            }
+        }
+        if (placedTrap) {
+            rc.setIndicatorString("king trap laid; traps=" + rc.getNumberRatTraps());
+            return;
+        }
         MapLocation buildLoc = findBuildLocation(rc);
         if (buildLoc != null && rc.canBuildRat(buildLoc)
                 && rc.getGlobalCheese() - rc.getCurrentRatCost() >= buildReserve
                 && builtCount < MAX_POPULATION) {
             rc.buildRat(buildLoc);
             builtCount++;
+            lastBuildWasTrap = false;
         } else if (buildLoc == null) {
             // Replay evidence on `closeup` (TRAINING_LOG.md, tools/replay-dump.sh's
             // new terrain dump): both Kings spawned boxed in entirely by DIRT
@@ -293,6 +332,29 @@ public class RobotPlayer {
         if (best != null) {
             rc.removeDirt(best);
         }
+    }
+
+    /**
+     * Iteration 48: a tile to trap, preferring the ring just outside the
+     * King rather than right against it -- attackers must cross that ring
+     * to reach the King, and a trap on the King's own doorstep is one an
+     * attacker only touches after it is already in bite range.
+     */
+    static MapLocation findTrapLocation(RobotController rc) throws GameActionException {
+        MapLocation me = rc.getLocation();
+        MapLocation best = null;
+        int bestScore = Integer.MIN_VALUE;
+        for (MapLocation loc : rc.getAllLocationsWithinRadiusSquared(me,
+                GameConstants.RAT_KING_BUILD_DISTANCE_SQUARED)) {
+            if (!rc.canPlaceRatTrap(loc)) continue;
+            int d = loc.distanceSquaredTo(me);
+            int score = -Math.abs(d - 5); // prefer the ring at distance^2 ~5
+            if (score > bestScore) {
+                bestScore = score;
+                best = loc;
+            }
+        }
+        return best;
     }
 
     static MapLocation findBuildLocation(RobotController rc) throws GameActionException {
