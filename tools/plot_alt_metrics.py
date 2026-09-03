@@ -10,10 +10,16 @@ rate in that run, over time. Unlike the cumulative-iterations chart, this
 shows dispersion -- is progress broad (both ends rising together) or
 lopsided (a growing gap between the easiest and hardest peer matchup)?
 
-BC22's version of this script also plotted average LOSING game length
-against benchmark opponents over time -- omitted here because this project
-has no benchmark opponents yet (nothing has beaten `bot` even once this
-session; see TRAINING_LOG.md). Add that chart back once one exists.
+Benchmark bots (BENCHMARK.md) are deliberately kept OUT of that spread
+band and drawn as their own dashed lines on the same axes, as BC22 did.
+They are external tournament entries, not roster peers: folding them in
+would pin the "worst matchup" line to ~0% indefinitely and hide every bit
+of peer movement, while also making the band answer two questions at once.
+As separate lines they stay directly comparable against the same y-axis.
+
+BC22 charted average LOSING game length against its benchmarks; here the
+line is win rate instead, because against these opponents wins are still
+the scarce quantity (0-10%), so they carry the signal.
 
 MIN_PEERS is much lower than BC22's (14, reflecting that project's
 128-iteration, many-vendored-bot roster) -- this project has run at most 3
@@ -40,10 +46,21 @@ UTC = ZoneInfo("UTC")
 
 MIN_PEERS = 2
 
-# No benchmark opponents exist yet (see module docstring) -- kept as an
-# empty tuple, not deleted, so the retirement-event/benchmark logic below
-# stays structurally ready for when one does.
-BENCHMARK_BOTS = ()
+# External benchmark bots (see BENCHMARK.md). These are real MIT
+# Battlecode 2026 tournament entries, not peers -- they are excluded from
+# the peer spread band and drawn as their own lines instead, matching
+# battlecode22-vibe's treatment. Mixing them into the spread would be
+# misleading twice over: the band is meant to show how the *peer roster*
+# is faring, and a 0-5% benchmark result would pin the "worst matchup"
+# line to the floor forever, hiding all peer movement.
+BENCHMARK_BOTS = (
+    "bench_lecture", "bench_anicolao",
+    "bench_finalist", "bench_spaark", "bench_stroke",
+)
+
+# A benchmark tally is only plotted once it has at least this many games,
+# so a partial run doesn't render as a misleading spike.
+MIN_BENCHMARK_GAMES = 15
 
 
 def run_timestamp(rundir: Path):
@@ -108,6 +125,33 @@ def peer_spread_series(runs):
     return xs, maxs, mins
 
 
+def benchmark_series():
+    """opponent -> [(timestamp, win_pct), ...] for every run with a full
+    tally against that benchmark bot. Win rate rather than BC22's losing
+    game length: against these opponents we are still mostly at 0-5%, so
+    wins are the scarce, informative quantity."""
+    data = defaultdict(list)
+    for rundir in sorted(Path(REPO_ROOT / "gauntlet").glob("*/")):
+        p = rundir / "results.csv"
+        if not p.exists():
+            continue
+        tally = defaultdict(lambda: [0, 0])
+        for row in load_results(p):
+            opp = row["opponent"]
+            if opp not in BENCHMARK_BOTS:
+                continue
+            tally[opp][1] += 1
+            if row["bot_result"] == "win":
+                tally[opp][0] += 1
+        ts = run_timestamp(rundir)
+        for opp, (w, t) in tally.items():
+            if t >= MIN_BENCHMARK_GAMES:
+                data[opp].append((ts, 100.0 * w / t))
+    for opp in data:
+        data[opp].sort()
+    return data
+
+
 def retirement_events(runs):
     """A peer present in one full-Gauntlet run and absent from the next is
     inferred as retired somewhere in between (see TRAINING_ALGORITHM.md's
@@ -156,6 +200,17 @@ def main():
     print(f"marked {len(events)} retirement event(s): "
           + "; ".join(f"{ts:%Y-%m-%d %H:%M} -> {names}" for ts, names in events))
 
+    # Benchmark bots as their own lines -- excluded from the spread band
+    # above (see BENCHMARK_BOTS) so they cannot distort the peer picture.
+    bcolors = {"bench_lecture": "#0ea5e9", "bench_anicolao": "#a855f7",
+               "bench_finalist": "#f59e0b", "bench_spaark": "#ec4899",
+               "bench_stroke": "#14b8a6"}
+    for opp, pts in sorted(benchmark_series().items()):
+        bxs = [q[0] for q in pts]
+        bys = [q[1] for q in pts]
+        ax.plot(bxs, bys, color=bcolors.get(opp, "#333"), marker="s", markersize=4,
+                linewidth=1.4, linestyle="--", alpha=0.9, label=f"{opp} (benchmark)")
+
     ax.axhline(50, color="#64748b", linestyle="--", linewidth=1, alpha=0.6, zorder=1)
 
     ax.set_title(f"Peer win-rate spread over time (full Gauntlet runs, ≥{MIN_PEERS} peer opponents)")
@@ -165,7 +220,7 @@ def main():
     ax.grid(True, alpha=0.3)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d %H:%M", tz=PACIFIC))
     fig.autofmt_xdate(rotation=30)
-    ax.legend(loc="lower left", fontsize=9)
+    ax.legend(loc="lower left", fontsize=8, ncol=2)
     fig.tight_layout()
     out1 = out_dir / "peer_win_spread.png"
     fig.savefig(out1, dpi=150)
