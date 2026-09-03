@@ -128,7 +128,30 @@ public class RobotPlayer {
             }
         }
 
-        attackNearestHostile(rc, desperate);
+        // Iteration 77 (TRAINING_LOG.md): the King's attack moved BELOW the
+        // build attempt. Trap-laying is deliberately left exactly where
+        // Iteration 48 put it -- this iteration changes ONE thing.
+        //
+        // Iteration 59 moved the attack, deleted the King trap branch, and
+        // handed trap-laying to Baby Rats all at once, and was rejected on
+        // both instruments. Its post-mortem showed the population cap, not
+        // the King's actions, was binding on the long maps -- kingSpawn was
+        // 126 in both arms. But the short rush maps are a different regime:
+        // on `knifefight` (77 rounds) the King spent 68 actions as 22 spawns
+        // / 18 traps / **28 attacks**, with 1685 cheese banked and only 22 of
+        // a 25-cap used. There, neither cheese nor the cap was binding and
+        // the action budget genuinely was.
+        //
+        // So the attack reorder is the one component of Iteration 59 that had
+        // evidence behind it, and it was never tested alone. Iteration 48's
+        // traps are the only change all session that moved a benchmark line
+        // (bench_finalist 0% -> 7-10%), which is why they stay.
+        //
+        // This is also the right SHAPE of change given the session's central
+        // finding: rat-turn mechanisms are priced per capita and we field
+        // 4-8 rats late, so they halve our economy. The King is a single unit
+        // whose turns are not the economic bottleneck -- reordering its
+        // priorities costs no cheese collection at all.
 
         // The King never moved at all in the first cut of this iteration.
         // Cats patrol fixed, map-specific waypoints (RULES.md), so a King
@@ -231,7 +254,28 @@ public class RobotPlayer {
         // discretionary spending: a committed investment (the opening army)
         // and a discretionary one (topping it back up) should not be gated
         // at the same bar.
-        final int MAX_POPULATION = 25;
+        // Iteration 78 (TRAINING_LOG.md): CHEESE-GATED population cap.
+        //
+        // Two prior results only make sense together. Iteration 60 raised
+        // this constant flat, 25 -> 50, and scored 1/162: on the long maps
+        // the extra builds drained window-0 cheese from 2306 to 565 and
+        // brought bankruptcy forward a whole window, while live rats stayed
+        // at exactly 4. Raising the cap when CHEESE is the real binder just
+        // spends the treasury faster.
+        //
+        // But Iteration 77 (King attacks moved below the build) put the short
+        // rush maps into the opposite state. On `knifefight` the King now
+        // spends its freed actions building -- spawns 22 -> 25, attacks
+        // 28 -> 1 -- and `tools/king_census.py` reports the window
+        // **CAP-LIMITED with 1605 cheese still banked**. There the cap is
+        // binding and the money to relieve it is sitting unused.
+        //
+        // So neither constraint is universal: cheese binds late and on long
+        // maps, the cap binds early and on short ones. Gate the extra
+        // capacity on the treasury actually being deep, so it opens exactly
+        // where Iteration 60 was wrong to open it and stays shut where
+        // Iteration 60 went bankrupt.
+        final int MAX_POPULATION = rc.getGlobalCheese() > 1200 ? 40 : 25;
         final int BUILD_WINDOW_ROUNDS = 400;
         final int REPLACEMENT_RESERVE = 1000;
         if (rc.getRoundNum() - buildWindowStart >= BUILD_WINDOW_ROUNDS) {
@@ -311,6 +355,12 @@ public class RobotPlayer {
             // game, for either team, on this map specifically. Dig out.
             digTowardOpenSpace(rc);
         }
+
+        // Iteration 77: only now, having already tried to build, spend the
+        // King's action on defence. A King bite is RAT_BITE_DAMAGE 10; a Baby
+        // Rat is worth far more than that, so production outranks biting
+        // whenever both are possible.
+        attackNearestHostile(rc, desperate);
 
         rc.setIndicatorString("king cheese=" + rc.getGlobalCheese()
                 + (nearestCat != null ? " cat@" + nearestCat.getLocation() : ""));

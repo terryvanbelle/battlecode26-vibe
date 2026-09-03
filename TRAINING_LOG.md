@@ -5191,3 +5191,52 @@ have now improved cheese and/or survival without improving wins. Whatever
 decides these games, more cheese and more rounds alive are not sufficient
 for it — which is a strong argument that future effort belongs on the
 scoring terms themselves rather than on the economy that feeds them.
+
+---
+
+## Iteration 77 — move ONLY the King's attack below the build — inert on wins, but it changes the binding constraint
+
+Benchmarks **5/162**, identical composition to the control (finalist 4,
+spaark 0, stroke 1), 118/162 games unchanged — so it fired in 44 games and
+netted zero.
+
+The mechanism did exactly what it was designed to do. `tools/king_census.py`
+on `bench_finalist__knifefight__botA`:
+
+| window 0 | control | Iteration 77 |
+|---|---|---|
+| King `SpawnAction` | 22 | **25** ← **CAP-LIMITED** |
+| King `RatAttack` | 28 | **1** |
+| King `PlaceTrap` | 18 | 21 |
+| rats alive | 5 | 6 |
+| cheese banked | 1685 | 1605 |
+
+The attack reorder works — 28 attacks become 1, and the freed actions go
+into building. But spawns rise only from 22 to **25**, because 25 *is*
+`MAX_POPULATION`. The King immediately hits the cap and the remaining freed
+actions have nowhere to go. +3 rats in a 77-round game buys +1 alive, which
+is not enough to move a result.
+
+### The useful part: it creates a state that has never existed
+
+Iteration 60 raised the cap flat, 25 → 50, and scored **1/162** — on the long
+maps the extra builds drained window-0 cheese 2306 → 565 and pulled
+bankruptcy forward a whole window, while live rats stayed at exactly 4.
+Raising the cap when *cheese* is binding merely spends the treasury faster.
+
+Iteration 77 puts the short maps into the opposite condition: **cap-limited
+with 1605 cheese still banked.** The cap binds and the money to relieve it is
+sitting unused.
+
+So neither constraint is universal — **cheese binds late and on long maps,
+the cap binds early and on short ones** — and each previous attempt relieved
+the wrong one for the regime it was tested in.
+
+### Iteration 78
+
+Gate the extra capacity on the treasury: `MAX_POPULATION = globalCheese >
+1200 ? 40 : 25`. This opens exactly where Iteration 60 was wrong to open it
+and stays shut where Iteration 60 went bankrupt. Iteration 77's reorder is
+kept, since it is what produces the cap-limited-with-money state in the first
+place — this is the first time this session two changes have been combined,
+and only because each was measured to relieve a different constraint.
