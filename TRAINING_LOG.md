@@ -5045,3 +5045,57 @@ contradict that:
 
 Unlike trap avoidance or throwing, an upgrade is a **one-time conversion**,
 not an ongoing tax on rat-turns.
+
+---
+
+## Iteration 74 — opportunistic multi-King — inert, but it exposed the biggest scoring gap yet
+
+Benchmarks 5/162, identical composition to the control, 133/162 games
+unchanged. The mechanism check explains why: **0 `UpgradeToRatKing` events,
+max kings = 1.** `canBecomeRatKing()` needs **7 allies packed into the 3×3**
+around the upgrading rat, and our 4-8 living rats are dispersed collecting
+cheese, so the opportunistic gate essentially never opens.
+
+### The finding that matters is on the other side of the scoreboard
+
+The same replay's final line reads `1:kings=5 2:kings=1`. **`bench_finalist`
+runs the maximum five Rat Kings against our one**, and gets there steadily:
+
+| their King count | round reached |
+|---|---|
+| 2 | 125 |
+| 3 | 325 |
+| 4 | 375 |
+| 5 | 825 |
+
+`livingKings` is proportional at weight **0.5** once cooperation ends:
+
+| our Kings vs theirs | our points | theirs |
+|---|---|---|
+| **1 vs 5 (actual)** | **8** | **42** |
+| 2 vs 5 | 14 | 36 |
+| 3 vs 5 | 19 | 31 |
+| 1 vs 1 | 25 | 25 |
+
+**We concede ~34 points of a 50-point term before the game starts.** That is
+larger than the catDamage gap (where we hold ~15% of a 30-point term) and it
+is the single biggest scoring deficit measured this session. It also explains
+the 9% of losses decided on points, and compounds the King-death losses:
+five Kings is five things that must die before the instant-loss condition
+triggers, against our one.
+
+### Why we cannot currently do this
+
+The upgrade consumes 7 rats standing in a 3×3. They can afford it repeatedly
+because they field 56 rats; at 4-8 we cannot assemble the crowd by accident.
+Their first upgrade lands at round **125** — after the opening build burst,
+which is exactly when our rats are also briefly clustered near the King.
+
+So the requirement is a deliberate, **one-time** rally, not an ongoing tax.
+That distinction is the one the per-capita finding makes: trap avoidance and
+throwing failed because they charged rat-turns every round forever; a rally
+charges once and returns a permanent 600 HP unit holding a share of the
+largest term on the board.
+
+Note `RAT_KING` has `size` 3, so a King occupies a 3×3 footprint — the rally
+point must be offset from the existing King rather than on top of it.
