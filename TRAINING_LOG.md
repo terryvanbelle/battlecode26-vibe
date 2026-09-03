@@ -3987,3 +3987,29 @@ opponent-specific vulnerability rather than a general capability.
 The control (`g_iter15` over the identical 162 games) is now the
 decisive test: if the baseline also wins those four, grab-and-throw
 contributed nothing; if it wins none, the four are attributable. Running.
+
+## Invalid control caught before it produced a wrong conclusion
+
+The first "control" run was not a control. `git stash` was used to
+revert to the baseline, but Iteration 55's source had already been
+**committed**, so the working tree was clean and `stash` did nothing.
+The run therefore re-executed Iteration 55 against itself.
+
+It was caught by a consistency check rather than by luck: the control's
+wins were landing on the same maps *at identical round numbers*
+(`r545`, `r278`, `r167`, `r718`) as Iteration 55's. Since the Gauntlet
+is deterministic, identical rounds means identical code -- a control
+that reproduces the treatment exactly is not measuring anything.
+
+**The conclusion it would have supported was the opposite of the truth**:
+"the baseline wins the same four games, so grab-and-throw contributes
+nothing" -- an argument for reverting a change on the basis of a run
+that was testing that very change. Verified the fix explicitly this time
+(`canCarryRat` count 0, plus a byte-level `diff` against `g_iter15`)
+before starting the real control.
+
+General lesson, and the second version-control slip of this session
+after the `git add -A` incident: **when reverting for a control, assert
+the revert actually happened.** A committed change is invisible to
+`git stash`, and "I ran the revert command" is not evidence the code
+changed -- only a diff or a symbol count is.
