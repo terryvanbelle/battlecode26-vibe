@@ -6348,3 +6348,55 @@ positional until shown otherwise. The four accepted changes this session were
 all found by tracing a *stall over time within one game* — an absolute
 signal, immune to this bias — rather than by comparing our number to the
 opponent's.
+
+## Iteration 95 — let a zero army bypass the build-count cap — REJECTED
+
+    zero-army cap bypass vs g_iter19:  25/54 = 46.3%
+    bucket-A losses (rd 200-999):      8 -> 9
+
+Reverted; code verified identical to `g_iter19`.
+
+**The diagnosis was right and the fix still fails.** The mechanism fired
+exactly as designed — on `tiny|B`, round 300 goes from *0 rats* to *4 rats*,
+so the cap really had been blocking recovery. But the game gets worse, not
+better:
+
+| round | control | Iteration 95 |
+|---|---|---|
+| 300 | 0 rats, 621 cheese | **4 rats**, 496 cheese |
+| 400 | 1 rat, 411 | 8 rats, 356 |
+| 500 | 7 rats, 321 | 1 rat, **126** |
+| 600 | — | 1 rat, **0** |
+| game ends | round 975 | round **600** |
+
+We rebuild, spend the treasury, and starve *sooner*. The 621 cheese buys
+about six rats, and the King's 2/round upkeep plus build costs outpace what
+those rats collect before dying. **At that point the binding constraint is
+income, not permission** — the army wipe on that map is simply not
+recoverable, and unlocking the build only converts a slow death into a fast
+one.
+
+This is the same shape as Iteration 60's flat cap raise (window-0 cheese
+2306 → 565, live rats stuck at 4): building more while poor accelerates
+bankruptcy.
+
+It also revises the Iteration 40 verdict I wrote two hours ago. I said that
+override measured inert *because* a second gate — the count cap — still
+blocked the door. That was a real second gate, but opening it does not help
+either. The correct reading is that **both gates were guarding something that
+was not worth reaching**: with no army and ~600 cheese, no build policy
+recovers the game.
+
+### Bucket B, for the record
+
+The other loss bucket (rounds 1000-1999, a disjoint map set) is not an
+economic failure at all. On `jail|B` we hold 28-36 rats the whole game and
+out-deliver the opponent late (ratio 1.06, 1.15, **1.37**), then lose one
+decisive fight at round 1600 (367 combat actions, army 34 → 11) and die at
+1825. In a mirror, where both sides run near-identical code, that is closer
+to the symmetric loser of an even fight than to a defect worth chasing.
+
+So of the three loss buckets against the mirror: **A is unrecoverable once it
+happens, B is largely symmetric, and the points-losses turn on a cat-damage
+share that is mostly positional.** That is a reasonable place for the session
+to have arrived — the remaining losses are not obviously defects.
