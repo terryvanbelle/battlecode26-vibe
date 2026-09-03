@@ -3890,3 +3890,22 @@ threshold this mechanic has no dose to scale, so the usual
 dose-response is unavailable. Running the **full 27-map set (162
 games)** instead -- more maps is genuinely more information, unlike
 re-running identical deterministic games.
+
+**Iteration 55: face the target before grabbing.** Attributing throw and
+nap events by team (the check missed twice earlier in this session, on
+trap triggers and cat deaths) shows we *do* use the mechanic but at a
+third the opponent's rate: **16 throws to their 43**, with `RatNap`
+symmetric at 66 each (that event marks the victim, not the actor).
+
+Reading `assertCanCarryRat` explains the gap: it requires
+`canSenseLocation`, which for a Baby Rat is **cone-gated to its
+90-degree facing** -- the engine's own error string is "a rat can only
+grab robots in front of it". Iteration 54 called `canCarryRat` without
+ever turning toward the target, so most attempts failed silently on
+facing alone. Turning draws on a separate cooldown from actions, so
+facing the enemy first costs nothing we would otherwise spend.
+
+This is the same class of bug as the `Direction.allDirections()`
+`CENTER` entry found in Iteration 32 -- a precondition buried in the API
+that silently voids an action, invisible in win rates and only findable
+by reading the engine's assertions.

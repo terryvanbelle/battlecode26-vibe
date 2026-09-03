@@ -524,6 +524,20 @@ public class RobotPlayer {
             }
             RobotInfo enemy = nearestEnemyRat(rc, nearby);
             if (enemy != null) {
+                // Iteration 55: face the target before grabbing.
+                // `assertCanCarryRat` requires `canSenseLocation`, which for
+                // a Baby Rat is cone-gated to its 90-degree facing -- the
+                // engine's own message is "a rat can only grab robots in
+                // front of it". Iteration 54 attempted grabs without
+                // turning, so most attempts silently failed on facing and
+                // we managed 16 throws to the opponent's 43. Turning draws
+                // on a separate cooldown from actions, so this costs
+                // nothing we would otherwise spend.
+                Direction toEnemy = rc.getLocation().directionTo(enemy.getLocation());
+                if (toEnemy != Direction.CENTER && rc.getDirection() != toEnemy
+                        && rc.canTurn(toEnemy)) {
+                    rc.turn(toEnemy);
+                }
                 if (rc.canCarryRat(enemy.getLocation())) {
                     rc.carryRat(enemy.getLocation());
                     return;
