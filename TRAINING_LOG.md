@@ -3957,3 +3957,33 @@ than a general capability. The control run and the Iteration 55
 (facing-fix) run together will show whether the effect strengthens with
 throw rate -- the closest thing to a dose-response available for a
 binary mechanic.
+
+## Iteration 55 (facing fix): 5/162 -- but the win-SET comparison is the real result
+
+    Iteration 54 (no facing fix)  6/162
+    Iteration 55 (facing fix)     5/162
+
+By totals the facing fix did nothing, and 6 vs 5 is meaningless. But
+comparing win *sets* rather than counts -- the technique established
+when the +-9-game noise floor was measured -- is far more informative:
+
+    shared by both versions (4):
+      minimaze | peaceinourtime | popthecork | toomuchcheese   (all bench_finalist)
+    only Iteration 54 (2):  closeup|finalist, whatsthecatdoin|stroke
+    only Iteration 55 (1):  closeup|spaark
+
+**Four wins are stable across two materially different code versions.**
+That is much stronger evidence than either total alone: chaotic
+game-flipping is by definition perturbation-sensitive, so wins that
+survive a real change to combat behaviour are unlikely to be
+chaos. The 2-3 non-shared wins look like exactly the churn the noise
+floor predicts.
+
+So the honest reading is roughly **four robust wins plus one to two
+noise wins**, not "six" or "five". And all four robust wins are against
+`bench_finalist`, which supports the earlier suspicion that this is an
+opponent-specific vulnerability rather than a general capability.
+
+The control (`g_iter15` over the identical 162 games) is now the
+decisive test: if the baseline also wins those four, grab-and-throw
+contributed nothing; if it wins none, the four are attributable. Running.
