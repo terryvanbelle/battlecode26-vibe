@@ -5149,3 +5149,45 @@ If the upgrade still records zero, the obstacle is not gathering but the
 one rat, and terrain plus the King's own size-3 footprint may make that
 unachievable at the rally point. In that case the answer is to pick the rally
 point for open adjacent tiles rather than a fixed (3,3) offset.
+
+---
+
+## The multi-King line — CLOSED after three attempts, zero upgrades ever
+
+| attempt | approach | benchmarks | upgrades | cheese | game end |
+|---|---|---|---|---|---|
+| 74 | opportunistic | 5/162 | **0** | 2595 | rd 1175 |
+| 75 | rally rounds 60-260 | **0/162** | **0** | 1856 | rd 1025 |
+| 76 | rally rounds 25-90 | 1/162 | **0** | **3631** | **rd 1425** |
+| — | control | **5/162** | 0 | 2595 | rd 1175 |
+
+**Not one `UpgradeToRatKing` in any variant.** The pre-registered fallback
+diagnosis is confirmed: the obstacle is not gathering but **3×3 packing**.
+`becomeRatKing` requires 7 allies on the 8 tiles immediately surrounding one
+rat; my rally condition stopped rats within distance² 2 of the point, which
+spreads them across a ~2-tile radius and never fills the ring.
+
+### Why the line is closed rather than retried
+
+The deficit it targets is real and large — `bench_finalist` runs 5 Kings to
+our 1, conceding ~34 points of a 50-point term. But the capability is
+**downstream of population, not independent of it**. They assemble 7 packed
+allies incidentally because they field 56 rats; we peak at 25 and are at 7 by
+round 225. Reaching multi-King requires the standing army we do not have, and
+Iteration 60 already established the army cannot be grown by building
+(spawns 25 → 50 left live rats at exactly 4).
+
+So the chain is: **deaths → population → multi-King**, and the only lever on
+deaths (cat engagement) trades away a proportional term we need. Multi-King
+is a symptom of the population problem, not a separate fix for it.
+
+### One more anomaly worth recording
+
+Iteration 76 produced **more cheese than the control (3631 vs 2595) and a
+longer game (rd 1425 vs 1175) while winning fewer games (1 vs 5)**. That is
+the clearest single demonstration of something this session has hinted at
+repeatedly: **our results are not economy-limited.** Three separate changes
+have now improved cheese and/or survival without improving wins. Whatever
+decides these games, more cheese and more rounds alive are not sufficient
+for it — which is a strong argument that future effort belongs on the
+scoring terms themselves rather than on the economy that feeds them.
