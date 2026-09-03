@@ -4013,3 +4013,49 @@ after the `git add -A` incident: **when reverting for a control, assert
 the revert actually happened.** A committed change is invisible to
 `git stash`, and "I ran the revert command" is not evidence the code
 changed -- only a diff or a symbol count is.
+
+## The verified control overturns the "breakthrough": baseline already wins 5/162
+
+    g_iter15 baseline (control)   5/162   (4 distinct map|opponent pairs)
+    Iteration 54 (grab+throw)     6/162
+    Iteration 55 (+ facing fix)   5/162
+
+**The baseline was never 0 on this map set.** The 0/60 figure that made
+six wins look like a breakthrough was measured on the **10-map loop**;
+the 162-game runs use the **27-map full set**, which contains maps we
+already win. Comparing a treatment on 27 maps against a baseline
+measured on 10 was an invalid comparison, and it manufactured a
+breakthrough out of a map-set change.
+
+Win-set comparison against the true control:
+
+    baseline already won:  peaceinourtime|finalist, popthecork|finalist,
+                           toomuchcheese|finalist, whatsthecatdoin|stroke
+    iter54 added:          closeup|finalist, minimaze|finalist
+    iter54 lost:           (none)
+
+So three of the four "robust wins" -- the ones that looked convincing
+precisely because they survived two code versions -- are simply games
+the baseline wins anyway. They were stable across versions because they
+are stable *full stop*, having nothing to do with grab-and-throw.
+
+Net attributable effect: **+2 games at 162, inside the noise floor**,
+and Iteration 55 nets **zero**. Two mechanistically real changes
+(engagement verified, exchange ratio measurably improved 2.9:1 -> 2.4:1)
+that do not convert into wins.
+
+**Iterations 54 and 55 REJECTED.** Reverted to `g_iter15`, verified.
+
+**The methodological failure is the more valuable finding.** Every
+individual step was defensible -- a mechanism confirmed to engage, an
+exchange ratio that genuinely improved, wins stable across two versions
+-- and the conclusion was still wrong, because the *baseline* silently
+changed underneath the comparison. The win-set technique that has been
+reliable all session gave a confidently wrong answer here for exactly
+that reason: it compared two treatments to each other and never to a
+control on the same maps.
+
+Rule going forward, added to the accept criteria: **a treatment and its
+baseline must be measured on the identical map set, in the same
+session, with the revert verified by diff.** Reusing a remembered
+baseline number from a different configuration is not a control.
