@@ -3292,3 +3292,38 @@ contact time (42, 43) have all now been tested and rejected. The
 remaining explanation is positional, and the positional problem is the
 one two projects have failed to fix by removing absolute-order
 preferences.
+
+## Positional evidence: our units are never near cats, and cats revisit sites
+
+Two measurements that reframe the cat-damage problem from "fight cats
+better" to "be where cats are":
+
+**1. Our King never meets a cat at all.** Tracked `id6` (our King) across
+the whole `minimaze` game: parked at `(32,44)`, **600/600 HP, zero
+damage, never moved, for 2000 rounds**. It has 600 HP (6x a Baby Rat)
+and `RAT_KING_ATTACK_DISTANCE_SQUARED = 8` (4x a rat's reach), and it
+contributes nothing to cat damage because no cat ever comes near it.
+This also kills a tempting hypothesis before testing it: removing the
+King's flee-from-cats rule would change nothing, since the rule never
+fires.
+
+**2. Cats revisit locations.** Across the same game: 93 `CatScratch`
+events over 61 distinct tiles, with the top sites hit 3-6 times each.
+Cats cycle fixed waypoints (RULES.md), so **a tile where a cat was seen
+is likely to have a cat again.**
+
+**This is precisely what the three failed hunts got wrong.** Iterations
+22/27/44 all chased `lastKnownCatLoc` -- a single, constantly-overwritten
+position, pursued *immediately*, so a rat arrives just after the cat has
+moved on and finds an empty tile. The correct exploitation of a cycling
+patrol is the opposite: treat an observed sighting as a durable
+*hotspot* and be positioned there when the cycle comes back around.
+
+**Iteration 47 design:** each rat remembers the first tile where it ever
+sees a cat (`catHotspot`, set once, never overwritten -- unlike the
+churning `lastKnownCatLoc`). Half the army by ID parity treats it as a
+*positional bias* rather than a task: when far from it they move toward
+it, and when near it they resume ordinary behaviour (collect cheese,
+engage anything that appears). So it changes *where* those rats live,
+not *what they do* -- which avoids the failure mode where hunters stop
+contributing to the economy entirely.
