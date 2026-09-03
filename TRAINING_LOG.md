@@ -4950,3 +4950,48 @@ are guaranteed to differ.
 If deaths fall back toward 67 while `cheeseTransferred` holds near 3085,
 this becomes the first change of the session that is better than control on
 both counters — at which point it needs the peer Gauntlet before acceptance.
+
+---
+
+## Correction — Iteration 72's "deaths rose to 78" was a rate-vs-total artifact
+
+Normalising by game length changes the reading of the whole throw line:
+
+| | deaths | rounds | deaths/rd | cheese | cheese/rd |
+|---|---|---|---|---|---|
+| control | 67 | 1175 | 0.0570 | 2595 | 2.21 |
+| 71 (throw always) | 51 | 875 | 0.0583 | 1225 | **1.40** |
+| 72 (throw ≤ rd 100) | **78** | **1325** | 0.0589 | 3085 | **2.33** |
+
+**The death rate never moved** — 0.0570, 0.0583, 0.0589 are the same number.
+Deaths "rose" purely because Iteration 72 survives 150 rounds longer. And the
+celebrated +19% cheese is really **+5% per round**; the rest was extra rounds
+of being alive.
+
+A direct correlation check confirms landings are not what kills us: of 78
+deaths only **5** fell within 5 rounds of one of our 43 throws, and only **7**
+occurred in rounds ≤110 at all — while throwing ran rounds 14-95. Only 2 of
+53 trap triggers were near a throw.
+
+So **Iteration 73's premise is void.** It was launched to make landings
+survivable; landings were never the problem. Whatever it scores will come
+from throwing *less*, not from safer landings, and it should be read that way.
+
+### Honest standing of the throw line
+
+Iteration 72 buys **+5% cheese per round at an unchanged death rate**, and
+150 more rounds of survival, for the same 5/162 wins. A real but small
+economic gain that does not convert, because we still end with zero rats and
+lose on King death.
+
+### The methodological point
+
+This is the second measurement artifact in three iterations, after Iteration
+70's radius that was never a dose. Both had a plausible causal story attached
+and both were wrong for arithmetic reasons rather than strategic ones. The
+two checks that catch them are cheap and now routine:
+
+1. **arm-to-arm identity** — did the two versions actually differ?
+2. **normalise per round** — did the counter move, or did the game length?
+
+Neither requires a new Gauntlet run.
