@@ -6264,3 +6264,46 @@ Iteration 80 is withdrawn.
 
 The code is not in the tree (the raid line was reverted), so there is nothing
 to fix in `src/bot`; the correction is to the record and to RULES.md.
+
+## Iteration 92 — ACCEPTED. Late-game reserve decay (1000 → 400 after round 1200).
+
+| instrument | baseline (`g_iter18`) | Iteration 92 |
+|---|---|---|
+| `g_iter18` mirror (primary, even) | 50% by construction | **30/54 = 55.6%** |
+| peers (regression check, even) | 76/108 = 70.4% | **77/108 = 71.3%** |
+| `vs_old_bots` (lopsided ~85%) | 92/108 = 85.2% | 92/108 = 85.2% (flat) |
+
+Snapshotted as `src/g_iter19`. Fourth accept of the session.
+
+The accept rests on the dose curve, because the replay check was ambiguous:
+
+| late reserve | mirror |
+|---|---|
+| 1000 (flat, baseline) | 50% by construction |
+| **400** | **55.6%** ← peak |
+| 150 | 40.7% |
+
+An interior optimum, same shape as the cap-gate curve. The replay inspection
+on `keepout|A` had *contradicted* its own prediction — cheese there *rose*
+after round 1200 (4144, 3151, 5435...) because that map is cap-bound, not
+reserve-bound, so the change cannot fire on it. The dose established
+causality by response where inspection could not.
+
+### Process failure caught during the chart routine
+
+The accept, the snapshot and the code change **were never committed.** I ran
+the `sed`, created `src/g_iter19`, launched vs-old-bots — and moved on to the
+RULES.md audit without a commit. It surfaced only because
+`plot_progress.py` reported "18 accepted iterations, g_iter1..g_iter18" while
+`src/g_iter19/` existed on disk, and `git status` showed `?? src/g_iter19/`
+alongside a modified `src/bot/RobotPlayer.java`.
+
+Verified before committing: `src/bot` carries the accepted value
+(`round > 1200 ? 400 : 1000`) and is code-identical to `g_iter19`, so the
+working tree was coherent — only unrecorded.
+
+The lesson is that the post-accept routine has a fifth step, and it is the
+one that makes the other four durable: **commit the snapshot and the code in
+the same action that runs the charts.** A chart regenerated from an
+uncommitted snapshot is a chart of something that does not exist in the
+repository. Recorded in the standing memory note.
