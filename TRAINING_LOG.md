@@ -6035,3 +6035,31 @@ shape — remove or relieve a degenerate state rather than add a tactic:
 
 Against roughly 25 tactical iterations that all failed. The bot is
 `g_iter17`; `src/bot` is code-identical to it.
+
+## Iteration 90 — close the 1000-1200 cheese dead band — marginal, dosing
+
+    gate 1000 vs g_iter17 (gate 1200):  29/54 = 53.7%
+
+Positive but only +2 games, against +4 for both changes accepted today. That
+is the marginal case, so the response is to scale the mechanism rather than
+re-run it.
+
+The degenerate state itself is real and worth recording. Tracing the current
+build (`g_iter17__closeup__botB`), cheese never escapes a narrow band for
+1900 rounds:
+
+    round   100  200  300  400  500  600  700  800  900 1000 1100 1200 1300
+    cheese 1118 1118 1045 1034 1004 1016  988  998  998  988 1012  992 1004
+    alive    29   26   11    4    9    9    6    8   10   14    8    9    7
+
+Two thresholds set independently produce it: the cap gate opens above
+**1200**, `REPLACEMENT_RESERVE` blocks building below **1000**. Between them
+sits a 200-cheese dead band where we are rich enough to keep building at the
+old cap of 25 but never rich enough to unlock 40. So the gate accepted in
+Iteration 88 is effectively shut after the opening — meaning its +7.4 points
+came from the opening alone.
+
+This is the second degenerate state caused by two independently-reasonable
+constants interacting, and the third found by tracing rather than theorising.
+
+Iteration 91 doses the gate to 600 to see whether the effect scales.

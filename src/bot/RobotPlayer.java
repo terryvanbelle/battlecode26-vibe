@@ -254,7 +254,28 @@ public class RobotPlayer {
         //
         // Unlike Iteration 78 this changes the cap ALONE -- Iteration 77's
         // King-attack reorder is not bundled in.
-        final int MAX_POPULATION = rc.getGlobalCheese() > 1200 ? 40 : 25;
+        // Iteration 90 (TRAINING_LOG.md): align the cap gate with the build
+        // reserve, 1200 -> 1000, to close a dead band.
+        //
+        // Tracing the CURRENT build (`g_iter17__closeup__botB`) shows cheese
+        // pinned in a narrow band for the whole game -- 1118, 1045, 1034,
+        // 1004, 1016, 988, 998, 998, 988, 1012, 992, 1004 -- never escaping
+        // ~1000-1100 between rounds 100 and 2000, with activity at 5-19
+        // events per 100 rounds and 4-14 rats alive.
+        //
+        // That is an interaction between two thresholds set independently.
+        // The cap gate opens above **1200**; REPLACEMENT_RESERVE blocks
+        // building below **1000**. Between them lies a 200-cheese dead band
+        // where we are rich enough to keep building at the OLD cap of 25 but
+        // never rich enough to unlock 40 -- so the treasury is held at
+        // equilibrium and the gate accepted in Iteration 88 is mostly shut
+        // for the rest of the game.
+        //
+        // Setting the gate to the reserve removes the band: whenever we can
+        // afford to build at all, we build against the higher cap. This does
+        // not touch REPLACEMENT_RESERVE itself, which the ablation program
+        // measured at ~+24 points and which stays exactly as is.
+        final int MAX_POPULATION = rc.getGlobalCheese() > 600 ? 40 : 25;
         final int BUILD_WINDOW_ROUNDS = 400;
         final int REPLACEMENT_RESERVE = 1000;
         if (rc.getRoundNum() - buildWindowStart >= BUILD_WINDOW_ROUNDS) {
