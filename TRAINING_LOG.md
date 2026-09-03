@@ -6763,3 +6763,59 @@ direction is therefore more early production, not better early evasion — and
 both of which were reverted today for costing benchmark games in their
 *general* form. A version scoped to the opening on rush maps has not been
 tried.
+
+## Analysis note — early wipes are entirely a close-spawn phenomenon
+
+Not an iteration; a measurement made while Iteration 101 was running. King
+spawn positions come from the replay headers of the g_iter20 benchmark run
+(`gauntlet/20260903-201821`), one replay per map, cross-referenced against
+that run's early wipes (`tools/early_wipes.py`).
+
+    map                King dist   wipes/losses
+    knifefight              5.0        6/6
+    tiny                    5.0        5/6
+    thunderdome             8.0        3/6
+    dirtfulcat             15.0        4/6
+    popthecork             17.0        1/4
+    evileye                21.2        1/6
+    toomuchcheese          21.2        2/5
+    -- 20 maps at 26.0 .. 76.4 --      0/117
+
+**All 22 early wipes are on the seven maps whose Kings spawn within ~21
+tiles. The twenty farther maps produce exactly zero.** The separation is
+total, with no overlap at all.
+
+Two consequences.
+
+**1. The wipe problem is much smaller than it looks, and much denser.** Those
+seven maps supply 42 of 162 benchmark games. We lose 22 of them to a King
+killed before round 100 — better than half. Work aimed at wipes should be
+judged on those 42 games; averaged over 162 the signal is diluted by a
+two-thirds majority of maps where the failure mode does not exist. This is
+the same shape as the representativeness problem with the mirror, one level
+down: most of the benchmark set does not pose the threat either.
+
+**2. The obvious way to scope a fix does NOT work, and this is worth knowing
+before spending an iteration on it.** `RobotController` exposes map width and
+height and our own King's location, but not the symmetry type, so the best
+round-1 estimate is the minimum distance over the three candidate symmetries
+(rotation, horizontal reflection, vertical reflection). That minimum is only
+a lower bound and it is badly polluted:
+
+    map                        true   min-est
+    corridorofdoomanddespair   51.0       1.0
+    streetsofnewyork           47.0       1.0
+    keepout                    39.0       3.0
+    dirtpassageway             43.0       3.0
+
+A King sitting near a mirror axis in one coordinate scores as "close" under
+the reflection candidate for that axis even when the true symmetry is a
+rotation putting the enemy 50 tiles away. The threshold that captures all 22
+wipes (est < 18) fires on twelve maps, seven of them wrong -- 42% precision,
+and the false positives include `rift`, `pipes`, `jail` and `keepout`.
+Conditioning a rush posture on that geometry would apply it to maps where it
+is dead weight, which is exactly how Iterations 88/90/92 died.
+
+So a rush response must be triggered by OBSERVATION -- an enemy rat actually
+arriving near our King early -- not by predicting the matchup from map
+geometry at round 1. Noted for the iteration after 101.
