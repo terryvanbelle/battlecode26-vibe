@@ -128,9 +128,7 @@ public class RobotPlayer {
             }
         }
 
-        // Iteration 59: attacking moved BELOW the build attempt (see the
-        // action-budget note there). The King only bites when it has no rat
-        // to build this turn, so defence never preempts production.
+        attackNearestHostile(rc, desperate);
 
         // The King never moved at all in the first cut of this iteration.
         // Cats patrol fixed, map-specific waypoints (RULES.md), so a King
@@ -233,7 +231,44 @@ public class RobotPlayer {
         // discretionary spending: a committed investment (the opening army)
         // and a discretionary one (topping it back up) should not be gated
         // at the same bar.
-        final int MAX_POPULATION = 25;
+        // Iteration 60 (TRAINING_LOG.md): 25 -> 50. This cap, not the King's
+        // action budget and not cheese, is what actually limits our army.
+        //
+        // Note what it really caps: `builtCount` is BUILDS PER WINDOW (reset
+        // every BUILD_WINDOW_ROUNDS), not live population. Under attrition we
+        // spend the quota on replacements and then sit blocked with far fewer
+        // than 25 rats actually alive. The name misleads.
+        //
+        // Measured, on a game lost by both the control and Iteration 59
+        // (`pure_cooperator__hatefullattice__botB`, 2000 rounds = 5 windows,
+        // so a 125-build ceiling): both runs spawned **exactly 126**. Iteration
+        // 59 freed the King's actions (traps 23 -> 0, attacks 170 -> 5) and
+        // converted that into *zero* extra rats, because the cap was binding
+        // the whole time. Cheese was not the constraint either -- at round
+        // 1925 we were sitting on **10,797 cheese with 11 living rats**.
+        //
+        // The gap this opens against real opponents is severe:
+        //
+        //     hatefullattice  rd  550   bench_finalist 56 alive, us  6
+        //                     rd 1175   bench_finalist 61 alive, us  0
+        //     knifefight      rd   75   bench_finalist 25 alive, us  5  (King dies rd 77)
+        //
+        // and it is self-reinforcing: fewer rats -> less cheese collected ->
+        // cannot rebuild -> zero income. Our cheese hits 0 by round 1175 in
+        // the first game *because* the cap starved the collectors, which then
+        // looks like an economy problem rather than the cap that caused it.
+        //
+        // Deliberately the ONLY change in this iteration, and deliberately a
+        // dose (25 -> 50, with 75 to follow if 50 moves the number) rather
+        // than a rewrite -- the Gauntlet is deterministic, so scaling the
+        // mechanism is the way to tell a causal effect from noise.
+        //
+        // Evaluated primarily on the BENCHMARK set, inverting the usual
+        // preference for peers: `pure_cooperator` and `immediate_defector`
+        // are forks of this same file and carry the identical cap, so the
+        // peer Gauntlet is structurally blind here -- it handicaps both
+        // sides equally.
+        final int MAX_POPULATION = 50;
         final int BUILD_WINDOW_ROUNDS = 400;
         final int REPLACEMENT_RESERVE = 1000;
         if (rc.getRoundNum() - buildWindowStart >= BUILD_WINDOW_ROUNDS) {
@@ -285,37 +320,19 @@ public class RobotPlayer {
         // after we are already dead. Alternating from round 5 yields
         // roughly ten traps down by round 25 while still building most of
         // the army.
-        // Iteration 59 (TRAINING_LOG.md): the King's action budget belongs to
-        // BUILDING. Trap-laying moved out of here entirely (onto Baby Rats,
-        // see runBabyRat); attacking moved *below* the build attempt.
-        //
-        // Both unit types have actionCooldown 10 against COOLDOWNS_PER_TURN
-        // 10 -- exactly **one action per turn** -- so every trap the King
-        // lays and every bite it takes is literally one rat it did not
-        // build. Measured on `bench_finalist__knifefight__botA` (our King
-        // dies at round 77):
-        //
-        //     our King, 68 actions:  28 RatAttack (41%)
-        //                            18 PlaceTrap (26%)
-        //                            22 SpawnAction (32%)
-        //     their King, 35 actions: 35 SpawnAction (100%)
-        //
-        // We spent nearly TWICE their King actions and converted them into
-        // 37% FEWER rats. Same shape on `tiny` (21 spawns vs 39) and
-        // `thunderdome` (25 vs 36). Their King never traps and never
-        // fights; all their traps come from Baby Rats (10-55 per game).
-        //
-        // This indicts Iteration 48's *implementation*, not traps as such --
-        // the opponent lays plenty. Laying them with the King, during the
-        // opening, on maps where the Kings start 5 tiles apart and ThrowRat
-        // pressure starts at round 6, is the error. It also fixes placement
-        // for free: our King-laid traps all ringed our own King (0 of 18
-        // closer to the enemy) whereas 21 of their 32 were pushed forward,
-        // which is simply where rats already are.
-        //
-        // `pickUpBestNearbyCheese` above stays where it is -- pickUpCheese
-        // adds no action cooldown at all (RobotControllerImpl:505), so it
-        // does not compete with building.
+        boolean placedTrap = false;
+        if (builtCount >= 5 && !lastBuildWasTrap && rc.getGlobalCheese() > RESERVE + 100) {
+            MapLocation trapSpot = findTrapLocation(rc);
+            if (trapSpot != null && rc.canPlaceRatTrap(trapSpot)) {
+                rc.placeRatTrap(trapSpot);
+                placedTrap = true;
+                lastBuildWasTrap = true;
+            }
+        }
+        if (placedTrap) {
+            rc.setIndicatorString("king trap laid; traps=" + rc.getNumberRatTraps());
+            return;
+        }
         MapLocation buildLoc = findBuildLocation(rc);
         if (buildLoc != null && rc.canBuildRat(buildLoc)
                 && rc.getGlobalCheese() - rc.getCurrentRatCost() >= buildReserve
@@ -323,8 +340,6 @@ public class RobotPlayer {
             rc.buildRat(buildLoc);
             builtCount++;
             lastBuildWasTrap = false;
-            rc.setIndicatorString("king built; pop=" + builtCount);
-            return; // action spent on the thing that matters
         } else if (buildLoc == null) {
             // Replay evidence on `closeup` (TRAINING_LOG.md, tools/replay-dump.sh's
             // new terrain dump): both Kings spawned boxed in entirely by DIRT
@@ -333,11 +348,6 @@ public class RobotPlayer {
             // game, for either team, on this map specifically. Dig out.
             digTowardOpenSpace(rc);
         }
-
-        // Iteration 59: only now, having failed to build, spend the action on
-        // defence. A King bite is RAT_BITE_DAMAGE 10; a new Baby Rat is worth
-        // far more than that, so building always outranks biting.
-        attackNearestHostile(rc, desperate);
 
         rc.setIndicatorString("king cheese=" + rc.getGlobalCheese()
                 + (nearestCat != null ? " cat@" + nearestCat.getLocation() : ""));
@@ -424,32 +434,6 @@ public class RobotPlayer {
         for (RobotInfo info : nearby) {
             if (info.getType() == UnitType.RAT_KING && info.getTeam() == rc.getTeam()) {
                 kingLoc = info.getLocation(); // freshest -- overrides the shared-array value
-            }
-        }
-
-        // Iteration 59: Baby Rats lay the rat traps now, not the King.
-        //
-        // Only when carrying no cheese, so a trap never delays a delivery:
-        // RAT_TRAP has actionCooldown 15 against COOLDOWNS_PER_TURN 10, so
-        // placing one costs about 1.5 turns of action. `assertCanPlaceTrap`
-        // funds the 20-cheese cost from `getAllCheese()` (the GLOBAL pool),
-        // so any rat can pay for one, and `maxCount` 25 is self-limiting --
-        // `canPlaceRatTrap` simply returns false at the cap, so no team-wide
-        // budget bookkeeping is needed here.
-        //
-        // No explicit "place it forward" logic: rats are already dispersed
-        // toward cheese and the enemy, which is structurally forward
-        // compared to the King ringing itself (0 of 18 King-laid traps were
-        // closer to the enemy King than to ours; 21 of the opponent's 32
-        // were).
-        if (rc.getRawCheese() == 0 && rc.getGlobalCheese() > 400) {
-            for (Direction d : Direction.allDirections()) {
-                MapLocation spot = rc.getLocation().add(d);
-                if (rc.canPlaceRatTrap(spot)) {
-                    rc.placeRatTrap(spot);
-                    rc.setIndicatorString("rat trap @" + spot + " traps=" + rc.getNumberRatTraps());
-                    return;
-                }
             }
         }
 

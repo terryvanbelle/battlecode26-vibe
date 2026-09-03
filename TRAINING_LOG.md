@@ -4258,3 +4258,75 @@ just the action's own cost.
 The underlying measurement stands and is not retracted: we deal 14.6% of
 all cat damage, and `bench_finalist` bites cats ~1015 times a game to our
 57. The diagnosis was right; this particular repair was not.
+
+---
+
+## Iteration 59 — King builds instead of fighting/trapping — REJECTED (both instruments)
+
+Moved `attackNearestHostile` below the build attempt, removed the King's trap
+branch, and gave trap-laying to non-carrying Baby Rats.
+
+| | control | Iteration 59 |
+|---|---|---|
+| peers (108) | **65/108 = 60.2%** | **53/108 = 49.1%** |
+| benchmarks (162) | **5/162** | **3/162** |
+
+Worse on both, and the peer regression (−12) is well outside the noise band.
+
+### The mechanism fired perfectly and bought nothing
+
+On `pure_cooperator__hatefullattice__botB`, a 2000-round game lost by both:
+
+| | control | Iteration 59 |
+|---|---|---|
+| King `SpawnAction` | 126 | **126** |
+| King `PlaceTrap` | 23 | 0 |
+| King `RatAttack` | 0 | 5 |
+| **rat**-placed traps | 0 | 28 |
+
+The intervention did exactly what it was designed to do — and produced
+**zero extra rats**. 2000 rounds is 5 build windows, so `MAX_POPULATION`
+25 sets a 125-build ceiling: **the King was pinned at the cap the entire
+game**, never waiting on actions. Freeing an unconstrained resource
+changes nothing, and we paid for it by giving up 23 traps and the King's
+defensive bites.
+
+### What the diagnosis got wrong
+
+The Iteration 48 root-cause analysis was accurate as arithmetic (the King
+really does spend 41% of actions attacking, 26% trapping) but wrong about
+the binding constraint. **Measuring how a resource is *spent* does not
+establish that the resource is *scarce*.** The King's action budget was
+being spent inefficiently and was simultaneously not the limiter — both
+true at once, which the action census alone could not distinguish.
+
+Two different maps have two different binders, which is why the census
+misled:
+
+- **Long maps** (`hatefullattice`, 2000 rds): the **population cap** binds —
+  126 spawns against a 125 ceiling, while holding 10,797 cheese and 11 rats.
+- **Short rush maps** (`knifefight`, 77 rds): the **King's actions** bind —
+  2250 cheese at round 25 with only 3 rats alive, so cheese was abundant and
+  the King's 68 actions really were the limit.
+
+Iteration 59 addressed only the second, and lost the traps that mattered
+in it.
+
+### The real gap
+
+| | their live rats | ours |
+|---|---|---|
+| `hatefullattice` rd 550 | 56 | 6 |
+| `hatefullattice` rd 1175 | 61 | **0** (cheese 0) |
+| `knifefight` rd 75 | 25 | 5 (King dies rd 77) |
+
+A 5–10× army deficit, self-reinforcing: fewer rats → less cheese collected
+→ cannot rebuild → zero income. Our cheese reaching 0 by round 1175 is a
+*consequence* of the cap, not an independent economy problem.
+
+Note `MAX_POPULATION` caps **builds per window**, not live population, so
+attrition leaves us blocked at 5–11 living rats having spent the quota on
+replacements. Iteration 60 raises it 25 → 50 as a dose, changing nothing
+else, and is evaluated primarily on the **benchmark** set — the peer bots
+are forks of this same file carrying the identical cap, so that Gauntlet is
+structurally blind to this change.
