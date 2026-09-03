@@ -4633,3 +4633,55 @@ with `raceLost = enemyRatsNear > 2 * (allies + 1)`.
 
 If this works it should reproduce the benchmark gain (~7/162) *without* the
 peer collapse — the first change to satisfy both instruments.
+
+---
+
+## Iteration 66 — conditional cat engagement — INERT (the gate never fired)
+
+Benchmarks **5/162**, matching the control exactly, including its
+per-opponent split (finalist 4, spaark 0, stroke 1).
+
+Row-by-row against the control, **161 of 162 games are identical in both
+outcome and round count** — only `bench_spaark|closeup|A` differed. On a
+deterministic Gauntlet that means the new code path essentially never
+executed. The strategy was not tested; the proxy was.
+
+### The constant I had been assuming away
+
+`senseNearbyRobots()` is **not** a radius query for a Baby Rat.
+`InternalRobot.canSenseLocation` passes the robot's facing and its
+`visionConeAngle`:
+
+```java
+return this.location.isWithinDistanceSquared(
+    toSense, getVisionRadiusSquared(), this.dir, getVisionConeAngle(), ...);
+```
+
+| unit | visionConeRadiusSquared | visionConeAngle |
+|---|---|---|
+| `BABY_RAT` | 20 | **90** |
+| `RAT_KING` | 25 | 360 |
+| `CAT` | 17 | 180 |
+
+A rat sees a **quarter-circle wedge**, so any "count what is near me" test
+is a noisy lower bound that depends on which way the rat happens to be
+pointing — two adjacent rats can see entirely different sets of robots.
+Requiring `enemyRatsNear > 2 * (allies + 1)` sightings inside a 90° wedge is
+close to unsatisfiable.
+
+The King is exempt at 360°, which is why King-side checks like Iteration
+40's `noVisibleArmy` really do behave like radius queries. Worth noting
+`rc.turn()` exists with its own cooldown, so facing is a resource — and we
+have never managed it at all.
+
+### Iteration 67
+
+A dose-response step on the **proxy**, not the strategy: `raceLost` becomes
+the absolute `enemyRatsNear >= 2`. Two enemy rats inside a 90° wedge already
+implies a much larger surrounding force, which is the 56-vs-6 situation
+against the tournament bots versus near parity against the peers.
+
+First thing to check is not the win rate but whether the run still comes
+back identical to the control. If it does, thresholds are the wrong lever
+entirely and the count has to move to the King (360° vision) or to a
+shared-array census.

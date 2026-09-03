@@ -517,10 +517,32 @@ public class RobotPlayer {
                     enemyRatsNear++;
                 }
             }
-            // allies+1 counts this rat itself. Outnumbered by more than 2:1
-            // means we cannot win a war of attrition over the cat, so the
-            // share is already gone and the rat is worth more collecting.
-            boolean raceLost = enemyRatsNear > 2 * (allies + 1);
+            // Iteration 67: threshold lowered to a small ABSOLUTE count.
+            //
+            // Iteration 66 used `enemyRatsNear > 2 * (allies + 1)` and was
+            // perfectly inert: **161 of 162 games came back identical to the
+            // control, round counts included**, so the gate fired in exactly
+            // one game and the strategy was never actually tested.
+            //
+            // The cause is a constant I had been quietly assuming away.
+            // `senseNearbyRobots()` is NOT a radius query for a Baby Rat --
+            // `InternalRobot.canSenseLocation` passes the robot's facing and
+            // `visionConeAngle`, and `BABY_RAT.visionConeAngle` is **90**.
+            // A rat sees a quarter-circle wedge, so any "count what's near
+            // me" test is a noisy lower bound that depends on which way the
+            // rat happens to be pointing. Requiring more than 2*(allies+1)
+            // sightings inside a 90-degree wedge is a condition that
+            // essentially cannot be met. (`RAT_KING.visionConeAngle` is 360,
+            // which is why King-side checks like Iteration 40's
+            // `noVisibleArmy` do behave like radius queries.)
+            //
+            // So this is a dose-response step on the PROXY rather than on
+            // the strategy: the strategy is untested until the gate fires.
+            // Two enemy rats visible in a 90-degree wedge already implies a
+            // substantially larger surrounding force, which is the situation
+            // that matters -- 56 of their rats against our 6 vs the
+            // tournament bots, versus near parity against the peers.
+            boolean raceLost = enemyRatsNear >= 2;
             if (!raceLost && (allies > 1 || rc.getHealth() > 30)) {
                 if (engage(rc, nearestCat.getLocation())) return;
             } else if (nearestCat.getLocation().distanceSquaredTo(rc.getLocation()) <= 8) {
