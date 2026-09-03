@@ -608,7 +608,7 @@ public class RobotPlayer {
             if (info.getType() != UnitType.BABY_RAT) continue;
             // Only launch a passenger who can absorb THROW_DAMAGE and the
             // landing stun without becoming a free kill.
-            if (info.getHealth() <= 50) continue;
+            if (info.getHealth() <= 80) continue;   // Iteration 73 dose: only fresh passengers
             if (!rc.canCarryRat(info.getLocation())) continue;
             rc.carryRat(info.getLocation());
             rc.setIndicatorString("grabbed ally @" + info.getLocation());

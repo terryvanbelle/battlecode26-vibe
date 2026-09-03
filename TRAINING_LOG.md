@@ -4907,3 +4907,46 @@ and map presence compounds. `bench_finalist`'s first throw lands at round 6.
 
 Note this is a legitimate dose, unlike Iteration 70's radius: it gates
 whether the branch runs at all, so the two arms are guaranteed to differ.
+
+---
+
+## Iteration 72 — throw only in the opening — the economy flips positive
+
+Benchmarks **5/162**, back to control parity from Iteration 71's 4/162.
+Both identity checks pass: **15/162** identical to control (so it fires
+heavily) and **47/162** identical to Iteration 71 (so this dose is real,
+unlike Iteration 70's radius).
+
+| `bench_finalist__hatefullattice__botB` | control | 71 (always) | 72 (≤ rd 100) |
+|---|---|---|---|
+| our `ThrowRat` | 0 | 58 | **43** |
+| our deaths | 67 | 51 | **78** |
+| `cheeseTransferred` | 2595 | 1225 | **3085** |
+| game ended | rd 1175 | rd 875 | **rd 1325** |
+
+**Bounding the spend flipped the economy from −53% to +19% above control**,
+and the game runs 150 rounds longer. That is direct confirmation of the
+per-capita theory: the same mechanism, priced into the cheap part of the
+game, stops competing with cheese collection and starts feeding it — early
+map presence finds cheese sooner.
+
+Note 43 of the original 58 throws survive the round-100 gate, i.e. most
+throwing was always happening in the opening anyway; what the gate removed
+was the expensive tail.
+
+The remaining cost is deaths, now **78 against the control's 67**. Thrown
+rats land having taken `THROW_DAMAGE` 10 and frozen for a turn by
+`HIT_GROUND_COOLDOWN`, and `hitGround` runs `processTrapsAtLocation`, so a
+landing can also spring a trap. Throwing along our exploration facing sends
+passengers toward unscouted ground.
+
+### Iteration 73
+
+Dose the passenger health gate, `> 50` → `> 80`. At the old bar a rat could
+be launched at 51 HP and land on 41; at the new one it lands on 71+ and can
+survive a cat scratch or a trap. This changes which rats qualify, so the arms
+are guaranteed to differ.
+
+If deaths fall back toward 67 while `cheeseTransferred` holds near 3085,
+this becomes the first change of the session that is better than control on
+both counters — at which point it needs the peer Gauntlet before acceptance.
