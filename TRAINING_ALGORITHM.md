@@ -548,6 +548,17 @@ tools/.venv/bin/python3 tools/plot_alt_metrics.py       # peer spread + benchmar
 `plot_progress.py` was being skipped for most of 2026-09-03 and the chart sat
 stale through two accepts. All four run every time.
 
+**Then commit -- this is the step that makes the other four durable.** Later
+the same day an accept was made, `src/bot` edited and `src/g_iter19/` created
+without any commit; it surfaced only because `plot_progress.py` reported
+`g_iter1..g_iter18` while the directory existed on disk. A chart regenerated
+from an uncommitted snapshot depicts something not in the repository. Stage
+explicit paths, never `git add -A`:
+
+```bash
+git add TRAINING_LOG.md src/bot/RobotPlayer.java src/g_iter<N> progress/
+```
+
 **Caution on `vs_old_bots_history.csv`:** `track_vs_old_bots.py` labels a run
 with whatever the highest `src/g_iterN` directory is *at the time it runs* --
 which says nothing about the code that actually played. Four mislabelled rows
