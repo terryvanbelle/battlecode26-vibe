@@ -6101,3 +6101,52 @@ dose-response rule makes available — measure the arms around a candidate
 rather than treating one number as the verdict.
 
 Peer regression check on gate 1000 running.
+
+## Iteration 90 — ACCEPTED. Cap gate aligned with the build reserve (1200 → 1000).
+
+| instrument | baseline (`g_iter17`) | Iteration 90 |
+|---|---|---|
+| `g_iter17` mirror (primary, even) | 50% by construction | **29/54 = 53.7%** |
+| peers (regression check, even) | 73/108 = 67.6% | **76/108 = 70.4%** |
+
+Both even instruments positive. Snapshotted as `src/g_iter18`.
+
+The accept rests on the *curve*, not the single number. +2 games alone would
+be marginal; the surrounding arms make it structure:
+
+| gate | mirror |
+|---|---|
+| 1200 (baseline) | 50% by construction |
+| **1000** | **53.7%** ← peak |
+| 600 | 40.7% |
+
+Falling away on both sides is an interior optimum, and 600 fails for an
+understood reason — building down that far strips the survival reserve, the
+same mechanism that made Iteration 60's flat cap bankrupt us.
+
+### Mechanism check: partial, and it says where the next constraint is
+
+The dead band did widen (cheese spread 134 → 246 across the game) but cheese
+still hovers ~900-1150 rather than ranging freely. That is informative
+rather than disappointing: **the hover point is set by `REPLACEMENT_RESERVE`
+itself.** We build until we cannot afford to, so any reserve creates an
+equilibrium just above it, and moving the *gate* only shifts that equilibrium
+slightly.
+
+So the remaining lever on the mid-game economy is the reserve, not the gate —
+and Iteration 87 measured the reserve at ~+24 points, so it cannot simply be
+lowered. What is untested is whether it should *decay* late in the game, when
+hoarding a survival buffer has less value than the rats it could buy. That is
+a different shape of change from Iteration 40's emergency override, which
+tried to detect an emergency and measured inert.
+
+### Session tally — three accepts, all the same shape
+
+| accepted | change | mirror | peers |
+|---|---|---|---|
+| 82 | remove the King trap ring | 57.4% | 61.1% |
+| 88 | cheese-gated population cap | 57.4% | 67.6% |
+| 90 | align the gate with the reserve | 53.7% | **70.4%** |
+
+Peers have moved 60.2% → 70.4% across the three. Every one is *relieve a
+degenerate state*; none adds a tactic.
