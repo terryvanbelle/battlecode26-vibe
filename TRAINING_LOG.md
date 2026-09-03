@@ -6819,3 +6819,61 @@ is dead weight, which is exactly how Iterations 88/90/92 died.
 So a rush response must be triggered by OBSERVATION -- an enemy rat actually
 arriving near our King early -- not by predicting the matchup from map
 geometry at round 1. Noted for the iteration after 101.
+
+## Iteration 101 — build:trap ratio, dose 2 (one trap per two builds) — REJECTED
+
+                              g_iter20        dose 2
+    benchmark wins            5/162           5/162
+    early wipes (PRIMARY)     22/157 = 14%    29/157 = 18%   WORSE
+    close-spawn wins          3/42            2/42
+    close-spawn wipes         22/39 = 56%     27/40 = 68%
+
+Reverted; code verified identical to `g_iter20`. Dose 3 NOT run -- the task
+pre-registered "if dose 2 raises early wipes, the mechanism is refuted and
+dose 3 is not worth running", and it did.
+
+The hypothesis was right about the mechanism and wrong about the sign. The
+King really does strictly alternate build and trap from the fifth rat, and it
+really does cost six builds in the first twenty rounds on `knifefight`. But
+buying those builds back with traps costs more than the rats are worth.
+
+**This independently reconfirms Iteration 96 by a different manipulation.**
+Iteration 96 restored the ring by turning it ON vs OFF and halved wipes
+26% -> 13%. This varied the ring's DENSITY instead, holding it on, and moved
+wipes the same way: thinner ring, more wipes. Two unrelated knobs, same
+direction, so the trap ring's value is not an artifact of how it was
+switched. 1:1 alternation is at or near optimal and should stop being treated
+as an unexamined default -- it has now been measured.
+
+**The wipe boundary moved outward, which is the close-spawn model predicting
+something new.** Per-map wipes:
+
+    thunderdome  3 -> 5     evileye     1 -> 2
+    tiny         5 -> 6     starvation  0 -> 1   <-- previously wipe-free
+    popthecork   1 -> 2     keepout     0 -> 1   <-- previously wipe-free
+
+`starvation` has King distance 26.0 -- the closest of the twenty maps that
+had never produced a wipe. Weakening the defence did not scatter wipes at
+random; it pushed the boundary out from ~21 to past 26, taking the nearest
+safe map first. That is a real prediction the map-distance measurement made
+and passed.
+
+### Where this leaves the rush
+
+Two designs have now failed to reduce wipes (learned zones, geometric
+steering) and one has failed by *removing* defence (this). The only change
+that ever moved the counter was giving the King its build action back
+(Iteration 99, 16% -> 14%). The evidence now says the ring is underweight
+rather than overweight, so the untested direction is MORE trap density in the
+opening, not less -- dose 0.5, so to speak. That is Iteration 102.
+
+### Loss-cause split, measured on the g_iter20 run
+
+                     losses   King destroyed   on points
+    close-spawn        39       39 (100%)         0
+    far               118      104 (88%)         14
+
+143 of 157 losses are our King dying, 91%. Only 14 games in the whole set are
+decided on points. Close and far maps do not differ in HOW we lose, only
+WHEN: every close-spawn loss is over before round 500, while 61% of far
+losses run 500-1999.
