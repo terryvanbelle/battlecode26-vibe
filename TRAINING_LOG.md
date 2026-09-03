@@ -7324,3 +7324,40 @@ this session measured:
    squeaks rats could converge on an actual cluster instead of a guessed spot.
 3. **Cheese mine locations**, given the far-map finding that our per-capita
    income is the deficit.
+
+## Reference — carryRat/throwRat, verified against engine source
+
+    carryRat(loc)            RobotControllerImpl:1460
+      - caller must be a BABY_RAT; target must be adjacent, THROWABLE (a baby
+        rat), and not already being thrown or carried.
+      - TARGET MAY BE AN ENEMY. The only enemy-specific rule is a cooldown
+        against re-grabbing the same enemy rat you just threw
+        (SAME_ROBOT_CARRY_COOLDOWN_TURNS).
+      - requires canSenseLocation(loc), and a Baby Rat's vision is a 90-degree
+        CONE -- the engine's own error text is "A rat can only grab robots in
+        front of it". Facing matters, and turning costs TURNING_COOLDOWN 10.
+      - costs an ACTION (assertIsActionReady), so it competes with biting and
+        with cheese transfer.
+
+    throwRat()               RobotControllerImpl:1393
+      - throws in the robot's CURRENT FACING direction; needs the tile directly
+        ahead to be on-map, passable and empty.
+      - costs an action. THROW_DURATION 4 and TILES_FLOWN_PER_TURN 2, so a
+        thrown rat covers roughly eight tiles.
+
+    while carrying, cooldowns are multiplied by CARRY_COOLDOWN_MULTIPLIER --
+    a carrying rat is slow.
+
+**The interesting use is defensive, not offensive.** A grabbed rat is removed
+from play while held: it cannot move and cannot attack. Against the early rush
+that produces 91% of our losses, grabbing an attacker is far stronger crowd
+control than biting it, since a bite removes 10 of its 100 HP while a grab
+removes the whole unit from the assault for as long as we hold it. That is a
+better fit for our measured problem than the obvious offensive use (throwing
+our own rats at the enemy King), because on close-spawn maps we are the ones
+being rushed.
+
+Caveats to design against, both learned the hard way this session: the 90-degree
+cone means a defender must be FACING the attacker, and the action cost means
+every grab is a bite not taken -- so this must be measured on the close-spawn
+split and the early-wipe counter, not on the 162-game average.
