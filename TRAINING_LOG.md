@@ -7052,3 +7052,55 @@ not a conflict.
 Best of the session, and it moves in the same direction as the benchmark set
 rather than trading against it. Charts regenerated: `vs_old_bots.png`,
 `cumulative_iterations.png` (now g_iter1..g_iter21), `peer_win_spread.png`.
+
+## Iteration 103 — ablate lone-rat cat APPROACH — REJECTED, behaviour VALIDATED
+
+    g_iter21 mirror, approach OFF, playing the version that has it:
+        21/54 = 38.9%
+
+Six games below even. Per the ablation rule (<50% validates the feature), the
+lone-rat cat approach is worth roughly **+11 points** -- the second-largest
+measured feature value in the bot, behind only the exploration-heading
+reassignment's ~28. Reverted; code verified identical to `g_iter21`.
+Benchmarks NOT run: the task pre-registered the mirror as primary and it
+answered clearly.
+
+### Where my reasoning went wrong
+
+The arithmetic was right and the conclusion was wrong. A rat really does
+survive only ~15 rounds against a cat and land only ~150 damage on 4000 HP,
+and `transferCheese` really does share the action cooldown, so the swings
+really are deliveries not made. All of that is true and none of it decides
+the question, because **I priced `catDamage` as though it were uncontested.**
+
+I took the price from `peaceinourtime`, where the counter reads us 204 and
+them 0, and concluded that further cat damage buys nothing because we already
+hold the whole term. That is correct *against `bench_finalist`, who does not
+farm cats at all*. It is exactly backwards on an instrument where the
+opponent does farm them -- and in a mirror the opponent is our own code, so
+it farms them precisely as hard as we do. Stopping there does not save a rat
+and forgo a small gain; it hands the opponent 100% of a 0.3-weighted term we
+were splitting.
+
+This is [[proportional-score-terms-are-contested]] in TRAINING_LOG form:
+conceding a proportional term we are splitting costs its FULL weight, not the
+increment. I had the memory, quoted the risk in the task's own RISK line --
+"conceding catDamage share where it is currently CONTESTED rather than
+dominated" -- and then chose the baseline from the one map where it was not
+contested. The risk note was right and I under-weighted it.
+
+### What the measurement does NOT overturn
+
+The mechanism numbers stand and remain odd:
+
+    dirtpassageway rd 95-205   cat kills ours 6, theirs 1   RatAttacks 14 vs 15
+    peaceinourtime rd 1-200    cat kills ours 6, theirs 2   RatAttacks 35 vs 2
+
+Equal attack volume on `dirtpassageway` with a 6:1 death ratio, and single-rat
+streaks of 18, 10 and 5 consecutive swings. So the approach is worth having
+AND we die to cats far more than opponents do at comparable volume. Both can
+be true: the term is worth contesting, and our way of contesting it is
+needlessly lethal. The untested question is not whether to approach but
+whether to *disengage* -- bite, then leave before the fourth scratch lands --
+which keeps the share and stops paying a whole rat for it. That is a
+different iteration from this one, and this result does not speak to it.
