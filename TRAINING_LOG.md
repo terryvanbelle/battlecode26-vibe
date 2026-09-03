@@ -5099,3 +5099,53 @@ largest term on the board.
 
 Note `RAT_KING` has `size` 3, so a King occupies a 3×3 footprint — the rally
 point must be offset from the existing King rather than on top of it.
+
+---
+
+## Iteration 75 — rally for a King upgrade — 0/162, the worst result of the session
+
+Benchmarks **0/162** against a 5/162 control. Not a single win on any map
+against any opponent.
+
+Mechanism check on `bench_finalist__hatefullattice__botB`:
+
+| | control | Iteration 75 |
+|---|---|---|
+| `UpgradeToRatKing` | 0 | **0** |
+| max our kings | 1 | **1** |
+| our deaths | 67 | 62 |
+| `cheeseTransferred` | 2595 | **1856** (−28%) |
+| game ended | rd 1175 | rd 1025 |
+
+**Pure cost, zero benefit.** The rally pulled rats off cheese for 200 rounds,
+cost 28% of the economy, and never once produced the upgrade it existed to
+enable.
+
+### A population assumption of mine was wrong
+
+I had been reasoning from "we field 4-8 rats", and concluded a 7-rat upgrade
+was near-unaffordable. That figure is the **late-game** count. Measured
+properly, our population **peaks at 25 living rats at round 50** and then
+decays — 7 by round 225, 4 by round 399.
+
+So the bodies do exist; my rally window (60-260) simply opened *after* the
+peak and spent its whole span inside the collapse, taxing a shrinking army
+for a target that was already receding. That is why it produced nothing but
+cost.
+
+This is the third measurement artifact of the session, after Iteration 70's
+non-dose and Iteration 72's rate-vs-total. All three shared a shape: a
+plausible number carried over from one context into another where it did not
+apply. "4-8 rats" was true, just not at the time that mattered.
+
+### Iteration 76
+
+Retime the rally to the population peak: rounds **25-90** instead of 60-260.
+Narrower (65 rounds instead of 200, bounding the tax) and aimed at the moment
+when 25 rats are alive and still clustered near the King from the build burst.
+
+If the upgrade still records zero, the obstacle is not gathering but the
+**3×3 packing** — `becomeRatKing` needs 7 allies on the 8 tiles surrounding
+one rat, and terrain plus the King's own size-3 footprint may make that
+unachievable at the rally point. In that case the answer is to pick the rally
+point for open adjacent tiles rather than a fixed (3,3) offset.
