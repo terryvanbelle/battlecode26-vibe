@@ -3909,3 +3909,27 @@ This is the same class of bug as the `Direction.allDirections()`
 `CENTER` entry found in Iteration 32 -- a precondition buried in the API
 that silently voids an action, invisible in win rates and only findable
 by reading the engine's assertions.
+
+## Iteration 54 on the full 27-map set: 6/162 (3.7%) from a 0/60 baseline
+
+    vs bench_finalist   5/54  (9%)
+    vs bench_spaark     0/54  (0%)
+    vs bench_stroke     1/54  (2%)
+
+Six wins where the accepted baseline had never taken a single game off
+these opponents -- and this was measured on the **hobbled** version, at
+one third the intended throw rate, before the Iteration 55 facing fix.
+
+**A control is still required before calling this real.** The baseline's
+zero has only ever been measured on the 10-map loop (0/60), never on
+these 162 games. That matters more than usual here because of an
+asymmetry in the noise: chaotic sensitivity flips games in both
+directions, but **from a floor of zero it can only add wins** -- you
+cannot lose fewer than none. So a handful of wins could in principle be
+near-miss games tipped over the line by any perturbation, which is
+exactly the reading that the +-9-game churn measurement warned about.
+Running `g_iter15` over the identical 162 games settles it; the Gauntlet
+is deterministic, so that control is exact rather than an estimate.
+
+Queued behind the Iteration 55 (facing-fix) run, which tests the
+mechanism at full strength.
