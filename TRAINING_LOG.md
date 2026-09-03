@@ -6687,3 +6687,40 @@ wipes* (Iteration 99). The mechanism never changed. **Choosing the counter is
 as consequential as choosing the change**, and the counter to choose is the
 one that is upstream of how the games are actually lost and that has variance
 on the instrument that poses the threat.
+
+### Iteration 99 on vs_old_bots, and the next target
+
+    g_iter20: 46/54 = 85.2% vs g_iter1, 49/54 = 90.7% vs g_iter11
+    overall 95/108 = 88.0%   (unchanged from the session baseline)
+
+Flat, as expected from a lopsided instrument. All four charts regenerated per
+the routine.
+
+**What the accepted change bought, precisely:** the three fixed wipes roughly
+doubled their survival — `thunderdome|B` 81 → 172, `tiny|B` 65 → 131,
+`thunderdome|A` 45 → 111 — and all three still lost. The fix buys time, not
+games, which is consistent with wins staying at 5/162.
+
+**The new binding cause, traced on `knifefight` under the accepted build:**
+
+    our spawns 25 vs their 29        (was 4 vs 16 -- the King fix worked)
+    rd 6:  TriggerTrap x4, DieAction, Damage, Stun
+    rd 8:  TriggerTrap x1
+    rd 9:  TriggerTrap x1, DieAction
+    rd 13: TriggerTrap x2, DieAction, Damage x2, Stun x2
+
+Production is now near parity; **their trap wall is what kills us.** They
+place a trap almost every round from round 2, and our rats walk into four of
+them in a single round.
+
+**Checked, and it is not a repeat of the Iteration 77 error.** Trap-zone
+avoidance (Iteration 69) was rejected on wins, so I re-read it on the
+early-wipe counter: **16% (25/158) — identical to control.** It genuinely
+does not help the rush, despite halving total deaths on long maps
+(67 → 31 on `hatefullattice`). The likely reason is structural: that design
+only learns a zone *after* a rat triggers a trap, which is far too slow for a
+game decided in 20-60 rounds.
+
+So the next hypothesis needs trap avoidance that requires no learning — the
+enemy traps on `knifefight` sit in the corridor between two Kings five tiles
+apart, which is knowable from map geometry alone at round 1.
