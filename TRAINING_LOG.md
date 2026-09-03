@@ -3253,3 +3253,42 @@ result (gather more samples) is unavailable. Varying the *dose* of the
 mechanism is the substitute, and it worked: an ambiguous p=0.34 became a
 decisive rejection in one additional run. **For any future marginal
 result, prefer a dose-response or ablation test over another sample.**
+
+---
+
+## Iteration 46 premise falsified mid-run: catDamage does not scale with population
+
+Iteration 46 raised `MAX_POPULATION` 25 -> 35, reasoning from Iteration
+45's finding that cheese's value is instrumental (it buys population,
+which should buy cat contact and therefore `catDamage`). While the
+Gauntlet ran, checked that causal link directly against the baseline
+games -- and it does not exist:
+
+    ourPop  ourCatDmg  |  theirPop  theirCatDmg
+        8       1470   |       2        4320
+       27       1950   |      63        4000
+        6       2270   |       5        4600
+       12       1610   |       3        3360
+       16       3210   |      11        4460
+       44        330   |      24        2950
+       32       3020   |      54        4450
+
+In three of seven we field **2-4x more rats and take a fraction of the
+cat damage** -- most starkly 44 rats for 330 damage against 24 rats for
+2950. There is no positive relationship; if anything it is inverted.
+**More rats will not produce more cat damage**, so this iteration cannot
+work as designed regardless of what the win rate comes back as.
+
+**What this rules in.** The opponent runs identical cat-engagement code
+and reaches 3-9x our cat damage with *fewer* units, so the difference is
+neither decision quality nor army size -- it is **contact**: their rats
+are near cats and ours are not. That is the map-geometry exposure effect
+characterized in the true-mirror entry (side A 70% / side B 30%, same
+maps every time), and most of these losses are side B.
+
+This closes off the last "just do more of X" lever on cat damage.
+Population, hunting (Iterations 22/27/44), damage-per-bite (45), and
+contact time (42, 43) have all now been tested and rejected. The
+remaining explanation is positional, and the positional problem is the
+one two projects have failed to fix by removing absolute-order
+preferences.
