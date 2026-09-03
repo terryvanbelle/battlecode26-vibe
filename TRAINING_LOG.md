@@ -4995,3 +4995,53 @@ two checks that catch them are cheap and now routine:
 2. **normalise per round** — did the counter move, or did the game length?
 
 Neither requires a new Gauntlet run.
+
+---
+
+## The throw line — REJECTED on peers
+
+| variant | benchmarks | peers |
+|---|---|---|
+| control | 5/162 | **65/108 = 60.2%** |
+| 71 throw always | 4/162 | — |
+| 72 throw ≤ rd 100 | 5/162 | **51/108 = 47.2%** |
+| 73 throw ≤ rd 100, hp > 80 | 5/162 | — |
+
+Flat on benchmarks across three variants, **−14 games on peers**. Rejected
+and reverted.
+
+This is what the per-capita theory predicts. The +5%-per-round cheese gain
+was measured against `bench_finalist`, an opponent whose 56 rats mean *our*
+detour matters more to us than to them. Against peers — near-parity
+opponents who do not throw — spending rat-turns on grabbing and throwing is
+a straight relative loss.
+
+### What the throw line established
+
+- The grab/throw system is usable and we can drive it as hard as the
+  tournament bots (58 throws, 239 grabs against their 88/318).
+- Bounding a rat-turn mechanism to the opening genuinely flips its economics
+  (cheese/round 1.40 → 2.33), confirming the per-capita account.
+- It still does not convert, because our binding problem is not tempo.
+- Two measurement artifacts caught along the way (Iteration 70's non-dose,
+  Iteration 72's rate-vs-total), both now standing checks.
+
+### Where next: multi-King, a dead end whose premise has expired
+
+"Multi-King costs 7 rats each" was rejected earlier on the assumption that
+rats are a scarce asset worth preserving. Three of this session's findings
+contradict that:
+
+- The death rate is ~**0.057/round in every variant tested**, so seven rats
+  not spent are seven rats that die anyway within ~100 rounds.
+- Iteration 60 proved the standing army cannot be grown by building
+  (spawns 25 → 50 left live rats at exactly 4). Rats are a flow we cannot
+  bank — precisely the asset to convert into something permanent.
+- `livingKings` is a **proportional** term at weight **0.5** once
+  cooperation ends (~round 39). Both sides hold one King today, so we split
+  it 25/25; two Kings against one would be 33/17 — an 8-point swing on the
+  largest term on the board. And 91% of our losses are King-death losses,
+  with all-Kings-dead an instant loss.
+
+Unlike trap avoidance or throwing, an upgrade is a **one-time conversion**,
+not an ongoing tax on rat-turns.
