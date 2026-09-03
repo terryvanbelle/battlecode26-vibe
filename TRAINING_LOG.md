@@ -7122,3 +7122,31 @@ the log entry for Iteration 63 before writing the hypothesis.
 Recorded so the next attempt on cat behaviour starts from "abstention has
 been measured twice and costs ~11 points" rather than rediscovering it a
 third time.
+
+## Iteration 104 — disengage from cats at 60 HP instead of 30 — REJECTED
+
+    g_iter21 mirror:  26/54 = 48.1%
+
+One game below even, i.e. inert, and short of the pre-registered >50% accept
+bar. Reverted.
+
+**It completes a monotone dose curve, which is the useful part:**
+
+    cat engagement                        mirror
+    abstain entirely     (Iter 103)       38.9%
+    disengage at 60 HP   (Iter 104)       48.1%
+    disengage at 30 HP   (current)        50.0% by construction
+
+Every step toward LESS cat engagement is worse, and the penalty shrinks as
+the step gets smaller -- 11 points for abstaining, 2 for merely leaving
+earlier. Three points, one direction.
+
+So the inherited `> 30` is not obviously optimal; it is merely the most
+aggressive value ever tried. The curve says the untested direction is MORE
+engagement, not less -- exactly the shape of the trap ratio, where Iteration
+101 pushed the wrong way (18% wipes), the inherited value sat in the middle
+(14%), and Iteration 102 pushed the right way and was accepted (8%).
+
+Iteration 105 therefore lowers the threshold rather than raising it: a rat
+keeps closing until 10 HP instead of 30. Dose 80 is NOT worth running -- it
+is further along the direction already measured as harmful twice.
