@@ -49,13 +49,6 @@ public class RobotPlayer {
     static boolean bugRotateLeft = false;
     static int bugRoundsFollowing = 0;
 
-    /** Iteration 80: shared-array slots for a SIGHTED enemy King (x+1, y+1;
-     *  0 = never seen). Preferred over the 180-degree mirror guess in slots
-     *  3/4, which is simply wrong on reflection-symmetric maps -- see the
-     *  raider code in runBabyRat. */
-    static final int ENEMY_KING_X_SLOT = 14;
-    static final int ENEMY_KING_Y_SLOT = 15;
-
     public static void run(RobotController rc) throws GameActionException {
         rng = new Random(rc.getID());
         while (true) {
@@ -111,20 +104,6 @@ public class RobotPlayer {
         // x/y+1 (0 = not yet computed).
         final int RESERVE = 150;
         boolean desperate = economyStruggling && rc.getGlobalCheese() < RESERVE;
-        // Iteration 79 (TRAINING_LOG.md): publish the enemy-King guess
-        // ALWAYS, not only when desperate.
-        //
-        // The guess computation below already existed but was reachable only
-        // through the `desperate` branch -- i.e. only once our economy had
-        // already collapsed. Raiders need it from the opening, and writing
-        // two shared-array slots is a King-side action that costs no rat
-        // turns at all.
-        if (rc.readSharedArray(3) == 0) {
-            int gx = rc.getMapWidth() - 1 - rc.getLocation().x;
-            int gy = rc.getMapHeight() - 1 - rc.getLocation().y;
-            rc.writeSharedArray(3, gx + 1);
-            rc.writeSharedArray(4, gy + 1);
-        }
         if (desperate) {
             rc.writeSharedArray(2, 1);
             if (rc.readSharedArray(3) == 0) {
@@ -414,16 +393,6 @@ public class RobotPlayer {
 
         RobotInfo[] nearby = rc.senseNearbyRobots();
 
-        // Iteration 80: publish any enemy King we can actually see, so
-        // raiders steer by observation rather than by the mirror guess.
-        for (RobotInfo info : nearby) {
-            if (info.getTeam() != rc.getTeam() && info.getType() == UnitType.RAT_KING) {
-                rc.writeSharedArray(ENEMY_KING_X_SLOT, info.getLocation().x + 1);
-                rc.writeSharedArray(ENEMY_KING_Y_SLOT, info.getLocation().y + 1);
-                break;
-            }
-        }
-
         MapLocation kingLoc = readHomeKingFromSharedArray(rc);
         for (RobotInfo info : nearby) {
             if (info.getType() == UnitType.RAT_KING && info.getTeam() == rc.getTeam()) {
@@ -501,7 +470,7 @@ public class RobotPlayer {
             // commits instead of fleeing trades a cheap unit (~10-30
             // cheese) for real, otherwise-nonexistent cat damage. Not yet
             // Gauntlet-verified -- see TRAINING_LOG.md for the result.
-            if (allies > 1 || rc.getHealth() > 30) {
+            if (allies >= 3) {   // Iteration 63, restored: see the 9%-vs-59% analysis in TRAINING_LOG.md
                 if (engage(rc, nearestCat.getLocation())) return;
             } else if (nearestCat.getLocation().distanceSquaredTo(rc.getLocation()) <= 8) {
                 // Critically low HP and no help nearby: not worth dying on
@@ -555,108 +524,9 @@ public class RobotPlayer {
             }
         }
 
-        // Iteration 79 (TRAINING_LOG.md): RAID the enemy King.
-        //
-        // This targets how these games are actually decided, which the
-        // session had been ignoring. Looking at the games we WIN rather than
-        // the ones we lose: all five control wins end with "destroyed all of
-        // the enemy team's rat kings", at rounds 183, 456, 545, 560 and 609 --
-        // **none reaches round 2000**. The loss census agrees from the other
-        // side: only 14 of 157 losses (9%) reach round 2000.
-        //
-        // So `catDamage`, `livingKings` and `cheeseTransferred` decide roughly
-        // **one game in eleven**, which is why a run of demonstrably-working
-        // changes never converted: trap avoidance cut deaths 67 -> 31 (4/162),
-        // opening throws lifted cheese/round 5% (5/162), the King rally raised
-        // cheese to 3631 and stretched the game to round 1425 (1/162). All
-        // optimised quantities that almost never decide the outcome.
-        //
-        // And we have never had ANY code targeting the enemy King -- rats
-        // engaged enemy rats only reactively, gated on
-        // `!rc.isCooperation() || desperate`.
-        //
-        // Timing is tight: `bench_finalist` reaches 2 Kings at round 125, 3 at
-        // 325, 4 at 375, 5 at 825, and our wins all land at rounds 183-609,
-        // i.e. while they still have few Kings. Every ~200 rounds of delay
-        // adds another 600 HP King that must also die. `RAT_KING.health` 600
-        // against `RAT_BITE_DAMAGE` 10 is ~60 bites per King.
-        //
-        // Only HALF the rats raid (even IDs), and only from round 120, once
-        // the opening build burst has produced bodies. That split is forced by
-        // the per-capita finding: sending every rat would gut the economy the
-        // way trap avoidance and unrestricted throwing did. `rc.getID()` is
-        // unique and not team-correlated, so this is symmetry-safe.
-        //
-        // Note `InternalRobot.bite` calls `backstab(this.team)` for any
-        // non-cat target, so raiding makes us the backstabber -- ending
-        // cooperation, dropping catDamage 0.5 -> 0.3 and raising livingKings
-        // 0.3 -> 0.5. Given that scoring decides ~9% of games, that is a
-        // trade worth making, and the livingKings side of it moves in our
-        // favour anyway.
-        if (rc.getRoundNum() >= 120 && rc.getID() % 4 == 0 && rc.getRawCheese() == 0) {
-            RobotInfo enemyKing = nearestEnemyKing(rc, nearby);
-            if (enemyKing != null) {
-                if (rc.canAttack(enemyKing.getLocation())) {
-                    rc.attack(enemyKing.getLocation());
-                    rc.setIndicatorString("biting enemy King");
-                    return;
-                }
-                if (engage(rc, enemyKing.getLocation())) return;
-            }
-            // Iteration 80: prefer a SIGHTED enemy King over the guess.
-            //
-            // Iteration 79's raiders cost 27% of our cheese and produced
-            // almost no extra combat (attacks after round 120: 43 control vs
-            // 47 raiding). They were walking to the wrong place.
-            //
-            // The mirror-guess assumes 180-degree rotation. On `knifefight`
-            // our King sits at (22,14) and theirs at (17,14) -- a HORIZONTAL
-            // REFLECTION -- so the guess computes (40-1-22, 40-1-14) =
-            // **(17,25)** against an actual (17,14). We were sending half the
-            // army to an empty tile. BC22's LEARNINGS.md flagged exactly this
-            // (several maps there turned out non-rotational even where the
-            // symmetry WAS queryable); BC26 does not expose symmetry at all,
-            // so guessing cannot be made reliable.
-            //
-            // Observation can. Any rat that actually sees an enemy King
-            // publishes it to slots 14/15, and raiders use that in preference
-            // to the guess. This is the census pattern from BC22's
-            // LEARNINGS.md -- accumulate locally, publish once -- and it costs
-            // two shared-array writes only on the turns a King is in view.
-            int sx = rc.readSharedArray(ENEMY_KING_X_SLOT);
-            int sy = rc.readSharedArray(ENEMY_KING_Y_SLOT);
-            MapLocation target;
-            if (sx != 0 && sy != 0) {
-                target = new MapLocation(sx - 1, sy - 1);   // seen: trustworthy
-            } else {
-                int gx = rc.readSharedArray(3);
-                int gy = rc.readSharedArray(4);
-                target = (gx != 0 && gy != 0) ? new MapLocation(gx - 1, gy - 1) : null;
-            }
-            if (target != null) {
-                if (moveToward(rc, target, true)) return;
-            }
-        }
-
         if (collectCheese(rc)) return;
 
         explore(rc);
-    }
-
-    /** Iteration 79: nearest visible enemy Rat King, or null. */
-    static RobotInfo nearestEnemyKing(RobotController rc, RobotInfo[] nearby) {
-        RobotInfo best = null;
-        int bestDist = Integer.MAX_VALUE;
-        for (RobotInfo info : nearby) {
-            if (info.getTeam() == rc.getTeam()) continue;
-            if (info.getType() != UnitType.RAT_KING) continue;
-            int d = info.getLocation().distanceSquaredTo(rc.getLocation());
-            if (d < bestDist) {
-                bestDist = d;
-                best = info;
-            }
-        }
-        return best;
     }
 
     static MapLocation readHomeKingFromSharedArray(RobotController rc) throws GameActionException {

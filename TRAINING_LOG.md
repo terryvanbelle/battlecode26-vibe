@@ -5411,3 +5411,53 @@ correct in principle (it is how 91% of games are decided) but unaffordable at
 our population, and the honest conclusion is that our army is too small to
 project force *and* run an economy — which is the same wall every line has
 hit this session.
+
+---
+
+## Iteration 81 — quarter-strength raid — REJECTED; the raid line closes
+
+| arm | benchmarks |
+|---|---|
+| control | **5/162** |
+| 79 raid toward the mirror guess (half the army) | 4/162 |
+| 80 raid toward a sighted King (half) | 4/162 |
+| 81 raid, quarter of the army | **3/162** |
+
+Non-monotone and every arm below control, which under the dose-response rule
+rejects the approach rather than the tuning. The King-rush direction is
+strategically right — it is how 91% of these games are decided — but it is
+unaffordable at our population: we cannot project force and run an economy
+with the same 4-8 rats.
+
+## The finding that reframes the whole session
+
+Asking *why* conceding catDamage cost Iteration 63 twenty-four peer games,
+when scoring supposedly decides only 9% of games, produced this:
+
+| instrument | games reaching round 2000 |
+|---|---|
+| benchmarks (real MIT tournament entries) | **14/162 = 9%** |
+| peers (forks of our own bot) | **64/108 = 59%** |
+
+**The two Gauntlets play structurally different games.** Against tournament
+bots, 91% end by King destruction and the scoring terms barely matter.
+Against peers — evenly matched because they *are* us — most games run the
+full 2000 rounds and are decided on points.
+
+So the peer Gauntlet is systematically biased toward score-optimising
+changes and the benchmark set toward survival and King combat. Both of
+Iteration 63's numbers were real and they were measuring different games:
+
+> **Iteration 63 (`allies >= 3`) scored 7/162 — the best benchmark result of
+> the session and the first run to beat all three tournament bots, including
+> `bench_spaark` which had never been beaten — while dropping peers to
+> 41/108.**
+
+I rejected it on the peer regression. Under this analysis that was the wrong
+call for competitive strength: the benchmark bots are actual tournament
+entries, the peers are our own forks, and the change concedes a term that
+decides 59% of peer games and 9% of benchmark games.
+
+**Iteration 63 is restored and being evaluated on `vs_old_bots`** — the
+frozen `g_iterN` snapshots, which cannot drift and are the designated
+progress metric precisely for breaking ties like this one.
