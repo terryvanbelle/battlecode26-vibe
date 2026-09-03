@@ -4854,3 +4854,56 @@ Reverted to the control.
 A real alternative would have to buy back the ground rather than concede
 it — which is what the grab/throw system (#59) does, and that is the next
 line.
+
+---
+
+## Iteration 71 — grab/throw for tempo — the third mechanism to trade deaths for economy
+
+Benchmarks **4/162** against a 5/162 control, and emphatically not inert:
+only **7/162** games matched the control, so 155 changed.
+
+| `bench_finalist__hatefullattice__botB` | control | Iteration 71 |
+|---|---|---|
+| our `ThrowRat` | 0 | **58** |
+| our grabs (`RatNap`) | 0 | **239** |
+| our deaths | 67 | **51** |
+| `cheeseTransferred` | 2595 | **1225** (−53%) |
+| game ended | round 1175 | round **875** |
+
+The system works — 58 throws and 239 grabs is the same order as
+`bench_finalist`'s 88/318 — and it cut deaths by a quarter. We still lost,
+sooner, because the economy halved.
+
+### The pattern across three iterations
+
+| | deaths | `cheeseTransferred` |
+|---|---|---|
+| 69 trap avoidance | −54% | −54% |
+| 71 grab/throw | −24% | −53% |
+
+Two unrelated mechanisms, the same trade. That is not a coincidence about
+traps or throwing; it is the shape of our position:
+
+> **With only 4-8 living rats, every rat-turn spent on anything other than
+> collect-and-deliver is a large fraction of our entire economic output.**
+
+`bench_finalist` affords 88 throws because it fields 56 rats. We cannot
+afford 58 with six. Rat-turn-denominated mechanisms are priced *per capita*,
+and we are poor — which also retroactively explains why so many
+"do something smarter" iterations came back flat-to-negative while the
+mechanism itself demonstrably fired.
+
+It also closes a loop with Iteration 60: building more rats does not raise
+the live count (spawns 25→50 left live rats at exactly 4), so we cannot buy
+our way out of the constraint on the production side either.
+
+### Iteration 72
+
+Bound the spend rather than abandon the mechanism: throw only while
+`getRoundNum() <= 100`. The opening is where a throw is worth most and
+costs least — little cheese is on the ground yet, rats are still clustered
+at spawn so a grab target is actually adjacent *and* inside the 90° cone,
+and map presence compounds. `bench_finalist`'s first throw lands at round 6.
+
+Note this is a legitimate dose, unlike Iteration 70's radius: it gates
+whether the branch runs at all, so the two arms are guaranteed to differ.
