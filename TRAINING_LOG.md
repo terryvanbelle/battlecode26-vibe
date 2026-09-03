@@ -4397,3 +4397,62 @@ Survival, not production. Supporting evidence already collected:
 
 Building more rats to feed into that is what Iteration 60 tested, and it
 bought nothing. The next hypotheses must reduce the death rate.
+
+---
+
+## Iteration 62 — retreat from enemy rats at ≤50 HP — REJECTED
+
+Benchmarks **3/162** against a control of **5/162**.
+
+Before this, `getHealth()` was consulted exactly **once** in the entire bot
+(the cat-engagement gate) and `flee()` was only ever called against cats —
+so against enemy rats our rats advanced until killed, at any health, with no
+retreat rule at all. 50 was chosen because `RAT_TRAP` deals exactly 50 to a
+100 HP rat, so it marks "one hit from death", and we trigger 27 of their
+traps per short game to their 13.
+
+The mechanism fired, and the trade went the wrong way:
+
+| `bench_finalist__hatefullattice__botB` (we are team2) | control | Iteration 62 |
+|---|---|---|
+| our deaths | 67 | **70** |
+| `CatScratch` against us | 242 | **297** |
+| our `TriggerTrap` | 71 | 65 |
+| final `aliveBabies` | 0 | 0 |
+
+Trap triggers fell as intended (71 → 65), so the retreat was real. But
+deaths rose and cat scratches rose 23%: **pulling rats back from enemy rats
+just fed them to cats instead.**
+
+### The rejection is the useful part
+
+This was a pre-registered discriminator between the two survival hypotheses,
+and it settled them. Enemy rats are not what kills us.
+
+Damage accounting on that same control game:
+
+    242 CatScratch  x CAT_SCRATCH_DAMAGE 20 = 4,840
+     71 trap hits   x RAT_TRAP damage    50 = 3,550
+    ------------------------------------------------
+    our 67 dead rats                        = 6,700 HP
+
+Cats alone nearly account for every rat we lose. And the return on all that
+dying was **142 cat damage against their 9,720** — we pay on both sides of
+the ledger simultaneously.
+
+### This also finally explains the economy collapse
+
+| round | their live rats | ours | their cheese delivered | ours |
+|---|---|---|---|---|
+| 225 | **36** | 7 | 2990 | 1415 |
+| 525 | 50 | 8 | 10965 | 2115 |
+| 1125 | **63** | **0** | 29895 | 2595 |
+
+Our cheese *per rat* is comparable-to-better (round 525: theirs 10965 over
+50 rats, ours 2115 over 8). So there is no collection problem; and per
+Iteration 60 there is no production problem either, since doubling builds
+left live rats at exactly 4. There are simply never many of our rats alive,
+because they keep walking into cats.
+
+Iteration 63 raises the cat-engagement gate from `allies > 1 || health > 30`
+to `allies >= 3`, restoring flight as the default for a lone rat.

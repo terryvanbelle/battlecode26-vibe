@@ -470,7 +470,48 @@ public class RobotPlayer {
             // commits instead of fleeing trades a cheap unit (~10-30
             // cheese) for real, otherwise-nonexistent cat damage. Not yet
             // Gauntlet-verified -- see TRAINING_LOG.md for the result.
-            if (allies > 1 || rc.getHealth() > 30) {
+            // Iteration 63 (TRAINING_LOG.md): require a REAL swarm before
+            // closing on a cat. The old gate (`allies > 1 || health > 30`)
+            // sent any healthy rat at a cat alone, and its own comment
+            // conceded it was "not yet Gauntlet-verified".
+            //
+            // It cannot work, from the constants: a cat has 4000 HP against
+            // RAT_BITE_DAMAGE 10, so a lone rat needs 400 bites to kill one,
+            // while CAT_SCRATCH_DAMAGE 20 against a 100 HP rat kills in 5.
+            // Worse, the cat's reach is visionConeRadiusSquared 17 (~4.1
+            // tiles) against our ATTACK_DISTANCE_SQUARED 2 (~1.4), so the
+            // rat absorbs scratches across ~3 tiles of approach before it
+            // can bite at all. The old comment argued a rat "out-trades a
+            // cat once there" on DPS (10/round vs 6.67/round) -- true, and
+            // irrelevant: DPS parity means nothing against 40x your HP when
+            // five hits kill you.
+            //
+            // Measured on `bench_finalist__hatefullattice__botB` (we are
+            // team2): 242 CatScratch against us (4,840 damage) and 71 trap
+            // triggers (3,550) versus the 6,700 HP represented by our 67
+            // dead rats -- cats are the single largest thing killing us.
+            // The return on all that dying was **142 cat damage, against
+            // their 9,720**. We pay for the engagement on both sides of the
+            // ledger at once.
+            //
+            // This is also what actually explains the economy collapse. By
+            // round 225 they field 36 rats to our 7, yet our cheese per rat
+            // is comparable-to-better (round 525: theirs 10,965 over 50
+            // rats, ours 2,115 over 8). We do not have a collection problem,
+            // and per Iteration 60 we do not have a production problem
+            // (doubling builds left live rats at exactly 4). We have rats
+            // that keep walking into cats.
+            //
+            // Iteration 62 tested the other survival lever -- retreat from
+            // enemy RATS at <=50 HP -- and was rejected: deaths 67 -> 70 and
+            // CatScratch 242 -> 297, because pulling back from rats simply
+            // fed them to cats instead. That result is what promotes this
+            // one from a guess to the remaining explanation.
+            //
+            // 3 allies, not 2: `countAlliesNear` uses radius 8 (~2.8 tiles),
+            // and with the cat striking everything inside radius^2 17 a pair
+            // of rats is still just two rats dying together.
+            if (allies >= 3) {
                 if (engage(rc, nearestCat.getLocation())) return;
             } else if (nearestCat.getLocation().distanceSquaredTo(rc.getLocation()) <= 8) {
                 // Critically low HP and no help nearby: not worth dying on
