@@ -4738,3 +4738,37 @@ Reverted to the control gate, verified by grep.
   `canTurn` is false — a candidate root cause for the "rats stuck in a small
   region" behaviour that Iteration 32 only palliated. To be measured before
   any change.
+
+---
+
+## Iteration 68 — strafe straight when blocked from turning — INERT (162/162 identical)
+
+Benchmarks 5/162, and **every one of the 162 games matched the control in
+both outcome and round count**. The new fallback never executed once.
+
+The reason retires the whole hypothesis rather than this attempt at it:
+**`TURNING_COOLDOWN` is 10 and `COOLDOWNS_PER_TURN` is 10**, so the turning
+cooldown regenerates exactly as fast as it is spent. `isTurningReady()` is
+true every round, `canTurn` essentially never fails, and the "blocked from
+turning" state I was writing a fallback for does not arise. Same arithmetic
+applies to `BABY_RAT.movementCooldown` 10 — a rat can turn *and* move every
+single round.
+
+Two corrections stacked here, both caught before they became conclusions:
+
+1. I first claimed `tryMove` "returns without moving at all" when `canTurn`
+   fails. Reading the whole function, it falls through to sidesteps via
+   `rc.move(d)`. Wrong.
+2. Narrowed to the real gap — it never tries `rc.move(want)` itself, only the
+   diagonals. True, but unreachable, per the cooldown arithmetic above.
+
+The useful residue is the cooldown identity itself: with every cooldown at
+10 against 10 regeneration, **turning and movement are not scarce resources
+for a Baby Rat**, and only the *action* cooldown is genuinely contested
+(bite vs place-trap vs transfer-cheese all cost it). Anything framed as
+"our rats can't move enough" is not worth pursuing.
+
+Also measured and dropped: `CHEESE_COOLDOWN_PENALTY` is 0.01 per unit
+carried, but our delivery batches are small — median 40 cheese per
+delivery-round against `bench_finalist`'s 780 — so our carry penalty is only
+about ×1.1–1.4 and is not a meaningful brake.
