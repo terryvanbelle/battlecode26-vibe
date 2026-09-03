@@ -437,29 +437,31 @@ public class RobotPlayer {
             // the cat isn't going to *not* attack because we didn't, and it's
             // the only thing that's ever put a nonzero number in catDamage.
             if (rc.canAttack(nearestCat.getLocation())) {
-                // Iteration 45 (TRAINING_LOG.md): pay a small amount of cheese
-                // per bite to raise cat damage. The engine's formula is
-                // `damage += ceil(sqrt(cheeseConsumed))` (InternalRobot.bite),
-                // so returns diminish sharply and *small* boosts are by far
-                // the most efficient: 4 cheese buys +2 damage on a base of
-                // RAT_BITE_DAMAGE=10 (a 20% increase at 0.5 damage/cheese),
-                // whereas 100 cheese would buy only +10 (0.1 damage/cheese).
+                // Iteration 83 (TRAINING_LOG.md): the 4-cheese boosted bite
+                // is KEPT, after a direct test that had never been run.
                 //
-                // Measured justification: all seven points-losses are lost on
-                // `catDamage` (0.5 weight) and won on `cheeseTransferred`
-                // (0.2 weight), and our treasury averages 4220 across a game
-                // (max 8300) -- we are rich in the cheap currency and poor in
-                // the expensive one. Spending a little of the former per bite
-                // converts directly into the latter at a favourable exchange
-                // rate, with no change to positioning or contact time, which
-                // is what the three failed "go hunt cats" attempts
-                // (Iterations 22, 27, 44) all tried to change and could not.
+                // The log had rejected it -- "REJECT the cheese-boosted bite
+                // entirely (Iteration 45), including the 4-cheese version" --
+                // and the revert was then never applied, so it stayed live.
+                // Finding that looked like a straightforward defect.
                 //
-                // Distinct from Iteration 16's rejected cheese-bite: that ran
-                // when cheese was genuinely scarce and its spending pulled
-                // the desperation latch early, causing a second-order
-                // collapse. Cheese is now abundant and the latch behaves
-                // differently since Iterations 38-40.
+                // But the rejection was an INFERENCE, not a measurement.
+                // Iteration 45 measured 4 cheese at 29/54 (53.7%) and 16
+                // cheese at 20/54 (37.0%), then reasoned that a negative
+                // slope at the high dose condemned the low one. That step
+                // assumes the response is monotone. It is not: removing the
+                // boost entirely scores **25/54 (46.3%)** against the version
+                // that has it, i.e. the 4-cheese build wins **53.7%** -- the
+                // same figure Iteration 45 measured, now reproduced against a
+                // different opponent on the mirror.
+                //
+                // Three points, 0 / 4 / 16 cheese, describe a concave curve
+                // with an interior optimum near 4, not a monotone decline.
+                // Keeping it.
+                // Restored EXACTLY as g_iter16 has it -- the guarded form is
+                // what measured 53.7%, and an unguarded rc.attack(loc, 4)
+                // would both change behaviour and risk a GameActionException
+                // when the boost is unaffordable.
                 final int BITE_BOOST_CHEESE = 4;
                 if (rc.getGlobalCheese() > 1000
                         && rc.canAttack(nearestCat.getLocation(), BITE_BOOST_CHEESE)) {

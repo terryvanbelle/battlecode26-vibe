@@ -5650,3 +5650,59 @@ The general hazard is worth stating: **the snapshot label in that CSV is
 inferred from the directory listing, not from the binary that played.** Any
 append is only correct if the working tree at run time matched the label —
 which is exactly the assumption that failed here, twice in three commands.
+
+---
+
+## Iteration 83 — the "never-reverted rejection" turns out to have been right to keep
+
+`BITE_BOOST_CHEESE = 4` was found still live in the bot, despite this log
+saying at line ~3230: *"REJECT the cheese-boosted bite entirely (Iteration
+45), including the 4-cheese version."* That looked like a plain defect — a
+measured-harmful change left in, with every comparison since Iteration 45
+made against a contaminated baseline.
+
+Removing it and testing on the mirror:
+
+    bot WITHOUT the boost  vs  g_iter16 WITH it:  25/54 = 46.3%
+
+**Removing it is worse.** Equivalently the 4-cheese build wins **53.7%** —
+the identical figure Iteration 45 measured, now reproduced against a
+different opponent on a different instrument. Restored, in exactly the
+guarded form `g_iter16` carries (code-only diff against the snapshot is
+empty; only comments differ).
+
+### The original rejection was an inference, not a measurement
+
+Iteration 45 measured two points — 4 cheese at 53.7%, 16 cheese at 37.0% —
+and concluded from the negative slope that the 4-cheese version was also
+harmful. **That step assumes the response is monotone.** With the third
+point now measured, 0 cheese at 46.3%, the curve is concave with an interior
+optimum near 4:
+
+    0 cheese   46.3%
+    4 cheese   53.7%   <- optimum
+    16 cheese  37.0%
+
+A dose-response that slopes down at the high end says the *high dose* is
+bad. It says nothing about whether the low dose beats zero — that requires
+measuring zero, which was never done.
+
+This corrects the guidance the log itself drew from Iteration 45 ("inverted
+-> reject the whole approach regardless of how good the theory is"). The
+sharper rule: **an inverted high-dose arm rejects that dose, not the
+mechanism. Always include the zero arm.**
+
+Also worth recording: the 53.7% that Iteration 45 dismissed as "noise sitting
+on a slightly-negative effect" has now been observed twice, against different
+opponents. It was signal.
+
+### Two near-misses in this iteration
+
+1. I first restored the boost as a bare `rc.attack(loc, 4)`, dropping the
+   `getGlobalCheese() > 1000` guard and the `canAttack(loc, 4)` check. That
+   is a different bot from the one that measured 53.7%, and it could throw a
+   `GameActionException` when the boost is unaffordable. Caught by diffing
+   against `g_iter16` rather than trusting the edit.
+2. The stale Iteration 45 rationale (arguing *for* a feature I had just
+   removed) was left contradicting the code for several minutes. Comments
+   that outlive their code are how a file starts lying.
