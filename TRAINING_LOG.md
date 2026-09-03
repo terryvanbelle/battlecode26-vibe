@@ -4772,3 +4772,48 @@ Also measured and dropped: `CHEESE_COOLDOWN_PENALTY` is 0.01 per unit
 carried, but our delivery batches are small — median 40 cheese per
 delivery-round against `bench_finalist`'s 780 — so our carry penalty is only
 about ×1.1–1.4 and is not a meaningful brake.
+
+---
+
+## Iteration 69 — trap-zone avoidance — the mechanism works; the trade does not
+
+Benchmarks **4/162** against a 5/162 control, but this was no inert run:
+only **33/162** games matched the control, so 129 games changed. The
+mechanism check on `bench_finalist__hatefullattice__botB`:
+
+| | control | Iteration 69 |
+|---|---|---|
+| our `TriggerTrap` | 71 | **28** (−61%) |
+| our deaths | 67 | **31** (−54%) |
+| rats alive at end | **0** | **4** |
+| `cheeseTransferred` | 2595 | **1200** (−54%) |
+
+**We halved our deaths and halved our economy.** For the first time in this
+game we finish with living rats — and with barely half the cheese, so the
+win rate does not move.
+
+### What this actually reveals about the opponent
+
+Their forward trap placement is **area denial**, not just damage. On
+`knifefight` 21 of their 32 traps sit closer to our King than to theirs —
+on our approach lanes, which are also our cheese routes. So the traps win
+either way: walk in and lose rats, or walk around and lose income. That is
+a considerably better strategy than "lay traps to kill things", and it
+explains why the damage accounting (traps ≈ a third of everything killing
+us) did not translate into a win-rate gain when the damage was removed.
+
+It also retires the framing behind #58. I argued trap avoidance was
+strictly better than the cat line because "there is no score term attached
+to being stunned, so there is no share to lose". True for the *stun*, and
+wrong about the cost — the cost is paid in `cheeseTransferred`, which is a
+0.2-weighted proportional term. Avoidance concedes ground, and ground is
+where the cheese is.
+
+### Iteration 70: the radius is the dial
+
+`TRAP_ZONE_RADIUS_SQ` 8 → 2, i.e. dodge only the immediately adjacent tile
+rather than a ~2.8-tile bubble. `RAT_TRAP.triggerRadiusSquared` is 2, so a
+radius-2 zone is the smallest that can still cover a trap's actual trigger
+footprint. If the death reduction survives at a fraction of the economic
+cost, the trade becomes worth taking; if deaths snap back to 67, the effect
+needed the wide bubble and the whole line is a wash.

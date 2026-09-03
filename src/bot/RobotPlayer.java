@@ -49,6 +49,40 @@ public class RobotPlayer {
     static boolean bugRotateLeft = false;
     static int bugRoundsFollowing = 0;
 
+    /**
+     * Iteration 69 (TRAINING_LOG.md): shared memory of where enemy rat traps
+     * have caught us, so other rats can route around the cluster.
+     *
+     * Measured motivation on `bench_finalist__hatefullattice__botB`: they
+     * placed **81** traps and we triggered **71** of them -- 88% of the traps
+     * they lay catch one of our rats. At `RAT_TRAP` damage 50 that is 3,550
+     * damage against the 6,700 HP represented by our 67 dead rats, making
+     * traps roughly a third of everything killing us, second only to cats
+     * (242 scratches x 20 = 4,840). Each trigger also applies stunTime 30,
+     * leaving the survivor frozen as a stationary target.
+     *
+     * Unlike the cat-engagement line (Iterations 63-67, all rejected), this
+     * concedes NOTHING on the scoreboard -- there is no score term attached
+     * to being stunned, so there is no share to lose by avoiding it.
+     *
+     * Why a zone rather than a tile: enemy traps are invisible to us
+     * (`GameWorld.getTrap` indexes by the querying team, so `senseMapInfo`
+     * only ever shows our own), and a trap is CONSUMED when triggered, so
+     * the exact tile we were caught on is now the one safe square. What
+     * makes this tractable is that they cluster -- on `knifefight` 21 of
+     * their 32 traps sat closer to our King than to theirs, concentrated on
+     * our approach lanes.
+     */
+    static final int TRAP_ZONE_SLOT0 = 5;      // ring buffer, slots 5..12
+    static final int TRAP_ZONE_SLOTS = 8;
+    static final int TRAP_ZONE_IDX_SLOT = 13;
+    static final int TRAP_ZONE_RADIUS_SQ = 2;
+    /** Kill-switch for the behaviour, leaving the reporting plumbing live -- an
+     *  inert-control arm that separates "the shared-array bookkeeping changed
+     *  something" from "avoiding the zones changed something". */
+    static final boolean TRAP_AVOIDANCE_ENABLED = true;
+    static int lastHealth = -1;
+
     public static void run(RobotController rc) throws GameActionException {
         rng = new Random(rc.getID());
         while (true) {
@@ -390,6 +424,8 @@ public class RobotPlayer {
         }
         locTwoRoundsAgo = locOneRoundAgo;
         locOneRoundAgo = here;
+
+        reportTrapIfHit(rc);   // Iteration 69, before anything else moves us
 
         RobotInfo[] nearby = rc.senseNearbyRobots();
 
@@ -828,6 +864,41 @@ public class RobotPlayer {
         return tryMove(rc, toTarget, allowStuckEscape);
     }
 
+    /**
+     * Iteration 69: if we lost >= RAT_TRAP damage since last round, we almost
+     * certainly just triggered a trap -- publish this tile as a danger zone.
+     *
+     * 50 is a distinctive amount: a cat scratch is CAT_SCRATCH_DAMAGE 20 and
+     * a rat bite is RAT_BITE_DAMAGE 10, and the action cooldown means no
+     * single attacker lands twice in a round, so a 50-point drop in one round
+     * is a trap far more often than it is a crowd. False positives are
+     * tolerable anyway -- the cost is a slight detour, not a lost rat.
+     */
+    static void reportTrapIfHit(RobotController rc) throws GameActionException {
+        int h = rc.getHealth();
+        if (lastHealth >= 0 && lastHealth - h >= TrapType.RAT_TRAP.damage) {
+            MapLocation me = rc.getLocation();
+            int packed = me.x * 64 + me.y + 1;   // +1 so 0 stays "empty"
+            int idx = rc.readSharedArray(TRAP_ZONE_IDX_SLOT);
+            rc.writeSharedArray(TRAP_ZONE_SLOT0 + (idx % TRAP_ZONE_SLOTS), packed);
+            rc.writeSharedArray(TRAP_ZONE_IDX_SLOT, (idx + 1) % TRAP_ZONE_SLOTS);
+        }
+        lastHealth = h;
+    }
+
+    /** True if `loc` sits inside a remembered trap cluster. */
+    static boolean inTrapZone(RobotController rc, MapLocation loc) throws GameActionException {
+        for (int i = 0; i < TRAP_ZONE_SLOTS; i++) {
+            int v = rc.readSharedArray(TRAP_ZONE_SLOT0 + i);
+            if (v == 0) continue;
+            int p = v - 1;
+            if (loc.distanceSquaredTo(new MapLocation(p / 64, p % 64)) <= TRAP_ZONE_RADIUS_SQ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** Turn-and-move strictly along `want`, no sidestep. */
     static boolean tryMoveDirect(RobotController rc, Direction want) throws GameActionException {
         if (want == Direction.CENTER) return false;
@@ -870,6 +941,7 @@ public class RobotPlayer {
      */
     static boolean tryMove(RobotController rc, Direction want, boolean allowStuckEscape) throws GameActionException {
         if (want == Direction.CENTER) return false;
+        if (avoidTrapZone(rc, want)) return true;   // Iteration 69
         if (rc.getDirection() != want && rc.canTurn(want)) {
             rc.turn(want);
         }
@@ -910,6 +982,32 @@ public class RobotPlayer {
         Direction second = (first == left) ? right : left;
         for (Direction d : new Direction[]{first, second}) {
             if (rc.canMove(d)) {
+                rc.move(d);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Iteration 69: prefer a sidestep when the straight-ahead tile sits in a
+     * remembered trap cluster.
+     *
+     * A PREFERENCE, not a ban. On tight maps like `knifefight` the two Kings
+     * start five tiles apart and the contested lane may be the only route
+     * there is; refusing to enter a flagged zone outright would strand rats
+     * exactly where the opponent wants them. So we take a detour when one is
+     * available and otherwise carry on and accept the risk.
+     */
+    static boolean avoidTrapZone(RobotController rc, Direction want) throws GameActionException {
+        if (!TRAP_AVOIDANCE_ENABLED || want == Direction.CENTER) return false;
+        if (!inTrapZone(rc, rc.getLocation().add(want))) return false;
+        Direction left = want.rotateLeft();
+        Direction right = want.rotateRight();
+        Direction first = (rc.getID() % 2 == 0) ? left : right;
+        Direction second = (first == left) ? right : left;
+        for (Direction d : new Direction[]{first, second}) {
+            if (rc.canMove(d) && !inTrapZone(rc, rc.getLocation().add(d))) {
                 rc.move(d);
                 return true;
             }
