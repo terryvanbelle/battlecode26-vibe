@@ -5950,3 +5950,21 @@ with a full treasury is exactly that class of defect. Roughly 25 tactical
 iterations this session failed; the two accepted changes are "stop laying
 traps that cost more than they return" and "stop refusing to build while
 rich".
+
+### Iteration 88 benchmark number, for the record
+
+    benchmarks: 5/162  (finalist 2, spaark 0, stroke 3)
+
+Equal to the control's 5/162, and up from Iteration 78's 3/162 — the same
+mechanism, isolated rather than bundled. The win composition differs
+(control was finalist 4 / stroke 1; this is finalist 2 / stroke 3), which is
+the usual behaviour of an instrument at ~3%: the total is stable while which
+games it wins is not.
+
+Full accept record for Iteration 88:
+
+| instrument | control | Iteration 88 | verdict |
+|---|---|---|---|
+| `g_iter16` mirror (primary, even) | 50% | **57.4%** | pass |
+| peers (regression check, even) | 60.2% | **67.6%** | pass, +7.4 |
+| benchmarks (lopsided, ~3%) | 5/162 | 5/162 | flat, no veto |
