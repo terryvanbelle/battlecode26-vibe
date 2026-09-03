@@ -237,7 +237,20 @@ public class RobotPlayer {
         if (rc.getRoundNum() - buildWindowStart >= BUILD_WINDOW_ROUNDS) {
             buildWindowStart = rc.getRoundNum();
             builtCount = 0;
-            replacementMode = true;
+            // Iteration 87: ABLATION of Iteration 39's REPLACEMENT_RESERVE.
+            //
+            // Iterations 38/39 were accepted at 90.0% on the peer set -- the
+            // largest headline gain in the project's history (+15 points,
+            // "6 losses fixed, 0 new"). It is the last major feature never
+            // measured on an instrument with resolution, and the headline
+            // number has predicted nothing in four previous ablations.
+            //
+            // Setting this false keeps Iteration 38's sliding build WINDOW
+            // (builtCount resets every BUILD_WINDOW_ROUNDS) while removing
+            // Iteration 39's deep REPLACEMENT_RESERVE gate, so refills draw
+            // on the ordinary RESERVE instead of requiring a 1000-cheese
+            // surplus. That isolates the reserve policy from the window.
+            replacementMode = false;
         }
         // Iteration 40: emergency override. On `tiny`, tracing the one
         // remaining loss showed the King sitting on 800-950 cheese with
@@ -771,6 +784,12 @@ public class RobotPlayer {
                               boolean useBugNav) throws GameActionException {
         MapLocation here = rc.getLocation();
         if (here.equals(target)) return true;
+        // Iteration 86 (TRAINING_LOG.md): Bug2 is VALIDATED, mildly.
+        // Ablating it scores 24/54 = 44.4% against the version that has it,
+        // so it is worth roughly +5.6 points -- real, but an order of
+        // magnitude smaller than the exploration-heading reassignment's ~28.
+        // It was originally accepted on a purely mechanistic argument with no
+        // win-rate evidence; this is its first measurement.
         if (!useBugNav) {
             return tryMove(rc, here.directionTo(target), allowStuckEscape);
         }

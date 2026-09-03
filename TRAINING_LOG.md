@@ -5803,3 +5803,45 @@ plays both sides.
 Iteration 82 build: baseline minus the King trap ring. That is the session's
 one accepted change, and it is now the only one of these four features whose
 credit rests on a high-resolution measurement.
+
+---
+
+## Iteration 86 — ablate Bug2 navigation — validated, mildly
+
+    bot WITHOUT Bug2  vs  g_iter16 WITH it:  24/54 = 44.4%
+
+Bug2 is worth roughly **+5.6 points** — real, and the first measurement it
+has ever had. Iteration 35 accepted it on a purely mechanistic argument
+("greedy movement has no notion of a path, only a heading") plus one traced
+maze corridor, with no win-rate evidence recorded at all.
+
+Worth noting the scale: Bug2 is by far the largest and most intricate
+subsystem in the bot — wall-following state, closest-distance memory,
+per-robot rotation preference, leave conditions — and it is worth about a
+fifth of what the eight-line exploration-heading reassignment is worth (~28
+points). Complexity and value are unrelated here.
+
+## The ablation program, five features
+
+| iteration | feature | headline claim at acceptance | mirror without it | true value |
+|---|---|---|---|---|
+| 82 | King trap ring (Iter 48) | "0% → 7-10%" | **57.4%** | **harmful — removed** |
+| 83 | cheese-boosted bite (Iter 45) | formally **rejected** | 46.3% | mildly helpful (~+4) |
+| 84 | emergency override (Iter 40) | **95.0%** | 48.1% | **~0, inert** |
+| 85 | heading reassignment (Iter 32) | 75.0% | **22.2%** | **~+28, large** |
+| 86 | Bug2 navigation (Iter 35) | *mechanistic, unmeasured* | 44.4% | ~+5.6 |
+
+Five features, five distinct answers, and **the acceptance headline predicted
+none of them.** The 95.0% feature is inert; the 75.0% feature is the most
+valuable behaviour in the bot; the one credited with the only benchmark
+improvement was harmful; a formally rejected one was mildly good; and the
+biggest subsystem is worth a fifth of the smallest.
+
+### Iteration 87
+
+The last major unmeasured feature: Iteration 39's `REPLACEMENT_RESERVE`,
+accepted at **90.0%** — the largest headline gain in the project's history
+(+15 points, "6 losses fixed, 0 new"). Ablating the reserve gate while
+keeping Iteration 38's sliding window, so refills draw on the ordinary
+`RESERVE` rather than requiring a 1000-cheese surplus. That isolates the
+reserve policy from the window it shipped alongside.
