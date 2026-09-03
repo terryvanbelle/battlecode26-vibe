@@ -5890,3 +5890,63 @@ Also settled: the acceptance headline was uninformative in five of six cases,
 including inverting the sign twice (95.0% → inert, "only benchmark
 improvement" → harmful). Every one of those decisions was made on the peer or
 benchmark set. This is now recorded as standing practice in memory.
+
+---
+
+## Iteration 88 — ACCEPTED. Cheese-gated population cap, retested on the mirror.
+
+| instrument | control | Iteration 88 |
+|---|---|---|
+| **`g_iter16` mirror (primary)** | 50% by construction | **31/54 = 57.4%** |
+| peers (regression check) | 65/108 = 60.2% | **73/108 = 67.6%** |
+
+Both even instruments pass, and peers *improve* by 7.4 points rather than
+merely holding. Snapshotted as `src/g_iter17`.
+
+Mechanism, on `g_iter16__hatefullattice__botB` — a game both builds lost, so
+the comparison is like-for-like:
+
+| | King spawns | alive @200 | @400 | @600 | @800 |
+|---|---|---|---|---|---|
+| control (cap 25) | 126 | 12 | 10 | 19 | 12 |
+| Iteration 88 (gated 40) | **201** | **25** | 15 | **27** | 14 |
+
++60% spawns and double the standing army at round 200. The traced map that
+motivated the change, `closeup|A`, flipped from loss to win.
+
+### This is Iteration 78, which I rejected four hours ago
+
+Iteration 78 was the identical mechanism. It scored **4/162 against a 5/162
+benchmark control** and was rejected as "the production line closes
+entirely — no remaining variant of 'build more rats' is worth testing."
+
+That verdict was wrong, and wrong for a reason the ablation program had
+already diagnosed: the benchmark set sits at a ~3% win rate where ±2 games is
+the resolution floor. **A −1 game reading on an instrument that cannot
+resolve one game was treated as a refutation of a whole line of work.** On
+the mirror the same change is +4 games, and on peers +8.
+
+Two differences from the first attempt, both deliberate:
+
+1. **The cap change is tested alone.** Iteration 78 bundled it with
+   Iteration 77's King-attack reorder, so even a real effect would have been
+   confounded.
+2. **The degenerate state was measured first, not assumed.** Tracing
+   `g_iter16__closeup__botA` showed per-100-round action counts collapsing to
+   6-13 across rounds 200-599 while cheese sat at 1271-1581 and living rats
+   decayed 25 → 6. We hit the build cap around round 50 and then could not
+   build for ~350 rounds while holding the money.
+
+A hypothesis of mine was refuted en route and is worth recording: I first
+assumed `REPLACEMENT_RESERVE` caused the lull. The cheese trace disproved it
+— the lull occurs at *high* cheese, and activity peaks once cheese drops
+*below* the reserve. Checking before building saved an iteration.
+
+### What made this findable
+
+The ablation program's map said the two features carrying nearly all the
+bot's value are failure-mode preventers, not tactics. A cap-blocked stall
+with a full treasury is exactly that class of defect. Roughly 25 tactical
+iterations this session failed; the two accepted changes are "stop laying
+traps that cost more than they return" and "stop refusing to build while
+rich".
