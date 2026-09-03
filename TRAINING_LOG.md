@@ -2951,3 +2951,32 @@ make this run a clean A/B: fixed bot vs. biased opponent. The side-B
 win rate is the measurement that matters; the overall number will
 overstate, since the opponent is handicapped until the next re-sync
 propagates the fix.
+
+**Iteration 41 REJECTED -- and it falsified its own hypothesis.**
+Full Gauntlet: **21/40 (52.5%)**, down from the 62.5% baseline. The
+side split tells the real story:
+
+    side A   85% -> 65%   (dropped 20 points)
+    side B   40% -> 40%   (unchanged)
+
+The fairness gap narrowed from 45 points to 25 -- but entirely by making
+side A *worse*, not side B better. **So the absolute-order tie-breaks
+were not what was costing side B.** The hypothesis was wrong, despite
+being well-motivated by BC22 precedent and despite the bug being
+genuinely present in the code.
+
+This also reproduces BC22's own follow-up finding almost exactly: there,
+"a purely-random one and a per-robot-fixed-random one both narrowed the
+gap too, but both caused a real net regression in overall win rate --
+most likely because a *consistent* (even arbitrary) per-round preference
+was giving the army real movement cohesion that pure randomization
+loses." Same outcome here: consistency in target selection is worth
+real win rate, and randomizing it away costs more than the fairness it
+buys. Reverted.
+
+**What this does establish:** side B's 40% is caused by something else
+entirely, and is now the isolated open question. Running a *true* mirror
+(current `bot`, byte-identical to the frozen `g_iter14` snapshot, played
+against that snapshot) to measure the asymmetry with the cleanest
+possible instrument -- no policy difference, no strength difference,
+nothing but code-and-map interaction left in the measurement.
