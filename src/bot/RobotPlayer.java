@@ -275,7 +275,7 @@ public class RobotPlayer {
         // afford to build at all, we build against the higher cap. This does
         // not touch REPLACEMENT_RESERVE itself, which the ablation program
         // measured at ~+24 points and which stays exactly as is.
-        final int MAX_POPULATION = rc.getGlobalCheese() > 1000 ? 40 : 25;
+        final int MAX_POPULATION = 25;   // Iteration 98 arm: revert 88/90 to test on benchmarks
         final int BUILD_WINDOW_ROUNDS = 400;
         // Iteration 92 (TRAINING_LOG.md): let the replacement reserve DECAY
         // late, when a survival buffer is worth less than the rats it buys.
@@ -298,7 +298,7 @@ public class RobotPlayer {
         // Distinct from Iteration 40's emergency override, which tried to
         // DETECT an emergency (`noVisibleArmy`) and measured inert at 48.1%.
         // This is unconditional and predictable -- no detector to misfire.
-        final int REPLACEMENT_RESERVE = rc.getRoundNum() > 1200 ? 400 : 1000;
+        final int REPLACEMENT_RESERVE = 1000;   // Iteration 97 arm: revert 92 to test on benchmarks
         if (rc.getRoundNum() - buildWindowStart >= BUILD_WINDOW_ROUNDS) {
             buildWindowStart = rc.getRoundNum();
             builtCount = 0;

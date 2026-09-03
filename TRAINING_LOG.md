@@ -6495,3 +6495,48 @@ win gap. The other three accepts (cheese-gated cap, gate/reserve alignment,
 late reserve decay) are all economic and remain untested against benchmarks
 in isolation. They may be neutral there, or they may cost the remaining 2
 games; that is the next thing to measure, one at a time.
+
+## Iteration 97 — revert the late-reserve decay — benchmarks 3/162 → 4/162
+
+    with reserve decay (Iteration 92):   3/162, early wipes 13%
+    decay REVERTED:                      4/162, early wipes 13%
+    session control:                     5/162, early wipes 16%
+
+Iteration 92 was costing a benchmark game. Reverting it also recovers a win
+against `bench_spaark`, which the with-decay build never beat.
+
+Running total of the session's four accepts, measured against the real
+target one at a time:
+
+| build | benchmarks | early wipes |
+|---|---|---|
+| session control | **5/162** | 16% |
+| all four accepts (`g_iter19`) | 2/162 | 26% |
+| + King trap ring restored (rev. 82) | 3/162 | **13%** |
+| + reserve decay reverted (rev. 92) | **4/162** | 13% |
+
+**Two of the four accepts were costing tournament games**, and both were
+accepted on the mirror and peers with clean, well-measured, correctly-run
+experiments. The remaining gap is one game, and the only untested accept is
+the cheese-gated population cap (Iterations 88/90) — now measuring.
+
+### The pattern is consistent enough to name
+
+Every one of these was an *economic* change validated on instruments that are
+our own lineage:
+
+- they never rush the King, so a defence looks like pure cost (trap ring)
+- they never punish a thin treasury, so spending the survival buffer looks
+  free (reserve decay)
+
+Both changes are genuinely correct *for the game the mirror plays*. The
+mirror's game is not the tournament's game: 91% of benchmark games end by
+King destruction, 0% of mirror losses are early wipes.
+
+This does not retract the resolution finding — the mirror really is the only
+instrument that can resolve a 4-game effect, and the retracted Iteration 63
+accept remains correctly retracted. It adds a second requirement alongside
+it: **an instrument must both resolve the effect and pose the threat.** No
+single Gauntlet available here does both, so a change that survives the
+mirror still needs a benchmark reading before it is trusted, and the
+early-wipe rate is the counter that moves first.
