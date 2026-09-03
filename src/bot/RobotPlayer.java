@@ -33,6 +33,7 @@ public class RobotPlayer {
     static int buildWindowStart = 0;      // Iteration 38, see runRatKing
     static boolean replacementMode = false; // Iteration 39, see runRatKing
     static boolean lastBuildWasTrap = false; // Iteration 48, see runRatKing
+    static int censusRound = -1;             // Iteration 51, see runRatKing
     static int cheeseCheckpoint = -1;
     static int cheeseCheckpointRound = 0;
     static boolean economyStruggling = false;
@@ -127,6 +128,29 @@ public class RobotPlayer {
                 rc.writeSharedArray(4, guessY + 1);
             }
         }
+
+        // Iteration 51 (TRAINING_LOG.md): **live King census.** There is no
+        // API for "how many Rat Kings does my team have" -- only
+        // `canBecomeRatKing()`, which enforces the engine's global cap (5,
+        // or 2 after RAT_KING_CUTOFF_ROUND) but not any policy of ours.
+        // Iteration 50 therefore formed Kings greedily and made things
+        // worse: each one consumes **7 Baby Rats**, so three extra Kings
+        // cost 21 rats out of an army of ~36, and rats are what keep us
+        // alive and deal cat damage.
+        //
+        // Implements BC22 `LEARNINGS.md`'s census pattern -- accumulator
+        // plus first-actor-publishes-last-round's-total. Each King bumps
+        // slot 7; whichever King acts first in a round (detected via its
+        // own static `censusRound`, since statics are per-robot) publishes
+        // the previous round's tally to slot 8 and resets the accumulator.
+        // Slot 8 is then a genuine *live* count, not the cumulative-vs-live
+        // trap that has bitten this project twice.
+        if (censusRound != rc.getRoundNum()) {
+            rc.writeSharedArray(8, rc.readSharedArray(7));
+            rc.writeSharedArray(7, 0);
+            censusRound = rc.getRoundNum();
+        }
+        rc.writeSharedArray(7, rc.readSharedArray(7) + 1);
 
         attackNearestHostile(rc, desperate);
 
@@ -548,7 +572,17 @@ public class RobotPlayer {
         // already bouncing off zero. We now bank 4000-6000, so the upkeep
         // that sank it then is affordable now -- the same regime change
         // that overturned the trap rejection.
-        if (rc.getGlobalCheese() > 800 && rc.canBecomeRatKing()) {
+        // Iteration 51: cap our own King count rather than forming them
+        // greedily. Each extra King costs 7 rats and 2 cheese/round
+        // upkeep, and the marginal scoring return falls off fast: going
+        // 1->2 Kings against an opponent's 2 moves `livingKings` share
+        // from 33% to 50% (+5 points) for 7 rats, while 2->4 buys another
+        // +5 for a further 14. Since rats drive `catDamage` -- the
+        // 0.5-weight component that decides these games -- the later
+        // Kings are paid for in the currency we can least afford.
+        final int TARGET_KINGS = 2;
+        if (rc.readSharedArray(8) < TARGET_KINGS
+                && rc.getGlobalCheese() > 800 && rc.canBecomeRatKing()) {
             rc.becomeRatKing();
             return;
         }

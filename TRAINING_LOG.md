@@ -3613,3 +3613,41 @@ losing *the* King was an instant loss; with four Kings the downside of
 spending is far smaller, so the reserve is now mis-calibrated for the
 regime it operates in -- exactly the kind of stale-constant-in-a-new-
 regime that Iterations 39/48/50 each turned out to be.
+
+## Iteration 50 REJECTED on the benchmark -- greedy King formation costs more than it buys
+
+    opponent          Iter48 (traps)   Iter50 (multi-King)
+    bench_finalist        r1250              r1026
+    bench_spaark           r748               r512
+    bench_stroke           r703               r495
+
+Worse on all three, still 0/60. The single `spaark` game that reached
+r2000 with 4 Kings was an outlier, and reading a result off one game is
+exactly the error the +-9-game noise floor was measured to prevent.
+
+**Why it backfires:** `becomeRatKing` consumes **7 Baby Rats**, so
+reaching 4 Kings costs 21 rats out of an army of ~36 -- more than half
+of it -- plus 2 cheese/round upkeep each, plus each new King
+independently enforcing `REPLACEMENT_RESERVE = 1000`. The scoring
+analysis said `catDamage` (0.5 weight) is the last blocker and that
+catDamage scales with rat count; greedy King formation pays for a
+0.3-weight component using precisely the resource that produces the
+0.5-weight one. It optimises the smaller term by starving the larger.
+
+**Iteration 51: cap our own King count, which requires infrastructure we
+never had.** There is no API for "how many Kings does my team have" --
+only `canBecomeRatKing()`, which enforces the engine's global cap, not
+any policy of ours. So implemented BC22 `LEARNINGS.md`'s census pattern:
+an accumulator on shared slot 7, with whichever King acts first each
+round publishing the previous round's tally to slot 8 and resetting.
+Statics are per-robot, so each King's own `censusRound` identifies the
+first actor without coordination. Slot 8 becomes a genuine **live**
+count -- deliberately not a cumulative counter, the trap that caused the
+`MAX_POPULATION` starvation lockout and that BC22 flags as its own
+repeated mistake.
+
+Marginal analysis behind `TARGET_KINGS = 2`: against an opponent holding
+2 Kings, going 1->2 lifts our `livingKings` share from 33% to 50%
+(+5 points) for 7 rats; 2->4 buys a further +5 for 14 more rats. The
+later Kings cost double per point, in the exact currency that drives the
+component we are actually losing.
