@@ -524,6 +524,35 @@ public class RobotPlayer {
             }
         }
 
+        // Iteration 50 (TRAINING_LOG.md): **become a second Rat King.**
+        // The benchmark's full-length losses show the real compounding
+        // gap. At round 2000 against the tournament bots we field
+        // **1 King to their 2-5**, 8-30 rats to their 64-96, and a
+        // quarter of their cat damage. `livingKings` is a 0.3-weight
+        // score component we surrender outright, and each extra King is
+        // also another builder -- which is why their army is 3x ours,
+        // which is why their cat damage is 4-6x ours. One cause, three
+        // symptoms.
+        //
+        // `MAX_NUMBER_OF_RAT_KINGS` is 5 (2 after round
+        // `RAT_KING_CUTOFF_ROUND`), and `becomeRatKing` needs 50 team
+        // cheese plus 7 allied Baby Rats in the 3x3 around us with no cat
+        // or King adjacent -- the engine checks all of it, so this just
+        // asks opportunistically and fires whenever the formation happens
+        // to occur (crowds near the King after a build burst are the
+        // natural moment).
+        //
+        // Iteration 18 tried this and called it catastrophic, but that
+        // was before Iterations 38-40 fixed the economy: three Kings at
+        // 2 cheese/round upkeep each bankrupted a treasury that was
+        // already bouncing off zero. We now bank 4000-6000, so the upkeep
+        // that sank it then is affordable now -- the same regime change
+        // that overturned the trap rejection.
+        if (rc.getGlobalCheese() > 800 && rc.canBecomeRatKing()) {
+            rc.becomeRatKing();
+            return;
+        }
+
         if (collectCheese(rc)) return;
 
         explore(rc);

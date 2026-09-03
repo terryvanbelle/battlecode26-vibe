@@ -3567,3 +3567,49 @@ This is also the first change in the project's history to move a
 tournament-tier metric at all. Every previous iteration was tuning
 inside a fixed action set; this one added a mechanic, and the effect is
 an order of magnitude larger than anything the tuning produced.
+
+## Iteration 49 REJECTED, Iteration 50 (multi-King) engages -- and isolates catDamage as the last blocker
+
+**Iteration 49 (rats lay traps): mechanically successful, outcome
+negative.** The volume fix did exactly what was predicted -- traps
+placed 18 -> 37, their trigger count 13 -> 31, and the exchange flipped
+from -700 to +150 damage. But survival fell slightly (`finalist`
+1250 -> 1165, `stroke` 703 -> 667): rats spending actions on traps are
+not fighting or collecting, and that cost exceeds the trap gain.
+Right about traps, wrong about the opportunity cost. Reverted to
+Iteration 48's King-only placement.
+
+**Iteration 50 (multi-King) fires and holds.** At round 2000 vs.
+`bench_spaark` we now field **4 Kings to their 2** (previously 1 to 2),
+with rats 30 -> 36 and `cheeseTransferred` 18545 -> 22215. Iteration 18
+rejected this as catastrophic, but that was before Iterations 38-40:
+three Kings' upkeep bankrupted a treasury bouncing off zero, whereas we
+now bank 4000-6000. Third rejection overturned by a regime change rather
+than a new idea -- and only findable because the benchmark showed what
+the gap was.
+
+**Scoring that game out, the picture is now unambiguous:**
+
+    catDamage    share 16.5%  (0.5 weight ->  8.2 pts)
+    livingKings  share 66.7%  (0.3 weight -> 20.0 pts)   <- now winning
+    cheese       share 46.9%  (0.2 weight ->  9.4 pts)
+    ------------------------------------------------
+    us 37.6  vs  them 62.4
+
+    with catDamage merely EQUALISED and all else held:
+    us 54.4  vs  them 45.6   -> a WIN
+
+**`catDamage` is the last blocker, and the gap is 5x** (3860 vs 19560).
+Decomposing it: they field 82 rats to our 36 *and* extract 238 damage
+per rat to our 107 -- so it is roughly 2.3x quantity and 2.2x per-rat
+efficiency, multiplying out to the 5x.
+
+The quantity half now has an obvious lever that did not exist before.
+`builtCount` is a *per-robot* static, so each King runs its own
+`MAX_POPULATION` budget -- four Kings can build four times as much. What
+throttles it is `REPLACEMENT_RESERVE = 1000`, which four Kings enforce
+independently, locking up ~4000 cheese. That constant was calibrated when
+losing *the* King was an instant loss; with four Kings the downside of
+spending is far smaller, so the reserve is now mis-calibrated for the
+regime it operates in -- exactly the kind of stale-constant-in-a-new-
+regime that Iterations 39/48/50 each turned out to be.
