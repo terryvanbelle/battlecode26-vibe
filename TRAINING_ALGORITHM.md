@@ -288,6 +288,23 @@ An instrument pinned near 0% or 100% cannot resolve a few games: at ~3% and
 ~88% respectively, +/-2 games is the noise floor. **The mirror is pinned at
 50% by construction and plays both sides, so a 4-game swing is real signal.**
 
+**But this ranking is about RESOLUTION ONLY, and resolution is not
+representativeness.** An instrument cannot measure a defence against a
+behaviour its opponents never perform. Ablating the King trap ring scored
+57.4% on the mirror and was accepted; the benchmark early-wipe rate then rose
+16% -> 26%, and restoring the ring halved it to 13%. The mirror has **0% early
+wipes** because our own lineage never rushes the King. So:
+
+> **The mirror can prove a feature is not paying for itself. It cannot prove
+> a feature is unnecessary.**
+
+For any *defensive* feature, check whether the even-matchup opponents
+actually pose the threat before trusting an ablation. If they do not, the
+lopsided benchmark set is the only instrument that does, and its low
+resolution is a reason to read it carefully rather than to discount it.
+Symptom to watch for: a feature that ablates as positive on the mirror while
+the benchmark early-wipe rate rises.
+
 Consequences, each learned the hard way:
 
 - **Do not accept on a lopsided instrument.** Iteration 63 was accepted on
