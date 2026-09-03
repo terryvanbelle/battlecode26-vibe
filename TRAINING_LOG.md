@@ -6000,3 +6000,38 @@ and went bankrupt (window-0 cheese 2306 → 565, live rats stuck at 4). The
 gate is what makes a higher cap safe, since it only opens above 1200 cheese.
 If 60 regresses, the question is whether the *threshold* needs to rise with
 the cap — not whether capacity is exhausted.
+
+### Iteration 89 result — the cap gate saturates at 40
+
+    cap 60 vs g_iter17 (cap 40):  28/54 = 51.9%
+
+A plateau. The dose curve:
+
+| step | effect |
+|---|---|
+| flat 25 → gated 40 | **+7.4 points** |
+| gated 40 → gated 60 | +1.9 points (one game, noise on this instrument) |
+
+Keeping 40. There is no measurable gain from 60, and the lower value stays
+further from Iteration 60's failure mode, where a flat cap of 50 drained
+window-0 cheese 2306 → 565 and left live rats stuck at 4. Reverted; code
+verified identical to `g_iter17`.
+
+This is the well-behaved version of a dose-response: the mechanism is real,
+the first value tried was already near the knee, and the curve flattens rather
+than inverting. Contrast Iteration 45's, where the high-dose arm inverted and
+I wrongly read that as condemning the low dose — the correction being that an
+inverted arm rejects *that dose* and the zero arm must be measured separately.
+
+### Session position
+
+Two accepted iterations, both found by the same method and both of the same
+shape — remove or relieve a degenerate state rather than add a tactic:
+
+| accepted | change | mirror | peers |
+|---|---|---|---|
+| 82 | remove the King trap ring | 57.4% | 61.1% (from 60.2%) |
+| 88 | cheese-gated population cap | 57.4% | **67.6%** (from 60.2%) |
+
+Against roughly 25 tactical iterations that all failed. The bot is
+`g_iter17`; `src/bot` is code-identical to it.

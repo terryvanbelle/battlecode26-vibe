@@ -254,7 +254,7 @@ public class RobotPlayer {
         //
         // Unlike Iteration 78 this changes the cap ALONE -- Iteration 77's
         // King-attack reorder is not bundled in.
-        final int MAX_POPULATION = rc.getGlobalCheese() > 1200 ? 60 : 25;
+        final int MAX_POPULATION = rc.getGlobalCheese() > 1200 ? 40 : 25;
         final int BUILD_WINDOW_ROUNDS = 400;
         final int REPLACEMENT_RESERVE = 1000;
         if (rc.getRoundNum() - buildWindowStart >= BUILD_WINDOW_ROUNDS) {
