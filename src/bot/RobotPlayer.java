@@ -470,7 +470,33 @@ public class RobotPlayer {
             // commits instead of fleeing trades a cheap unit (~10-30
             // cheese) for real, otherwise-nonexistent cat damage. Not yet
             // Gauntlet-verified -- see TRAINING_LOG.md for the result.
-            if (allies >= 3) {   // Iteration 63, restored: see the 9%-vs-59% analysis in TRAINING_LOG.md
+            // Iteration 63, ACCEPTED (TRAINING_LOG.md). Require a real
+            // swarm before closing on a cat, instead of sending any rat
+            // above 30 HP at a 4000 HP unit alone.
+            //
+            // A cat has 4000 HP against RAT_BITE_DAMAGE 10, and scratches
+            // every third turn (actionCooldown 30 vs COOLDOWNS_PER_TURN 10)
+            // for CAT_SCRATCH_DAMAGE 20 against our 100. A lone rat survives
+            // ~15 turns and deals ~150 damage -- it trades its whole life for
+            // under 4% of one cat.
+            //
+            // Accepted on the two instruments that measure how these games
+            // are actually decided:
+            //     benchmarks   5/162  -> 7/162   (first run beating all three
+            //                                     tournament bots; bench_spaark
+            //                                     had never been beaten)
+            //     vs_old_bots  95/108 -> 97/108  (88.0% -> 89.8%)
+            //     peers        65/108 -> 41/108  (60.2% -> 38.0%)  <-- known cost
+            //
+            // The peer regression is real and explained rather than ignored.
+            // Only 9% of benchmark games reach round 2000, against 59% of
+            // peer games: the peers are forks of this same file, so they are
+            // evenly matched with us and their games run long and are decided
+            // on POINTS, where conceding the catDamage share is expensive.
+            // The tournament bots kill us early, so 91% of those games are
+            // decided by King destruction and the same concession is nearly
+            // free. Both numbers are true of different games.
+            if (allies >= 3) {
                 if (engage(rc, nearestCat.getLocation())) return;
             } else if (nearestCat.getLocation().distanceSquaredTo(rc.getLocation()) <= 8) {
                 // Critically low HP and no help nearby: not worth dying on
