@@ -7361,3 +7361,57 @@ Caveats to design against, both learned the hard way this session: the 90-degree
 cone means a defender must be FACING the attacker, and the action cost means
 every grab is a bite not taken -- so this must be measured on the close-spawn
 split and the early-wipe counter, not on the 162-game average.
+
+## Iteration 107 — rally to build a second Rat King — REJECTED (mechanism fired)
+
+                          g_iter21        iter107
+    benchmark wins        7/162           3/162
+    early wipes           12/155 = 8%     14/159 = 9%
+    close-spawn wins      4/42            2/42
+    close-spawn wipes     12/38 = 32%     14/40 = 35%
+
+**Mechanism check first, and it PASSED** -- unlike Iteration 106 this is a real
+negative, not a void:
+
+    bench_spaark__rift__botB, rounds 1-300
+        2:kings=2  in 11 of 16 sampled rounds   <- we built a second King
+
+So the rally worked, the upgrade fired, and a second Rat King made the bot
+substantially worse: wins more than halved and both close-spawn counters
+regressed.
+
+### Reading it honestly
+
+The strategic argument was sound and the price is what kills it. The upgrade
+consumes **seven rats** -- 28% of a 25-rat army -- and this design also idled
+about eight rats from round 30 to 150 waiting to assemble them. Against that,
+the benefit is insurance on a loss mode plus one extra builder. Measured, the
+insurance is worth less than the army it costs, and it is worth less
+*specifically on close-spawn maps*, where wins fell 4 -> 2 and wipes rose. That
+is the opposite of what the insurance argument predicted: those are exactly
+the maps where a second King should have saved games, and instead the missing
+defenders got the first King killed faster.
+
+The correlation I flagged in the task now looks like the better guide than my
+mechanism argument. `bench_finalist` upgrades most and is the opponent we beat
+most; the reading that multi-King is something a *winning* bot can afford,
+rather than something that makes a bot win, fits the data better than mine did.
+
+### What is and is not settled
+
+Settled: seven rats plus a 120-round rally is too expensive, and the resulting
+second King does not pay for it.
+
+Not settled: the seven-rat cost is intrinsic to the mechanic, but the rally
+window is not. A version that only attempts the upgrade opportunistically --
+no dedicated rallying, no idling, just taking it when seven rats happen to be
+adjacent late in a game we are already winning -- has not been measured. Given
+that Iteration 106 showed that situation arises essentially never on its own,
+such a version would be close to inert by construction, so it is not queued as
+the next thing to run.
+
+**Sequencing note for the capability audit.** Of the three unused mechanics
+found, this was the one I ran first and it is the most expensive of the three
+per use. `carryRat` costs one action and removes an entire attacker from an
+assault; `squeak` costs no action at all. Cheaper mechanics should have gone
+first, and that ordering error cost two Gauntlet runs.
