@@ -5240,3 +5240,56 @@ and stays shut where Iteration 60 went bankrupt. Iteration 77's reorder is
 kept, since it is what produces the cap-limited-with-money state in the first
 place — this is the first time this session two changes have been combined,
 and only because each was measured to relieve a different constraint.
+
+---
+
+## Strategic finding: ~91% of games are decided by King destruction, not points
+
+Found by looking at the games we **win** rather than the ones we lose — an
+angle not taken before this session.
+
+All five control wins against the tournament bots ended with *"The winning
+team destroyed all of the enemy team's rat kings"*:
+
+| opponent | map | side | rounds |
+|---|---|---|---|
+| `bench_finalist` | peaceinourtime | B | 545 |
+| `bench_finalist` | popthecork | A | 456 |
+| `bench_finalist` | popthecork | B | 609 |
+| `bench_finalist` | toomuchcheese | B | 183 |
+| `bench_stroke` | whatsthecatdoin | A | 560 |
+
+**None reaches round 2000.** The loss census agrees from the other side: only
+14 of 157 losses (9%) reach round 2000. So the scoring terms — `catDamage`
+0.3-0.5, `livingKings` 0.5, `cheeseTransferred` 0.2 — decide roughly **one
+game in eleven**.
+
+### This resolves the central puzzle of the session
+
+| iteration | what it demonstrably achieved | wins |
+|---|---|---|
+| 69 trap avoidance | deaths 67 → 31 | 4/162 |
+| 72 opening throws | cheese/round +5% | 5/162 |
+| 76 King rally | cheese 3631 vs 2595, game to rd 1425 | 1/162 |
+
+Every one of these worked on its own terms and none converted. They were all
+optimising quantities that almost never decide the outcome. Even the
+34-point multi-King deficit only matters in the 9% of games that reach
+scoring at all — which retroactively downgrades that finding from "biggest
+scoring gap" to "biggest gap in the part of the game that rarely matters".
+
+### What we have never tried
+
+**There is no code anywhere in the bot that targets the enemy King.** Rats
+engage enemy rats only when `!rc.isCooperation() || desperate`, purely
+reactively. We have never attempted to win the way we actually win.
+
+Timing is tight: `bench_finalist` reaches 2 Kings at round 125, 3 at 325, 4
+at 375, 5 at 825, and all our wins land at rounds 183-609 — while they still
+have few Kings. Every ~200 rounds of delay adds another King that must also
+die. `RAT_KING.health` is 600 against `RAT_BITE_DAMAGE` 10, so ~60 bites kill
+one, and our population peaks near 25 rats around round 50.
+
+Note `InternalRobot.bite` calls `backstab(this.team)` for any non-cat target,
+so rushing their King makes us the backstabber — which matters far less than
+it appears, precisely because scoring rarely decides anything.
