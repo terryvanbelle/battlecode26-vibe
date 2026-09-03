@@ -5968,3 +5968,35 @@ Full accept record for Iteration 88:
 | `g_iter16` mirror (primary, even) | 50% | **57.4%** | pass |
 | peers (regression check, even) | 60.2% | **67.6%** | pass, +7.4 |
 | benchmarks (lopsided, ~3%) | 5/162 | 5/162 | flat, no veto |
+
+### Iteration 88 on vs_old_bots
+
+    g_iter17: 49/54 = 90.7% vs g_iter1, 46/54 = 85.2% vs g_iter11
+    overall 95/108 = 88.0%   (g_iter15 baseline: 95/108 = 88.0%)
+
+Flat — identical total, different split. That is the expected behaviour of a
+lopsided instrument: we win ~88% of these games either way, so a change worth
++7.4 points on an even matchup is invisible here. Recorded and charted per the
+standing rule; it is not evidence against the accept, which rested on the two
+even instruments.
+
+## Iteration 89 — dose the accepted cap gate, 40 → 60
+
+The gate is established as real (mirror +7.4, peers +7.4), but the dose curve
+has only two points: flat-25 at 50% by construction, gated-40 at 57.4%. Forty
+was simply the first value tried.
+
+Testing 60 against `g_iter17`. Reading:
+- **>57.4%** — capacity still paying, try 80
+- **~57.4%** — plateau; 40 is at or past the useful point
+- **<57.4%** — interior optimum below 60
+
+Per the dose-response rule as corrected earlier today, an inverted arm at 60
+would reject *that dose*, not the mechanism — and the zero arm is already
+measured, since flat-25 is the control.
+
+Watching one specific failure mode: Iteration 60 raised the cap **flat** to 50
+and went bankrupt (window-0 cheese 2306 → 565, live rats stuck at 4). The
+gate is what makes a higher cap safe, since it only opens above 1200 cheese.
+If 60 regresses, the question is whether the *threshold* needs to rise with
+the cap — not whether capacity is exhausted.
