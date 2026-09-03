@@ -6307,3 +6307,44 @@ one that makes the other four durable: **commit the snapshot and the code in
 the same action that runs the charts.** A chart regenerated from an
 uncommitted snapshot is a chart of something that does not exist in the
 repository. Recorded in the standing memory note.
+
+## Iteration 94 — lower the bite-boost gate (1000 → 300) — INERT, and my analysis was biased
+
+    boost gate 300 vs g_iter19 (gate 1000):  26/54 = 48.1%
+
+Reverted; code verified identical to `g_iter19`.
+
+The setup was sound and the interaction is real: the boost is worth ~+4
+points, it only fires above 1000 cheese, and on `minimaze|B` cheese sits at
+or below 1000 for **68% of the game** (419/389/314/424 after round 1250) —
+made worse by Iteration 92's reserve decay, which deliberately spends cheese
+down after round 1200. Two accepted changes genuinely do fight each other
+there. Opening the gate simply does not convert.
+
+### The analysis error is the more useful finding
+
+I selected the three games I studied **from the loss list**, computed our
+catDamage share in each (50.6%, 43.6%, 38.3%), and concluded cat share was
+the deciding deficit. That is textbook selection bias: *of course* our share
+is low in games we lost — losing on points and having a low share of the
+biggest term are close to the same statement. The sample could not have shown
+anything else.
+
+And in a **mirror** match the error is worse than usual, because both sides
+run byte-identical policy. A share difference between them cannot be caused
+by policy at all; it can only come from map and spawn side. The mirror's own
+side split confirms an asymmetry is present:
+
+    side A: 16W-11L = 59.3%
+    side B: 14W-13L = 51.9%
+
+So "our cat share is 38%" in a mirror loss is not evidence that our
+cat-fighting policy is weak. It is mostly evidence about where that map's
+cats patrol relative to each spawn.
+
+**Rule going forward:** when sampling replays to locate a deficit, sample
+wins *and* losses, and in a mirror treat any inter-team difference as
+positional until shown otherwise. The four accepted changes this session were
+all found by tracing a *stall over time within one game* — an absolute
+signal, immune to this bias — rather than by comparing our number to the
+opponent's.
