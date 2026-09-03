@@ -215,7 +215,10 @@ Bots we *lose* to are never retired by this rule — only domination retires.
 ### The baseline, and comparing Gauntlet runs by shape
 
 Same discipline as BC22: **diff two Gauntlet runs game-by-game** (same
-`(opponent, map, side)` key), not aggregate win rate alone.
+`(opponent, map, side)` key), not aggregate win rate alone. Note this diff
+doubles as the arm-to-arm identity check described under "Three cheap
+checks" above -- if every key matches, the two builds are the same bot and
+no interpretation of the win rate is warranted.
 
 - **The baseline** is the most recently accepted iteration's own full
   Gauntlet run, superseded every time Step 3 accepts.
@@ -266,6 +269,136 @@ different values, but there's no evidence for that yet):
 - *MaxNearMissRefinements*: 3.
 - *MaxConsecutiveRejects*: 3 consecutive Step 6 rejections before the next
   attempt must leave the same functional area (see "Never idle").
+
+### Instruments, ranked by resolution
+
+Added 2026-09-03 after a day in which the acceptance headline was
+uninformative in five of six audited cases, and inverted the sign twice.
+**Rank a Gauntlet by whether it is an EVEN matchup, not by how much you like
+what it measures.**
+
+| instrument | matchup | typical win rate | use |
+|---|---|---|---|
+| `g_iter<latest>` mirror | **even** | 50% by construction | **primary accept test** |
+| peers (`pure_cooperator`, `immediate_defector`) | **even** | ~60-70% | regression check |
+| `vs_old_bots` (`g_iter1`, `g_iter11`) | lopsided | ~85-90% | direction only |
+| benchmarks (tournament bots) | lopsided | ~3% | direction only |
+
+An instrument pinned near 0% or 100% cannot resolve a few games: at ~3% and
+~88% respectively, +/-2 games is the noise floor. **The mirror is pinned at
+50% by construction and plays both sides, so a 4-game swing is real signal.**
+
+Consequences, each learned the hard way:
+
+- **Do not accept on a lopsided instrument.** Iteration 63 was accepted on
+  benchmarks (+2) and `vs_old_bots` (+2) over a peer drop to 38%, then the
+  mirror returned **33.3%** and the accept was retracted. Both endorsing
+  instruments were lopsided; both dissenting ones were even.
+- **Do not reject on one either.** Iteration 78 scored 4/162 against a 5/162
+  benchmark control and was written off as closing an entire line of work.
+  Retested on the mirror as Iteration 88 it was **+4 games**, +8 on peers,
+  and became an accepted iteration.
+- **A dissenting even instrument is evidence, not an obstacle to explain
+  away.** The 9%-vs-59% scoring-regime difference between benchmarks and
+  peers is real and measured, and using it to dismiss the peer regression is
+  what produced the retracted accept. A true observation can still license a
+  wrong conclusion.
+
+### Three cheap checks that cost no Gauntlet run
+
+**1. Arm-to-arm identity.** Before interpreting any result, confirm the two
+builds actually differ:
+
+```python
+# same (opponent, map, side) -> (result, rounds)?
+same = sum(1 for k in armA if armA[k] == armB.get(k))
+```
+
+`same == n` means the change never executed. This caught Iteration 66
+(161/162 identical to control), Iteration 68 (162/162), and Iteration 70,
+where a "dose" of a radius from 8 to 2 produced **162/162 identical games**
+because the radius fed a check that only ever looked one tile ahead. Read
+against the control alone those two arms looked like a flat dose-response
+curve; they were the same bot.
+
+**2. Normalise per round.** Every replay counter scales with game length, so
+a change that makes you survive longer reads as a regression. Iteration 72
+showed deaths "rising" 67 -> 78 while the death *rate* was flat (0.0570 vs
+0.0589 per round) and the game ran 150 rounds longer. Divide by rounds
+before comparing deaths, `cheeseTransferred`, `catDamage`, trap triggers.
+
+**3. Correlate before attributing.** When blaming a mechanism for a cost,
+check timestamps rather than assuming: of 78 deaths only 5 fell within 5
+rounds of one of our 43 throws, which refuted the "landings are killing us"
+theory an iteration had already been built on.
+
+### Dose-response, and what an inverted arm actually means
+
+The Gauntlet is deterministic -- identical code returns byte-identical
+results -- so re-running a marginal result yields **zero** new information.
+Vary the size of the mechanism instead.
+
+- **A parameter is only a dose if it changes the condition actually
+  evaluated.** See Iteration 70 above.
+- **An inverted high-dose arm rejects THAT DOSE, not the mechanism.**
+  Iteration 45 measured 4 cheese at 53.7% and 16 at 37.0%, and the negative
+  slope was read as condemning the low dose too. That assumes monotonicity.
+  Measuring the missing zero arm gave **46.3%**, i.e. a concave curve with an
+  interior optimum at 4. **Always measure zero.**
+- **A curve that peaks in the middle is stronger evidence than any single
+  point.** Iteration 90 was +2 games alone -- marginal -- but the arms around
+  it (gate 1200 -> 50%, 1000 -> 53.7%, 600 -> 40.7%) made it structure. Same
+  for Iteration 92 (reserve 1000 -> 50%, 400 -> 55.6%, 150 -> 40.7%).
+- **A dose can confirm a mechanism that inspection cannot.** Iteration 92's
+  replay check contradicted its own prediction on the map examined; the dose
+  curve established causality by response instead.
+
+### Ablate accepted features, not just new ideas
+
+Six features carried by the bot were ablated on the mirror on 2026-09-03,
+each having been accepted on a lopsided instrument or on no measurement at
+all:
+
+| feature | headline at acceptance | mirror without it | true value |
+|---|---|---|---|
+| exploration-heading reassignment | 75.0% | 22.2% | **~+28** |
+| `REPLACEMENT_RESERVE` | 90.0% | 25.9% | **~+24** |
+| Bug2 navigation | *unmeasured, mechanistic* | 44.4% | ~+5.6 |
+| cheese-boosted bite | formally **rejected** | 46.3% | ~+4 |
+| emergency build override | **95.0%** | 48.1% | **~0** |
+| King trap ring | "0% -> 7-10%" | 57.4% | **negative** |
+
+Two features carry nearly all the value and both are *failure-mode
+preventers*, not tactics. Roughly 25 tactical iterations that day all failed;
+every accepted change was of the form "detect a degenerate state and stop
+doing it". **When the loop stalls on new ideas, ablate instead** -- it is one
+54-game run per feature and it found more real corrections than invention
+did.
+
+Procedure: gate the feature behind `final boolean X_ENABLED = false`, run the
+mirror, then restore and verify with a comment-stripped diff against the
+snapshot so only intended changes survive:
+
+```bash
+strip() { sed 's://.*::' "$1" | sed 's/^[[:space:]]*//' | grep -v '^$'; }
+diff <(strip src/bot/RobotPlayer.java) <(strip src/g_iter<N>/RobotPlayer.java)
+```
+
+### Finding the next hypothesis: trace, do not theorise
+
+The three accepted changes of 2026-09-03 all came from tracing a replay's
+per-100-round activity and resource profile and looking for a *stall*, not
+from reasoning about what a good bot would do:
+
+- action counts collapsing to 6-13 for 350 rounds while holding 1271-1581
+  cheese -> the population cap was blocking builds while we were rich
+- cheese pinned in a 200-wide band for 1900 rounds -> two independently-set
+  thresholds (cap gate 1200, build reserve 1000) had left a dead band
+- the hover point tracking the reserve exactly -> the reserve, not the gate,
+  sets the equilibrium
+
+Each trace also killed at least one of my own hypotheses before it cost an
+iteration. Trace first.
 
 ### Head-to-head against the current best is the primary accept test
 
@@ -398,6 +531,28 @@ incremental ideas run out.
    8. *MaxSolutionsIterations* exhausted, none passed Step 3 → Step 4, pick
       a different losing game.
    9. Otherwise, back to Step 6.1.
+
+## Post-accept routine
+
+Four commands, in this order. `plot_progress.py` reads the `src/g_iterN/`
+directories, so it is only correct once the new snapshot exists -- create
+`src/g_iter<N+1>` first.
+
+```bash
+tools/.venv/bin/python3 tools/track_vs_old_bots.py gauntlet/<run-id>/
+tools/.venv/bin/python3 tools/plot_vs_old_bots.py       # progress metric
+tools/.venv/bin/python3 tools/plot_progress.py          # cumulative iterations
+tools/.venv/bin/python3 tools/plot_alt_metrics.py       # peer spread + benchmarks
+```
+
+`plot_progress.py` was being skipped for most of 2026-09-03 and the chart sat
+stale through two accepts. All four run every time.
+
+**Caution on `vs_old_bots_history.csv`:** `track_vs_old_bots.py` labels a run
+with whatever the highest `src/g_iterN` directory is *at the time it runs* --
+which says nothing about the code that actually played. Four mislabelled rows
+had to be removed on 2026-09-03 after a run of one build was appended under
+another build's name. Append only when the working tree matches the label.
 
 ## Logging
 
