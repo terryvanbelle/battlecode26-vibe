@@ -3682,3 +3682,28 @@ exactly this and it took BC22's `LEARNINGS.md` to point at the pattern.
 **State restored to Iteration 48** -- traps only -- which remains the
 project's best result against tournament bots: survival r21-46 -> means
 of r703-1250 with r2000 reached on all three opponents, still 0/60 wins.
+
+## Iteration 48 ACCEPTED as g_iter15 -- regression check clean
+
+Head-to-head against `g_iter14` on the full 27-map set: **27/54 (50.0%)
+-- exactly neutral.** No regression from adding traps, and no
+improvement either.
+
+That is the ideal shape of result for this change, and it tells a
+coherent story rather than a lucky one: traps only pay off against an
+opponent that attacks the King. Our own lineage never does, so King-ring
+traps sit unused and cost only the occasional King action -- hence
+exactly 50%. The tournament bots' entire opening is a King rush, so the
+same traps sit directly on the attack path -- hence survival going from
+21-46 rounds to means of 703-1250 with r2000 reached against all three.
+
+This is also the cleanest confirmation yet of *why* Iteration 15 was
+wrong to reject traps and why nothing before the benchmark could have
+caught it: measured against our own peers, traps are indistinguishable
+from a no-op. The mechanic's value is entirely contingent on the
+opponent, and every metric this project had until today was
+self-referential.
+
+    accepted state: g_iter15
+    vs own baseline (g_iter14):  27/54 (50.0%)  -- neutral
+    vs tournament bots:          0/60 wins, survival r703-r1250 (was r21-46)
