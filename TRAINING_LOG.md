@@ -4456,3 +4456,66 @@ because they keep walking into cats.
 
 Iteration 63 raises the cat-engagement gate from `allies > 1 || health > 30`
 to `allies >= 3`, restoring flight as the default for a lone rat.
+
+---
+
+## Iteration 63 — require `allies >= 3` before closing on a cat — FIRST GAIN
+
+Benchmarks **7/162** against a control of **5/162**, and broader than the
+raw total suggests:
+
+| opponent | control | Iteration 63 |
+|---|---|---|
+| `bench_finalist` | 4/54 | 3/54 |
+| `bench_spaark` | **0/54** | **1/54** |
+| `bench_stroke` | 1/54 | **3/54** |
+| total | 5/162 | **7/162** |
+
+This is the first time all three tournament bots have been beaten in one
+run. `bench_spaark` had never been beaten at all.
+
+Mechanism check on `bench_finalist__hatefullattice__botB` (we are team2):
+
+| | control | Iteration 63 |
+|---|---|---|
+| our deaths | 67 | **62** |
+| `CatScratch` against us | 242 | **220** |
+| our catDamage | 142 | 24 |
+| live rats at round 225 | 7 | 7 |
+
+Every counter moved in the predicted direction, including the accepted cost
+(catDamage down, which at 142 vs their 9720 was worth almost nothing).
+
+### A constant I had wrong, corrected
+
+The first draft of this change argued that a cat "out-reaches" a rat,
+citing `CAT.visionConeRadiusSquared` 17 against `ATTACK_DISTANCE_SQUARED` 2
+and claiming the rat absorbs scratches across ~3 tiles of approach. **That
+is wrong** — 17 is how far a cat *sees*. Cats attack through the same
+`RobotController.canAttack`, so both sides strike at range 2 and the
+approach is not a gauntlet.
+
+The argument survives on the arithmetic that does hold: `CAT.actionCooldown`
+30 against `COOLDOWNS_PER_TURN` 10 means a cat scratches every third turn
+(~6.67 damage/turn to our 10/turn), a rat survives 5 scratches ≈ 15 turns,
+and in 15 turns it deals ~150 damage into a 4000 HP pool. **Each rat trades
+its whole life for under 4% of one cat** — and measurement shows we do far
+worse than even that, at 242 scratches taken for 142 damage dealt.
+
+### Also corrected: what triggers a backstab
+
+`InternalRobot.bite()` ends with `if (targetRobot.getType() != UnitType.CAT)
+{ gameWorld.backstab(this.team); }` — so biting any **non-cat** names the
+**attacker** as backstabber. Earlier notes claimed only having your own trap
+triggered could do that. Both attributions exist and they read oppositely:
+`triggerTrap` names the trap's *owner*, `bite` names the *attacker*.
+
+### Iteration 64: dose-response, not resampling
+
++2 games could be a map-specific accident, and the Gauntlet is
+deterministic so re-running proves nothing. Iteration 64 therefore scales
+the mechanism to its limit — `CAT_ENGAGE_MIN_ALLIES = MAX_VALUE`, i.e.
+never deliberately close on a cat — while leaving the free opportunistic
+bite in place. Monotone improvement means causal; flat means Iteration 63
+was noise; inverted means some cat contact is worth it and 3 was near
+optimal.

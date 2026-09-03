@@ -478,13 +478,23 @@ public class RobotPlayer {
             // It cannot work, from the constants: a cat has 4000 HP against
             // RAT_BITE_DAMAGE 10, so a lone rat needs 400 bites to kill one,
             // while CAT_SCRATCH_DAMAGE 20 against a 100 HP rat kills in 5.
-            // Worse, the cat's reach is visionConeRadiusSquared 17 (~4.1
-            // tiles) against our ATTACK_DISTANCE_SQUARED 2 (~1.4), so the
-            // rat absorbs scratches across ~3 tiles of approach before it
-            // can bite at all. The old comment argued a rat "out-trades a
-            // cat once there" on DPS (10/round vs 6.67/round) -- true, and
-            // irrelevant: DPS parity means nothing against 40x your HP when
-            // five hits kill you.
+            //
+            // Reach is symmetric, contrary to what a first pass at this
+            // comment claimed: `CAT.visionConeRadiusSquared` 17 is how far a
+            // cat SEES, not how far it hits. Cats attack through the same
+            // `RobotController.canAttack`, so both sides strike at
+            // ATTACK_DISTANCE_SQUARED 2. The approach is not a gauntlet.
+            //
+            // The trade is still hopeless, on the arithmetic that does hold.
+            // Cat `actionCooldown` is 30 against COOLDOWNS_PER_TURN 10, so
+            // it scratches every third turn: ~6.67 damage/turn to our 10.
+            // The old comment read that as a rat "out-trading" a cat, which
+            // is true per-turn and irrelevant -- a rat survives 5 scratches,
+            // i.e. ~15 turns, in which it deals ~150 damage to a 4000 HP
+            // pool. **Each rat trades its entire life for under 4% of one
+            // cat**, and only if it never misses a turn.
+            //
+            // Measurement says we do far worse even than that.
             //
             // Measured on `bench_finalist__hatefullattice__botB` (we are
             // team2): 242 CatScratch against us (4,840 damage) and 71 trap
@@ -511,7 +521,31 @@ public class RobotPlayer {
             // 3 allies, not 2: `countAlliesNear` uses radius 8 (~2.8 tiles),
             // and with the cat striking everything inside radius^2 17 a pair
             // of rats is still just two rats dying together.
-            if (allies >= 3) {
+            // Iteration 64 = the dose-response arm of Iteration 63. The
+            // Gauntlet is deterministic, so re-running identical code yields
+            // no new information; the way to tell a real effect from a
+            // map-specific accident is to SCALE the mechanism and see
+            // whether the effect scales with it.
+            //
+            // Iteration 63 (`allies >= 3`) scored 7/162 against a 5/162
+            // control, with the mechanism confirmed firing: deaths 67 -> 62,
+            // CatScratch 242 -> 220, catDamage 142 -> 24. +2 games is small
+            // enough to be an accident, so this arm takes the mechanism to
+            // its limit: NEVER close on a cat.
+            //
+            // Note what this does and does not remove. The opportunistic
+            // bite above (`rc.canAttack(nearestCat...)`) is untouched -- a
+            // cat that walks into our bite range still gets bitten, which is
+            // free. What is removed is `engage()`, i.e. deliberately WALKING
+            // TOWARD a 4000 HP unit that kills a rat in 5 scratches. Those
+            // are separable and only the second one is the suicide.
+            //
+            // Monotone improvement -> the effect is causal, keep the
+            // stronger dose. Flat -> Iteration 63's +2 was noise. Inverted
+            // -> some cat contact is genuinely worth it and 3 was near the
+            // optimum.
+            final int CAT_ENGAGE_MIN_ALLIES = Integer.MAX_VALUE;
+            if (allies >= CAT_ENGAGE_MIN_ALLIES) {
                 if (engage(rc, nearestCat.getLocation())) return;
             } else if (nearestCat.getLocation().distanceSquaredTo(rc.getLocation()) <= 8) {
                 // Critically low HP and no help nearby: not worth dying on
