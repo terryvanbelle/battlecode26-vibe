@@ -355,7 +355,36 @@ public class RobotPlayer {
             // the cat isn't going to *not* attack because we didn't, and it's
             // the only thing that's ever put a nonzero number in catDamage.
             if (rc.canAttack(nearestCat.getLocation())) {
-                rc.attack(nearestCat.getLocation());
+                // Iteration 45 (TRAINING_LOG.md): pay a small amount of cheese
+                // per bite to raise cat damage. The engine's formula is
+                // `damage += ceil(sqrt(cheeseConsumed))` (InternalRobot.bite),
+                // so returns diminish sharply and *small* boosts are by far
+                // the most efficient: 4 cheese buys +2 damage on a base of
+                // RAT_BITE_DAMAGE=10 (a 20% increase at 0.5 damage/cheese),
+                // whereas 100 cheese would buy only +10 (0.1 damage/cheese).
+                //
+                // Measured justification: all seven points-losses are lost on
+                // `catDamage` (0.5 weight) and won on `cheeseTransferred`
+                // (0.2 weight), and our treasury averages 4220 across a game
+                // (max 8300) -- we are rich in the cheap currency and poor in
+                // the expensive one. Spending a little of the former per bite
+                // converts directly into the latter at a favourable exchange
+                // rate, with no change to positioning or contact time, which
+                // is what the three failed "go hunt cats" attempts
+                // (Iterations 22, 27, 44) all tried to change and could not.
+                //
+                // Distinct from Iteration 16's rejected cheese-bite: that ran
+                // when cheese was genuinely scarce and its spending pulled
+                // the desperation latch early, causing a second-order
+                // collapse. Cheese is now abundant and the latch behaves
+                // differently since Iterations 38-40.
+                final int BITE_BOOST_CHEESE = 4;
+                if (rc.getGlobalCheese() > 1000
+                        && rc.canAttack(nearestCat.getLocation(), BITE_BOOST_CHEESE)) {
+                    rc.attack(nearestCat.getLocation(), BITE_BOOST_CHEESE);
+                } else {
+                    rc.attack(nearestCat.getLocation());
+                }
                 return;
             }
             // High-risk structural change (TRAINING_ALGORITHM.md): the

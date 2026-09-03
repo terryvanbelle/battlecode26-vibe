@@ -3136,3 +3136,46 @@ the true-mirror entry rather than a decision-quality difference. That
 argues for *adding* proactive cat-seeking rather than trying to
 fight the exposure asymmetry directly, which two projects have now
 failed to fix.
+
+**Iteration 44 REJECTED -- 9/20 (45%) head-to-head, and the cat-damage
+gap did not move at all** (8620 vs. 18700 across the r2000 losses, the
+same ~2.2x ratio as before). Checked whether the surplus gate was simply
+never firing, since that has been the failure mode twice before
+(Iteration 37's congestion limit, Iteration 34's ramp threshold). It
+wasn't: measured the King's actual cheese across a full game and
+`globalCheese > 1500` held in **100% of sampled rounds** (mean 4220, max
+8300). Half the army really was hunting, all game, and produced no
+additional cat damage.
+
+**That falsifies the whole "go find cats" family, cleanly.** Three
+attempts now -- Iteration 22 (every idle rat), 27 (economy-gated), 44
+(surplus-gated, half the army) -- with three different trigger
+conditions, all failing the same way. The common flaw is the target:
+`lastKnownCatLoc` is a *remembered* position, and cats patrol fixed
+waypoints (RULES.md), so by the time a rat walks there the cat has moved
+on. Hunters converge on empty tiles while not collecting cheese. No
+gating condition fixes a stale target. **Not attempting a fourth
+variant of this.**
+
+## Iteration 45 — buy cat damage with surplus cheese instead of chasing it
+
+The diagnosis stands even though the remedy failed: we are rich in the
+0.2-weight currency (mean 4220 banked, 2x the opponent's
+`cheeseTransferred`) and poor in the 0.5-weight one. If we cannot
+manufacture more *contact* with cats, the remaining lever is to make
+each existing contact worth more -- no positioning change required,
+which is precisely the part three iterations could not move.
+
+The engine supports this directly: `InternalRobot.bite` computes
+`damage += ceil(sqrt(cheeseConsumed))`. Returns diminish sharply, so
+small boosts are dramatically more efficient -- **4 cheese buys +2
+damage on a base of 10 (a 20% increase at 0.5 damage/cheese), while 100
+cheese would buy only +10 (0.1 damage/cheese)**. Sizing it from measured
+volume (~776 attack events per game): 4 cheese/bite is on the order of
+1-3k cheese over a full game, comfortably inside a treasury that
+averages 4220 and a `cheeseTransferred` around 20000.
+
+Distinct from Iteration 16's rejected cheese-bite, which ran when cheese
+was scarce and whose spending pulled the desperation latch early,
+causing a second-order collapse; cheese is now abundant and that latch
+behaves differently since Iterations 38-40.
