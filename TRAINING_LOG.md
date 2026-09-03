@@ -3933,3 +3933,27 @@ is deterministic, so that control is exact rather than an estimate.
 
 Queued behind the Iteration 55 (facing-fix) run, which tests the
 mechanism at full strength.
+
+**The six wins were mostly early King kills, not point wins.** Round
+numbers: r174, r261, r301, r504, r545, and one r2000.
+
+That is a materially different win condition from the one the scoring
+analysis has been chasing. Five of six games ended well before the
+2000-round cap, which means they ended by **`RATKING_DESTROYED`** -- we
+killed their King -- rather than by winning the
+`0.5*catDamage + 0.3*livingKings + 0.2*cheeseTransferred` comparison.
+
+This reframes what grab-and-throw is actually doing. The change was
+justified as raising our `catDamage` *share* by removing enemy rats. The
+wins suggest a more direct effect: an enemy rat that is grabbed and
+thrown is stunned and displaced, and enough of that near their King
+apparently opens a path to killing it outright. Elimination bypasses the
+scoring formula entirely -- and the formula is where we are structurally
+weakest, since `catDamage` at 0.5 weight is a documented dead end.
+
+Worth noting five of the six wins are against `bench_finalist`
+specifically, so this may be an opponent-specific vulnerability rather
+than a general capability. The control run and the Iteration 55
+(facing-fix) run together will show whether the effect strengthens with
+throw rate -- the closest thing to a dose-response available for a
+binary mechanic.
