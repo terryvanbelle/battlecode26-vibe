@@ -3804,3 +3804,38 @@ So the standing marginal-result rule applies instead: **dose-response,
 not resampling.** If camping is causal, doubling the camping fraction
 (half the army -> all of it) should move wins further; if the single win
 was chaotic variance, it will not. Running that now.
+
+**Camping mechanism falsified by direct measurement.** Contact volume
+was the diagnosed constraint, so camping had to *raise* attack counts to
+work. It did the opposite:
+
+    our attack events   Iteration 48 (roaming): 349
+                        Iteration 53 (camping): 290
+    their attack events                    150  ->  231
+
+**Camping reduced our contact by 17% and nearly doubled theirs.** The
+flaw is in what `catHotspot` actually holds: the *first tile where a rat
+happened to see a cat*, which is wherever that cat was passing at that
+moment -- not a patrol waypoint. Rats then hold station on an
+arbitrary tile and wait for a patrol that has no particular reason to
+return there, while giving up the encounters that roaming produced
+naturally. The earlier waypoint evidence (93 scratches over 61 tiles,
+busy sites revisited 3-6x) says *some* tiles are genuinely revisited --
+but a single first sighting is overwhelmingly likely to be one of the 40+
+tiles visited once, not one of the handful visited repeatedly.
+
+So the single win at 1/60 was noise, exactly as the marginal-result rule
+assumed, and the dose-response is expected to confirm by making things
+worse. Identifying a real waypoint would require tracking *repeat*
+sightings of the same tile, which no rat lives long enough to accumulate
+and which cannot be shared (only Kings may write the shared array).
+
+**Where this leaves the cat-damage problem.** Contact volume is
+confirmed as the binding constraint, and every available lever has now
+been measured against it: hunting a remembered position (x3) arrives
+after the cat has left; camping a remembered position reduces contact;
+kiting, cheese-boosted bites and kill-efficiency targeting all change
+damage-per-contact, which is not the short term; and more rats did not
+raise cat damage. Roaming -- the default behaviour -- produces the most
+contact of anything tried. That is a genuine, well-evidenced dead end
+rather than an untested idea, and it is worth recording as such.
