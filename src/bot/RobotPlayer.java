@@ -386,7 +386,30 @@ public class RobotPlayer {
         // Ablation rather than another new mechanism, because the session's
         // failures were mostly new mechanisms and its findings were mostly
         // measurements. This checks an assumption several conclusions rest on.
-        final boolean KING_TRAPS_ENABLED = true;   // Iteration 96: restore, see benchmark regression
+        // Iteration 96 (TRAINING_LOG.md): the King trap ring is RESTORED,
+        // reversing Iteration 82's accept on grounds of REPRESENTATIVENESS.
+        //
+        // Iteration 82 ablated this ring and scored 57.4% on the mirror --
+        // a clean, well-measured result on the instrument with the best
+        // resolution available. It was wrong about the game that matters.
+        //
+        //     instrument        traps OFF      traps ON
+        //     benchmarks        2/162          3/162
+        //     early wipes       26%            13%
+        //     mirror            57.4% (better) --
+        //
+        // Early King wipes HALVED when the ring came back, to below even the
+        // session's starting 16%. The wipes cluster exactly where a rush is
+        // possible -- knifefight 6, tiny 6, dirtfulcat 5, thunderdome 4 --
+        // and the fastest losses are rounds 17-28, i.e. the King dies before
+        // the game begins.
+        //
+        // Why the mirror could not see it: 0% of mirror losses are early
+        // wipes, because our own lineage never rushes. A defensive feature is
+        // free to remove on an instrument that never poses the threat it
+        // defends against. RESOLUTION AND REPRESENTATIVENESS ARE DIFFERENT
+        // PROPERTIES, and the mirror has only the first.
+        final boolean KING_TRAPS_ENABLED = true;
         boolean placedTrap = false;
         if (KING_TRAPS_ENABLED && builtCount >= 5 && !lastBuildWasTrap && rc.getGlobalCheese() > RESERVE + 100) {
             MapLocation trapSpot = findTrapLocation(rc);

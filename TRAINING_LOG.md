@@ -6452,3 +6452,46 @@ Restoring the King trap ring (`KING_TRAPS_ENABLED = true`) on top of the
 other three accepts and measuring benchmarks directly. If it recovers toward
 5/162, Iteration 82 is the regression and should be reverted regardless of
 its mirror score.
+
+## Iteration 96 — restore the King trap ring. Iteration 82's accept is REVERSED.
+
+| | traps OFF (`g_iter19`) | traps ON | session control |
+|---|---|---|---|
+| benchmarks | 2/162 | **3/162** | 5/162 |
+| **early wipes (< rd 100)** | **26%** | **13%** | 16% |
+| mirror | **57.4%** (better) | — | 50% |
+
+**Early King wipes halve when the ring returns**, to below the session's
+starting rate. The hypothesis is confirmed: the wipes cluster exactly where a
+rush is possible — `knifefight` 6, `tiny` 6, `dirtfulcat` 5, `thunderdome` 4
+— and the fastest losses are rounds **17-28**, the King dying before the game
+begins.
+
+### Why the mirror could not see this
+
+**0% of mirror losses are early wipes.** Our own lineage never rushes the
+King, so a defensive feature costs actions and returns nothing there —
+Iteration 82's 57.4% was a correct measurement of a real saving, on an
+instrument that does not contain the threat the feature defends against.
+
+That is the sharpest methodological result of the session, and it corrects
+the one I recorded this morning. I established that even matchups have
+resolution and lopsided ones do not, and used it to rank the mirror first.
+That ranking is right about *resolution* and silent about
+**representativeness** — whether the instrument exhibits the behaviour you
+are defending against at all. The mirror has the first property and lacks the
+second, and no amount of resolution fixes that.
+
+Restated for the accept criteria: **the mirror can prove a feature is not
+paying for itself; it cannot prove a feature is unnecessary.** For anything
+defensive, the benchmark set is the only instrument that poses the threat,
+and its low resolution is a reason to read it carefully — not to ignore it.
+
+### Where this leaves the four accepts
+
+Traps restored recovers only 2/162 → 3/162 against the session control's
+5/162, so the trap ring explains the early-wipe regression but not the whole
+win gap. The other three accepts (cheese-gated cap, gate/reserve alignment,
+late reserve decay) are all economic and remain untested against benchmarks
+in isolation. They may be neutral there, or they may cost the remaining 2
+games; that is the next thing to measure, one at a time.
