@@ -26,15 +26,29 @@ public class ReplayDump {
     static int terrainX = Integer.MIN_VALUE, terrainY = Integer.MIN_VALUE, terrainR = 8;
 
     public static void main(String[] args) throws Exception {
-        for (int i = 1; i < args.length - 1; i++) {
-            if (args[i].equals("--from")) fromRound = Integer.parseInt(args[++i]);
-            else if (args[i].equals("--to")) toRound = Integer.parseInt(args[++i]);
-            else if (args[i].equals("--robot")) trackRobot = Integer.parseInt(args[++i]);
-            else if (args[i].equals("--terrain")) {
-                String[] xy = args[++i].split(",");
-                terrainX = Integer.parseInt(xy[0]);
-                terrainY = Integer.parseInt(xy[1]);
+        // Every flag takes exactly one value. An unknown or misspelled flag is a
+        // hard error rather than a silent no-op: the old loop ignored anything it
+        // did not recognise, so `--form 100` dumped the entire game and looked
+        // like a legitimate result.
+        for (int i = 1; i < args.length; i++) {
+            String flag = args[i];
+            String val = argValue(args, ++i, flag);
+            switch (flag) {
+                case "--from": fromRound = Integer.parseInt(val); break;
+                case "--to": toRound = Integer.parseInt(val); break;
+                case "--robot": trackRobot = Integer.parseInt(val); break;
+                case "--terrain": {
+                    String[] xy = val.split(",");
+                    if (xy.length != 2) throw new IllegalArgumentException("--terrain wants x,y, got: " + val);
+                    terrainX = Integer.parseInt(xy[0]);
+                    terrainY = Integer.parseInt(xy[1]);
+                    break;
+                }
+                default: throw new IllegalArgumentException("unknown flag: " + flag);
             }
+        }
+        if (fromRound > toRound) {
+            throw new IllegalArgumentException("--from " + fromRound + " is after --to " + toRound);
         }
         byte[] raw = readAll(args[0]);
         byte[] bytes;
@@ -91,7 +105,17 @@ public class ReplayDump {
             } else if (t == Event.Round) {
                 Round r = (Round) ew.e(new Round());
                 round = r.roundId();
-                if (round < fromRound || round > toRound) continue;
+                // Robot labels must accumulate over EVERY round, not just the
+                // printed window. The label table is built from SpawnActions, so
+                // skipping rounds before `--from` used to leave every rat spawned
+                // in them as a bare "id10519" with no (team,type) -- and an
+                // unlabelled id is exactly how a trace gets attributed to the
+                // wrong team. Walk the turns for spawns first, print second.
+                boolean inWindow = round >= fromRound && round <= toRound;
+                for (int ti = 0; ti < r.turnsLength(); ti++) {
+                    dumpActions(r.turns(ti), round, inWindow);
+                }
+                if (!inWindow) continue;
                 // GameWorld.java packs this field as `numRatKings + 10*cheese`
                 // ("combine total cheese into the rat kings stat") -- unpack both.
                 StringBuilder status = new StringBuilder();
@@ -100,7 +124,12 @@ public class ReplayDump {
                     status.append(r.teamIds(k)).append(":kings=").append(combined % 10)
                             .append(",cheese=").append(combined / 10).append(" ");
                 }
-                if (round % 25 == 0 || round < 5) {
+                // Team aggregates are sampled every 25 rounds to keep the
+                // transcript readable. `round == fromRound` is included so a
+                // narrow window always yields at least one stats line -- without
+                // it, `--from 101 --to 124` printed no team totals at all and
+                // silently looked like a game with no economy.
+                if (round % 25 == 0 || round < 5 || round == fromRound) {
                     System.out.println("round " + round + " " + status + "aliveBabies="
                             + vec(r::teamAliveBabyRats, r.teamAliveBabyRatsLength())
                             + " catDamage=" + vec(r::teamCatDamage, r.teamCatDamageLength())
@@ -111,7 +140,6 @@ public class ReplayDump {
                 }
                 for (int ti = 0; ti < r.turnsLength(); ti++) {
                     Turn turn = r.turns(ti);
-                    dumpActions(turn, round);
                     if (trackRobot >= 0 && turn.robotId() == trackRobot) {
                         System.out.println("round " + round + " TRACK id" + trackRobot + " at (" + turn.x() + "," + turn.y()
                                 + ") dir=" + turn.dir() + " hp=" + turn.health() + " cheese=" + turn.cheese()
@@ -135,8 +163,15 @@ public class ReplayDump {
     // com.google.flatbuffers specifically to get it), then __init() the
     // right struct/table type directly -- __init is public on every
     // generated type.
-    static void dumpActions(Turn turn, int round) {
-        int o = turn.__offset(26); // field 11 (0-based) of 13 -> vtable slot (11+2)*2
+    // `print` false means "this round is outside the --from/--to window": still
+    // walk the actions so SpawnActions register their labels, but emit nothing.
+    static void dumpActions(Turn turn, int round, boolean print) {
+        // `actions` is vtable slot 26. A flatbuffers union expands into TWO
+        // fields -- actions_type then actions -- so the schema's 12 declared
+        // Turn fields become 13 vtable slots and `actions` lands at 0-based
+        // index 11, i.e. (11+2)*2 = 26. Verified against the generated
+        // Turn.java accessor; tools/test_replaydump.py pins it.
+        int o = turn.__offset(26);
         if (o == 0) return;
         int len = turn.__vector_len(o);
         int vecStart = turn.__vector(o);
@@ -144,6 +179,9 @@ public class ReplayDump {
         String who = label(turn.robotId());
         for (int j = 0; j < len; j++) {
             byte at = turn.actionsType(j);
+            // Outside the print window only spawns matter, and only for their
+            // side effect of registering a label.
+            if (!print && at != Action.SpawnAction) continue;
             int elemOffset = vecStart + j * 4;
             int pos = Table.__indirect(elemOffset, bb);
             switch (at) {
@@ -191,7 +229,10 @@ public class ReplayDump {
                     sp.__init(pos, bb);
                     String lbl = "id" + sp.id() + "(team" + sp.team() + "," + RobotType.name(sp.robotType()) + ")";
                     robotLabel.put(sp.id(), lbl);
-                    System.out.println("round " + round + " " + who + " SpawnAction -> " + lbl + " at (" + sp.x() + "," + sp.y() + ")");
+                    if (print) {
+                        System.out.println("round " + round + " " + who + " SpawnAction -> " + lbl
+                                + " at (" + sp.x() + "," + sp.y() + ")");
+                    }
                     break;
                 }
                 case Action.IndicatorStringAction: {
@@ -253,6 +294,11 @@ public class ReplayDump {
             }
             System.out.println(row);
         }
+    }
+
+    static String argValue(String[] args, int i, String flag) {
+        if (i >= args.length) throw new IllegalArgumentException(flag + " needs a value");
+        return args[i];
     }
 
     static String label(int id) {
