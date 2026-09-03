@@ -4579,3 +4579,57 @@ catDamage share; the solo clause is what feeds rats to a 4000 HP unit one at
 a time, and it is the only indefensible part. `allies >= 2` keeps the first
 and drops the second, and is being measured on peers first, where the risk
 now demonstrably lies.
+
+---
+
+## Iteration 65 — `allies >= 2` — REJECTED, and it inverts the diagnosis
+
+Peers **45/108 = 41.7%** against a 65/108 = 60.2% control. Barely better
+than Iteration 63's 38.0%, so the *threshold* was never the knob.
+
+Mechanism check, our catDamage vs `pure_cooperator` on `hatefullattice`:
+
+| variant | peers | ours | theirs |
+|---|---|---|---|
+| control (`allies > 1 \|\| health > 30`) | **65/108 = 60.2%** | **4644** | 6010 |
+| `allies >= 3` | 41/108 = 38.0% | 480 | 6070 |
+| `allies >= 2` | 45/108 = 41.7% | **360** | 6210 |
+
+**Requiring any ally at all is effectively "never engage."** Our rats
+disperse to collect cheese, so two of them are almost never near the same
+cat — which means the `health > 30` solo clause was producing essentially
+*all* of our cat damage. What I had labelled the "indefensible" part of the
+gate turned out to be the load-bearing part.
+
+### The error underneath three iterations
+
+The case against solo engagement was an *efficiency* argument: a rat trades
+its whole life for under 4% of a cat, therefore the trade is bad. The
+arithmetic is right and the conclusion does not follow, because catDamage is
+a **share**. The opponent is making exactly the same bad trade, and the team
+that stops making it forfeits the component entirely.
+
+> For a contested proportional term, the question is never "is this trade
+> efficient?" but "is the opponent making it too?"
+
+That is the third time this session a correct piece of arithmetic has
+licensed a wrong conclusion — after "cats have 4000 HP so catDamage is
+unreachable" and "the King spends 41% of actions attacking so actions are
+scarce".
+
+### Iteration 66: condition on whether the race is winnable
+
+Both answers are right somewhere, so the gate should not be a constant:
+
+- **race close** (peers: 4644 vs 6010) → contest it; the share is what scores
+- **race lost** (tournament bots: 142 vs 9720, i.e. 1.4%) → refuse; we are
+  buying 1.4% of a component with rats we cannot replace
+
+Observable proxy for "race lost": being badly outnumbered locally. Against
+the tournament bots we field 6 rats to their 56 (5 to 25 on `knifefight`);
+against peers it is near parity. `nearby` is already sensed, so the count is
+nearly free. The gate becomes `!raceLost && (allies > 1 || health > 30)`
+with `raceLost = enemyRatsNear > 2 * (allies + 1)`.
+
+If this works it should reproduce the benchmark gain (~7/162) *without* the
+peer collapse — the first change to satisfy both instruments.

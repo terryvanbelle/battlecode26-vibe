@@ -470,131 +470,58 @@ public class RobotPlayer {
             // commits instead of fleeing trades a cheap unit (~10-30
             // cheese) for real, otherwise-nonexistent cat damage. Not yet
             // Gauntlet-verified -- see TRAINING_LOG.md for the result.
-            // Iteration 63 (TRAINING_LOG.md): require a REAL swarm before
-            // closing on a cat. The old gate (`allies > 1 || health > 30`)
-            // sent any healthy rat at a cat alone, and its own comment
-            // conceded it was "not yet Gauntlet-verified".
+            // Iteration 66 (TRAINING_LOG.md): make solo cat-engagement
+            // CONDITIONAL on whether the cat-damage race is still winnable.
             //
-            // It cannot work, from the constants: a cat has 4000 HP against
-            // RAT_BITE_DAMAGE 10, so a lone rat needs 400 bites to kill one,
-            // while CAT_SCRATCH_DAMAGE 20 against a 100 HP rat kills in 5.
+            // Iterations 63/64/65 established, with three separate builds,
+            // that the `rc.getHealth() > 30` solo clause is not a bug --
+            // it produces essentially ALL of our cat damage. Requiring any
+            // ally at all is effectively "never engage", because our rats
+            // disperse to collect cheese and 2+ of them are almost never
+            // near the same cat:
             //
-            // Reach is symmetric, contrary to what a first pass at this
-            // comment claimed: `CAT.visionConeRadiusSquared` 17 is how far a
-            // cat SEES, not how far it hits. Cats attack through the same
-            // `RobotController.canAttack`, so both sides strike at
-            // ATTACK_DISTANCE_SQUARED 2. The approach is not a gauntlet.
+            //     variant        peers        our catDamage vs pure_cooperator
+            //     control        65/108 60.2%      4644   (theirs 6010)
+            //     allies >= 3    41/108 38.0%       480   (theirs 6070)
+            //     allies >= 2    45/108 41.7%       360   (theirs 6210)
             //
-            // The trade is still hopeless, on the arithmetic that does hold.
-            // Cat `actionCooldown` is 30 against COOLDOWNS_PER_TURN 10, so
-            // it scratches every third turn: ~6.67 damage/turn to our 10.
-            // The old comment read that as a rat "out-trading" a cat, which
-            // is true per-turn and irrelevant -- a rat survives 5 scratches,
-            // i.e. ~15 turns, in which it deals ~150 damage to a 4000 HP
-            // pool. **Each rat trades its entire life for under 4% of one
-            // cat**, and only if it never misses a turn.
+            // Every score term is a PROPORTION, so conceding a component we
+            // were splitting nearly evenly costs most of its weight, and
+            // that is the whole 20-24 game peer collapse.
             //
-            // Measurement says we do far worse even than that.
+            // Yet the SAME change gained on the tournament bots (5/162 ->
+            // 7/162, first ever win over `bench_spaark`), because there our
+            // share was already 142 against their 9720 -- 1.4%. Nothing left
+            // to concede, so the survival saving was pure profit.
             //
-            // Measured on `bench_finalist__hatefullattice__botB` (we are
-            // team2): 242 CatScratch against us (4,840 damage) and 71 trap
-            // triggers (3,550) versus the 6,700 HP represented by our 67
-            // dead rats -- cats are the single largest thing killing us.
-            // The return on all that dying was **142 cat damage, against
-            // their 9,720**. We pay for the engagement on both sides of the
-            // ledger at once.
+            // So neither answer is right unconditionally:
+            //   race close    -> contest it; a rat's life for <4% of a cat
+            //                    is a terrible trade that the opponent is
+            //                    also making, and the SHARE is what scores.
+            //   race lost     -> refuse; we are buying 1.4% of a component
+            //                    with rats we cannot replace.
             //
-            // This is also what actually explains the economy collapse. By
-            // round 225 they field 36 rats to our 7, yet our cheese per rat
-            // is comparable-to-better (round 525: theirs 10,965 over 50
-            // rats, ours 2,115 over 8). We do not have a collection problem,
-            // and per Iteration 60 we do not have a production problem
-            // (doubling builds left live rats at exactly 4). We have rats
-            // that keep walking into cats.
+            // Efficiency arguments are simply irrelevant to a contested
+            // share -- that is the thing three iterations kept getting
+            // wrong. The question is never "is this trade good?" but "is
+            // the opponent making it too?".
             //
-            // Iteration 62 tested the other survival lever -- retreat from
-            // enemy RATS at <=50 HP -- and was rejected: deaths 67 -> 70 and
-            // CatScratch 242 -> 297, because pulling back from rats simply
-            // fed them to cats instead. That result is what promotes this
-            // one from a guess to the remaining explanation.
-            //
-            // 3 allies, not 2: `countAlliesNear` uses radius 8 (~2.8 tiles),
-            // and with the cat striking everything inside radius^2 17 a pair
-            // of rats is still just two rats dying together.
-            // Iteration 64 = the dose-response arm of Iteration 63. The
-            // Gauntlet is deterministic, so re-running identical code yields
-            // no new information; the way to tell a real effect from a
-            // map-specific accident is to SCALE the mechanism and see
-            // whether the effect scales with it.
-            //
-            // Iteration 63 (`allies >= 3`) scored 7/162 against a 5/162
-            // control, with the mechanism confirmed firing: deaths 67 -> 62,
-            // CatScratch 242 -> 220, catDamage 142 -> 24. +2 games is small
-            // enough to be an accident, so this arm takes the mechanism to
-            // its limit: NEVER close on a cat.
-            //
-            // Note what this does and does not remove. The opportunistic
-            // bite above (`rc.canAttack(nearestCat...)`) is untouched -- a
-            // cat that walks into our bite range still gets bitten, which is
-            // free. What is removed is `engage()`, i.e. deliberately WALKING
-            // TOWARD a 4000 HP unit that kills a rat in 5 scratches. Those
-            // are separable and only the second one is the suicide.
-            //
-            // Monotone improvement -> the effect is causal, keep the
-            // stronger dose. Flat -> Iteration 63's +2 was noise. Inverted
-            // -> some cat contact is genuinely worth it and 3 was near the
-            // optimum.
-            // DOSE-RESPONSE RESULT (benchmarks, 162 games each):
-            //
-            //     control (allies > 1 || health > 30)   5/162
-            //     allies >= 3                          **7/162**
-            //     never engage (MAX_VALUE)               6/162
-            //
-            // Both doses beat the control, from two independently compiled
-            // code versions -- that agreement is what makes this causal
-            // rather than a map-specific accident, and it is stronger
-            // evidence than either arm on its own. The curve is not
-            // monotone, though: the extreme arm gives back a game, so a
-            // little cat contact is worth having and 3 is at or near the
-            // optimum. Keeping the better arm.
-            //
-            // Where the two arms actually differ is narrower than it looks.
-            // On `bench_finalist__hatefullattice__botB` they are *identical*
-            // -- deaths 62, CatScratch 220, catDamage 24, same final round --
-            // because three allies never gather near a cat on that map, so
-            // `allies >= 3` is already equivalent to "never engage" there.
-            // The one-game gap between the arms therefore comes entirely
-            // from maps where a real swarm DOES form, and on those, engaging
-            // is worth it. That is the useful reading: the gate is not
-            // "avoid cats", it is "only fight one when genuinely mobbed".
-            // ITERATION 65. The dose curve above is only half the story --
-            // it was measured on benchmarks alone. On PEERS, `allies >= 3`
-            // was a disaster: 41/108 = 38.0% against a 65/108 = 60.2%
-            // control, a 24-game collapse.
-            //
-            // The cause is exact and shows up in one number. Against
-            // `pure_cooperator` our catDamage fell 4644 -> 480 while theirs
-            // held near 6000, i.e. we handed over a component we had been
-            // splitting almost evenly. Every score term is a PROPORTION, so
-            // conceding a contested one is worth up to its whole weight.
-            //
-            // That also explains why the same change GAINED on benchmarks:
-            // there our share was already 142 against their 9720 (1.4%), so
-            // there was nothing left to concede and the survival saving was
-            // pure profit. The correct generalisation is not "cats are a
-            // trap" or "cats are worth fighting" -- it is that contesting
-            // cat damage pays exactly when the race is close, and refusing
-            // to pays when it is already lost.
-            //
-            // So the fix is not a threshold at all, it is removing the ONE
-            // clause that was indefensible. The old gate was
-            // `allies > 1 || rc.getHealth() > 30`: engage with a swarm, OR
-            // engage ALONE whenever merely healthy. Swarm engagement is what
-            // earns the catDamage share; the solo clause is what feeds rats
-            // to a 4000 HP unit one at a time. Keep the first, drop the
-            // second -- which is what `allies >= 2` says.
-            final int CAT_ENGAGE_MIN_ALLIES = 2;
-            if (allies >= CAT_ENGAGE_MIN_ALLIES) {
+            // Observable proxy for "race lost": being badly outnumbered
+            // locally. Against the tournament bots we field 6 rats to their
+            // 56 (and 5 to 25 on `knifefight`); against the peers it is near
+            // parity. `nearby` is already sensed, so this costs no extra
+            // bytecode beyond the count itself.
+            int enemyRatsNear = 0;
+            for (RobotInfo info : nearby) {
+                if (info.getTeam() != rc.getTeam() && info.getType() == UnitType.BABY_RAT) {
+                    enemyRatsNear++;
+                }
+            }
+            // allies+1 counts this rat itself. Outnumbered by more than 2:1
+            // means we cannot win a war of attrition over the cat, so the
+            // share is already gone and the rat is worth more collecting.
+            boolean raceLost = enemyRatsNear > 2 * (allies + 1);
+            if (!raceLost && (allies > 1 || rc.getHealth() > 30)) {
                 if (engage(rc, nearestCat.getLocation())) return;
             } else if (nearestCat.getLocation().distanceSquaredTo(rc.getLocation()) <= 8) {
                 // Critically low HP and no help nearby: not worth dying on
