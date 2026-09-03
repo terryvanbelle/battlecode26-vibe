@@ -6939,3 +6939,59 @@ Next: Iteration 103, dose `BUILD_WINDOW_ROUNDS` 400 -> 150, after Iteration
 still ~1100-1200, which buys 2-3 rats each time against the 1000 reserve --
 turning 25 -> 14 into roughly 25 -> 19. Modest by construction, because the
 reserve stays where the benchmark evidence put it.
+
+## Analysis note — the far-map deficit is cheese, not population
+
+Follow-up to the blackout note above, and it partly REFUTES the fix that note
+proposed. Mid-game round headers from three far-map losses (`replay-dump.sh`,
+teams read from the header each time):
+
+    map (round 100)     our rats  their rats   our cheese  their cheese
+    peaceinourtime         22        16           1190        1980
+    corridorofdoom         14        16           1113        2023
+    dirtpassageway         14        18            675        1819
+
+**On `peaceinourtime` we hold MORE rats than the opponent and still lose.**
+So "we run out of rats" cannot be the general far-map story, and the
+300-round blackout -- which is real and universal -- is not obviously the
+thing that decides these games.
+
+The deficit that IS universal is cheese: the opponent holds 1.7x to 2.7x ours
+at round 100 in every game measured. And it is not an income difference.
+`cheeseTransferred` is comparable (peaceinourtime 160 vs 140 at round 100,
+220 vs 300 at round 150; corridorofdoom 180 vs 280). It is a SPENDING
+difference. Both sides start near 2500; by round 100 we have spent ~1300 on
+the opening burst of 25 rats plus traps, and they have spent ~520.
+
+So the shape of a far-map loss is: we convert our treasury into a larger army
+early, the army does not out-earn theirs per capita, and we spend the rest of
+the game poor while they stay rich.
+
+### What kills the rats we do have
+
+All four deaths on `peaceinourtime` in rounds 100-200 are cat kills, and on
+`dirtpassageway` the decay is a cat farming us:
+
+    round 102-103  id10519 RatAttack x2   -> 104  cat kills id10519
+    round 105      id12575 RatAttack      -> 106  cat kills id12575
+    round 106-108  id13132 RatAttack x3   -> 109  cat kills id13132
+    round 113      cat kills id14032         127  cat kills id10782
+
+Our rats attack the cat, keep attacking, and die. A CAT is 4000 HP dealing 30
+per scratch; RAT_BITE_DAMAGE is 10 and a Baby Rat has 100 HP, so a cat trades
+four scratches for a rat against the 400 bites needed to kill it. On
+`corridorofdoom` only 5 of 17 deaths are cats, so this is not universal
+either -- but where the decay is worst, a cat is doing it.
+
+### Consequence for Iteration 103
+
+The blackout measurement stands; the inference from it does not. Iteration
+103 was going to buy ~6 extra rats in rounds 100-400, and the case for that
+rested on a population deficit that `peaceinourtime` shows we do not always
+have. Buying more rats also spends the cheese we are already short of, which
+is the one deficit that IS universal -- so the dose may push the wrong lever
+in the wrong direction.
+
+Iteration 103 is NOT run as specified. The question worth asking first is why
+25 rats earn no more than their 16, since that -- not the count -- is what
+the numbers actually indict.
