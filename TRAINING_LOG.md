@@ -3327,3 +3327,43 @@ it, and when near it they resume ordinary behaviour (collect cheese,
 engage anything that appears). So it changes *where* those rats live,
 not *what they do* -- which avoids the failure mode where hunters stop
 contributing to the economy entirely.
+
+## Measured noise floor: +-9 games of churn at 54 games, so 53.7% is indistinguishable from 50%
+
+Iteration 45 (`BITE_BOOST_CHEESE=4`) and Iteration 46 (`MAX_POPULATION`
+25->35) both scored **exactly 29/54 (53.7%)** against `g_iter14`.
+Compared the two win *sets* rather than just the counts:
+
+    wins in common                     20
+    won by boost-4 but not cap-35       9
+    won by cap-35 but not boost-4       9
+
+Two mechanistically unrelated changes, each flipping nine games in each
+direction, netting to the identical total. That is the signature of
+**chaotic sensitivity**: a small perturbation early in a 2000-round game
+cascades into a flipped outcome on closely-contested maps, in either
+direction, with no relationship to whether the change was beneficial.
+BC22's `LEARNINGS.md` documents the same phenomenon ("map-fragile long
+games can flip outcome from a tiny, unrelated change").
+
+**This establishes a noise floor of roughly +-9 games out of 54 (~17
+percentage points of game-level churn) for near-identical bots**, and it
+means a 29/54 result carries essentially no information -- exactly
+matching the binomial p=0.34. Both iterations are net-neutral.
+
+**Consequences for the accept criterion** (amending the head-to-head
+rule added earlier today):
+- 53-55% over 54 games is *inside* the noise floor. The bar for
+  "genuinely beats what it replaces" needs to be well above that --
+  Iteration 39's accept, for contrast, was +15 points with six losses
+  fixed and zero new, far outside this band.
+- Comparing **win sets**, not just win counts, is diagnostic: 20/29
+  overlap with balanced discordance says "different but not better,"
+  which a bare percentage hides completely.
+- Dose-response remains the sharpest tool, because it asks whether the
+  effect *scales* rather than whether one noisy number beat another.
+
+**Iteration 46 is therefore REJECTED as net-neutral**, independent of
+the cap=50 dose-response still running -- its premise was already
+falsified (cat damage does not scale with population) and its result
+sits inside the noise floor.
