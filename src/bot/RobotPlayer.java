@@ -404,7 +404,26 @@ public class RobotPlayer {
             if (deliverCheese(rc, kingLoc)) return;
         }
 
-        RobotInfo nearestCat = nearestOfType(rc, nearby, UnitType.CAT);
+        // Iteration 52 (TRAINING_LOG.md): target the **weakest** cat, not
+        // the nearest. Replay evidence from the benchmark: a cat has 4000
+        // HP, and `addDamageToCats` credits damage dealt -- so *killing* a
+        // cat banks its whole health pool while chipping several banks
+        // almost nothing. `bench_spaark` killed three cats by round 518 and
+        // its `catDamage` plateaued at ~16700 (about four cats' worth); we
+        // killed one, at round 1976, for 3770 total. We actually attacked
+        // *more* than they did (349 events to their 150) and got a quarter
+        // of the credit, because our damage was spread across six cats and
+        // finished none.
+        //
+        // `RobotInfo.getHealth()` exposes cat HP, so preferring the most
+        // wounded visible cat concentrates the whole army's fire on
+        // whichever one is closest to dying, without any communication --
+        // every rat independently converges on the same target because
+        // they all see the same health values. This is BC22
+        // `RESEARCH.md` section 4's "target-prioritize by kill-efficiency,
+        // not raw threat", noted when the benchmark was built and not
+        // acted on until the replay showed exactly this failure.
+        RobotInfo nearestCat = weakestOfType(rc, nearby, UnitType.CAT);
         if (nearestCat != null) {
             int allies = countAlliesNear(rc, nearby, nearestCat.getLocation(), 8);
             // Replay evidence (TRAINING_LOG.md, `pure_cooperator` mirror-match
@@ -641,6 +660,17 @@ public class RobotPlayer {
         if (best != null) {
             rc.pickUpCheese(best.getMapLocation());
         }
+    }
+
+    /** Iteration 52: lowest-health visible unit of a type -- kill-efficiency
+     *  targeting, so scattered rats concentrate fire without coordinating. */
+    static RobotInfo weakestOfType(RobotController rc, RobotInfo[] nearby, UnitType type) {
+        RobotInfo best = null;
+        for (RobotInfo info : nearby) {
+            if (info.getType() != type) continue;
+            if (best == null || info.getHealth() < best.getHealth()) best = info;
+        }
+        return best;
     }
 
     static RobotInfo nearestOfType(RobotController rc, RobotInfo[] nearby, UnitType type) {

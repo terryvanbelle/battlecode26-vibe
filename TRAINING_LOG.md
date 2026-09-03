@@ -3707,3 +3707,46 @@ self-referential.
     accepted state: g_iter15
     vs own baseline (g_iter14):  27/54 (50.0%)  -- neutral
     vs tournament bots:          0/60 wins, survival r703-r1250 (was r21-46)
+
+## Iteration 52: kill cats instead of chipping them -- with one claim retracted
+
+**Retraction first.** An earlier note in this session compared
+`RatAttack` counts to `catDamage` totals and concluded the opponent
+extracted ~114 damage per attack against our ~10.8. That figure is
+**not supportable**. Checking the replay format: `DamageAction` entries
+carry explicit damage values, but there are only 46 of them in a
+2000-round game and **none target cats**, so bites do not emit damage
+records at all. `RatAttack` therefore cannot be reconciled against
+`catDamage`, and any per-attack efficiency computed from the two is
+meaningless. The `MatchMaker` class that would settle the mapping is not
+part of the vendored engine subset, so this cannot be resolved from
+here. Retracted rather than left standing.
+
+**What survives, and is well-supported:**
+
+- `catDamage` totals come from the engine's own team stats and are
+  trustworthy: **3770 for us, 17110 for them.**
+- Four cats died in that game (rounds 205, 385, 518, and 1976).
+- Their cat damage rockets to ~16700 by roughly round 800 and then
+  **plateaus**, which is what running out of targets looks like:
+  ~16700 is almost exactly four cats' worth of the 4000 HP each.
+- The r1976 death was ours -- our single kill, arriving after the game
+  was long decided.
+
+Since `addDamageToCats` credits damage actually dealt, killing a cat
+necessarily banks its full 4000 HP, while damage spread across six cats
+that all survive banks only what was dealt and forfeits every
+almost-kill. That conclusion does not depend on the retracted figure.
+
+**Change:** target the **weakest** visible cat rather than the nearest.
+`RobotInfo.getHealth()` exposes cat HP, so every rat independently
+converges on whichever cat is nearest death -- focus fire with no
+communication, since they all read the same health values. This is BC22
+`RESEARCH.md` section 4's "target-prioritize by kill-efficiency, not raw
+threat", noted when the benchmark was built and not acted on until the
+replay showed precisely this failure mode.
+
+Notable that every previous cat-damage attempt -- hunting (x3), kiting,
+paying cheese per bite, growing the army -- adjusted *how much* damage
+we deal. None addressed *concentration*, which is what converts damage
+into a completed kill.
