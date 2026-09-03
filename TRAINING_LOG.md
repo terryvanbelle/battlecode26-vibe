@@ -3540,3 +3540,30 @@ full 60-game tournament benchmark for a real reading.
 So Iteration 48 as written is likely *net negative on the trap exchange
 alone*, and its survival gains have to be coming from the stun component
 rather than from winning the trap trade.
+
+## Iteration 48 result: 0/60 wins, but survival up 15-38x -- mechanistic accept
+
+    opponent          baseline   with traps (mean)   max
+    bench_finalist       r33          r1250          r2000
+    bench_spaark         r21           r748          r2000
+    bench_stroke         r46           r703          r2000
+
+Still **0/60 wins**, so by win rate nothing changed. But the bot went
+from being annihilated in 21-46 rounds to surviving a *mean* of 703-1250
+and reaching the full 2000-round cap against all three tournament bots.
+Reaching r2000 means the game was decided on points rather than by our
+King dying -- we are no longer being removed from the board, which is
+the precondition for any scoring component mattering at all.
+
+**Accepted as mechanistic progress**, under the decision rule written
+*before* the result was known (task #38): "any nonzero win count is a
+breakthrough; if still 0/60 but survival improved substantially, treat
+as mechanistic partial progress and iterate on placement/timing rather
+than reverting." Pre-registering that rule mattered here -- a 0/60 line
+is exactly the kind of result that invites post-hoc rationalisation in
+either direction.
+
+This is also the first change in the project's history to move a
+tournament-tier metric at all. Every previous iteration was tuning
+inside a fixed action set; this one added a mechanic, and the effect is
+an order of magnitude larger than anything the tuning produced.
