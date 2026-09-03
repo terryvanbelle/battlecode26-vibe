@@ -3839,3 +3839,21 @@ damage-per-contact, which is not the short term; and more rats did not
 raise cat damage. Roaming -- the default behaviour -- produces the most
 contact of anything tried. That is a genuine, well-evidenced dead end
 rather than an untested idea, and it is worth recording as such.
+
+**Dose-response confirms camping is non-causal.** Doubling the camping
+fraction (half the army -> all of it) gave **0/60**, down from 1/60,
+with survival worse on every opponent (1230/642/725 vs. 1260/670/770).
+More of the mechanism produced less of the result, so the single win was
+chaotic variance, exactly as the marginal-result rule predicted.
+
+**Iteration 53 REJECTED.** Reverted to `g_iter15`, verified
+byte-identical to the accepted snapshot.
+
+This also vindicates not accepting on the pre-registered "any win is a
+breakthrough" rule. Had that been applied literally, a change that
+*reduces* our contact volume by 17% would now be the baseline, and every
+subsequent measurement would have been taken against a worse bot.
+The lesson is not "don't pre-register" -- pre-registration is what
+stopped the earlier 0/60 from being rationalised away -- but that a
+pre-registered rule is a commitment about *reasoning*, not a licence to
+skip verification when the number happens to land favourably.
