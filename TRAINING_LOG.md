@@ -5567,3 +5567,47 @@ above peers. That was wrong and is withdrawn. The correct ordering:
    information even when the regime differs.
 3. **Benchmarks and `vs_old_bots`** are lopsided; treat ±2 games as noise
    and use them for direction, never as the deciding evidence.
+
+---
+
+## Iteration 82 — ablate the King trap ring — 57.4% on the mirror test
+
+    bot WITHOUT King traps  vs  g_iter15 WITH them:  31/54 = 57.4%
+    (wins by side: A 20/27, B 11/27 -- the known A-side mirror bias,
+     which cancels because both sides are played)
+
+**Removing Iteration 48's trap ring beats keeping it**, on the instrument
+the algorithm designates as primary.
+
+### The instrument was validated first
+
+`src/bot` and `src/g_iter15` differ **only in the package line** — the whole
+diff is 4 lines. So this Gauntlet is a true mirror, pinned at 50% by
+construction, and it therefore has resolution that the benchmark set (~3% win
+rate) and `vs_old_bots` (~88%) structurally cannot. That is also what makes
+Iteration 63's 33.3% a real 17-point regression rather than noise.
+
+### What this overturns
+
+Iteration 48 has been credited all session as *the only change that ever moved
+a benchmark line* (`bench_finalist` 0% → 7-10%), and that credit was
+load-bearing:
+
+- Iteration 59's benchmark drop (5/162 → 3/162) was **blamed on deleting the
+  traps**. That attribution is now suspect — deleting them appears to help.
+- Iteration 77 **deliberately kept the traps** while reordering the King's
+  attack, on the strength of the same credit.
+- The ring costs the King **18-21 placements per short game, ~26% of its
+  action budget** (measured by `tools/king_census.py` during Iteration 77).
+
+The original 0% → 7-10% measurement was taken on the lopsided benchmark set,
+where ±2 games is the resolution floor. It was never tested on an instrument
+that could resolve it.
+
+This is the second time this session that a conclusion drawn from a
+low-resolution instrument has been reversed by a high-resolution one — the
+first being the Iteration 63 accept itself, retracted three commits ago. The
+pattern is consistent enough to state as a rule: **claims measured near 0% or
+near 100% should be treated as unverified until checked on the mirror.**
+
+Peer regression check running.

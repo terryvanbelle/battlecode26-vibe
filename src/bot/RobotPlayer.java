@@ -283,8 +283,28 @@ public class RobotPlayer {
         // after we are already dead. Alternating from round 5 yields
         // roughly ten traps down by round 25 while still building most of
         // the army.
+        // Iteration 82: ABLATION of Iteration 48's King trap ring.
+        //
+        // Iteration 48 is credited as the only change that ever moved a
+        // benchmark line (bench_finalist 0% -> 7-10%), and that credit has
+        // been load-bearing all session -- it is why Iteration 59's trap
+        // deletion was blamed for its benchmark drop, and why Iteration 77
+        // deliberately kept traps. But it was measured on the BENCHMARK set,
+        // which we now know is lopsided (~3% win rate) and cannot resolve
+        // +/-2 games.
+        //
+        // The g_iter15 head-to-head is a true mirror -- the two files differ
+        // only in their package line -- so it sits at 50% by construction and
+        // has the resolution to settle this. Turning the ring OFF and playing
+        // the version that has it: >50% means the traps have been costing us,
+        // ~50% means they are inert, <50% means Iteration 48 is real.
+        //
+        // Ablation rather than another new mechanism, because the session's
+        // failures were mostly new mechanisms and its findings were mostly
+        // measurements. This checks an assumption several conclusions rest on.
+        final boolean KING_TRAPS_ENABLED = false;
         boolean placedTrap = false;
-        if (builtCount >= 5 && !lastBuildWasTrap && rc.getGlobalCheese() > RESERVE + 100) {
+        if (KING_TRAPS_ENABLED && builtCount >= 5 && !lastBuildWasTrap && rc.getGlobalCheese() > RESERVE + 100) {
             MapLocation trapSpot = findTrapLocation(rc);
             if (trapSpot != null && rc.canPlaceRatTrap(trapSpot)) {
                 rc.placeRatTrap(trapSpot);
