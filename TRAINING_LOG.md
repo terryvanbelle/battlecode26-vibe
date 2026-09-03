@@ -6995,3 +6995,51 @@ in the wrong direction.
 Iteration 103 is NOT run as specified. The question worth asking first is why
 25 rats earn no more than their 16, since that -- not the count -- is what
 the numbers actually indict.
+
+## Iteration 102 — trap density, dose 2 (two traps per build) — ACCEPTED (g_iter21)
+
+                              g_iter20        dose 2
+    benchmark wins            5/162           7/162
+    early wipes (PRIMARY)     22/157 = 14%    12/155 = 8%
+    close-spawn wins          3/42            4/42
+    close-spawn wipes         22/39 = 56%     12/38 = 32%
+    g_iter20 mirror           --              26/54 = 48.1%
+
+All four pre-registered bars cleared. The mechanism check confirms the trade
+it was supposed to make -- `knifefight` rounds 0-19, traps 6 -> 8 and spawns
+11 -> 8.
+
+**The three doses form a monotone curve**, which is why this is believable
+rather than two games of luck:
+
+    trap density                  wins    early wipes
+    fewer  (Iter 101, 1 per 2)    5/162   29/157 = 18%
+    1:1    (g_iter20)             5/162   22/157 = 14%
+    more   (Iter 102, 2 per 1)    7/162   12/155 =  8%
+
+Three points, one direction, on both counters. The 1:1 ratio was never chosen
+-- it fell out of the `!lastBuildWasTrap` boolean in Iteration 48 and was
+inherited unexamined by every iteration since. It was wrong, and wrong in the
+direction of too FEW traps.
+
+### Games changed
+
+    + bench_spaark    popthecork      sideA  rd601    <-- first win ever vs spaark
+    + bench_finalist  dirtfulcat      sideB  rd119
+    + bench_stroke    uneruesansfin   sideA  rd1814
+    - bench_finalist  toomuchcheese   sideB  rd183
+
+`bench_spaark` had been 0/54 in every previous run of the session and is the
+hardest opponent in the set (median loss round 56 on close-spawn maps).
+
+### Why the mirror does not veto this
+
+26/54 = 48.1% is one game below even, i.e. no regression, and it carries no
+positive information either. The mirror has **0% early wipes in every build**
+because our own lineage never rushes the King, so it cannot measure a
+defensive feature at any resolution -- the same reason Iteration 82's 57.4%
+mirror result was wrong and had to be reversed by Iteration 96. Resolution
+and representativeness are different properties. Here the instrument that
+poses the threat (benchmarks, 22 wipes) is the one that moved, and the
+instrument that cannot pose it stayed flat. That is the expected signature,
+not a conflict.
