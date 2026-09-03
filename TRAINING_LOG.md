@@ -4159,3 +4159,55 @@ backstabber is permanently barred from placing cat traps
 (`catTrapsAllowed`). In the traced game our rat tripped their trap at round
 39, making *them* the backstabber. Relevant to Iteration 48's rat-trap ring,
 which risks handing that label to us.
+
+---
+
+## Finding: Iteration 48 put trap-laying on the King, halving our opening build rate
+
+Root cause for the early King wipes (16% of all losses vs tournament bots
+end before round 100, concentrated on `knifefight`, `tiny`, `thunderdome`,
+`dirtfulcat`).
+
+Both `BABY_RAT` and `RAT_KING` have `actionCooldown` 10 against
+`COOLDOWNS_PER_TURN` 10 — **one action per turn**. So every trap the King
+lays is literally one rat it did not build. Iteration 48 put trap placement
+in `runRatKing`, interleaved with building. The opponent does not.
+
+King action budgets, `bench_finalist` losses (bot = team1):
+
+| map | our kingSpawn | our kingTrap | their kingSpawn | their kingTrap | their **rat**Trap |
+|---|---|---|---|---|---|
+| knifefight | 22 | 18 | 35 | 0 | 32 |
+| tiny | 21 | 17 | 39 | 1 | 10 |
+| thunderdome | 25 | 21 | 36 | 0 | 55 |
+
+Their King builds essentially **exclusively**; all their traps are laid by
+**baby rats**. Ours serializes both through one budget — on `knifefight`,
+40 King actions split 22 spawns / 18 traps, so **45% of the King's opening
+went to traps**. The result is a consistent 21-25 vs 35-39 production
+deficit (about -37%) at the exact moment we are being rushed, on maps where
+the Kings start 5 tiles apart and `ThrowRat` pressure begins at round 6.
+
+### The traps are also in the wrong place
+
+Placement geometry on `knifefight` (our King (22,14), theirs (17,14)):
+
+| | traps | mean d² to own King | mean d² to enemy King | placed closer to enemy |
+|---|---|---|---|---|
+| us | 18 | 5 | 19 | **0/18** |
+| bench_finalist | 32 | 19 | 11 | **21/32** |
+
+Ours all hug our own King; two thirds of theirs are pushed **forward**
+onto our approaches. That asymmetry shows up directly in who walks into
+what: we triggered **27** traps, they triggered **13**.
+
+**This indicts Iteration 48's implementation, not the idea.** Traps are
+clearly good — the opponent lays 32-55 of them. Laying them *with the King*,
+*around the King*, is the error. Iteration 59 moves placement onto baby
+rats, which both frees the King's build budget and puts traps forward for
+free, since that is simply where rats already are.
+
+Note this is a second instance of the pattern behind the cat-policy bug:
+a mechanism that measured as working (Iteration 48 did lift `bench_finalist`
+0% → 7-10%) while quietly paying a large cost elsewhere that no single-number
+win rate exposed.
