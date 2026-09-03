@@ -5509,3 +5509,61 @@ Benchmarks and `vs_old_bots` now outrank the peer Gauntlet when they
 disagree, with the 9%-vs-59% measurement as the justification. A peer
 regression is no longer automatically disqualifying — but it must be
 explained by the regime difference, not waved away.
+
+---
+
+## Iteration 63 — ACCEPT RETRACTED. The primary test says 33.3%.
+
+Head-to-head against `g_iter15`, the snapshot it would replace:
+
+    ITER63 vs g_iter15:  18/54 = 33.3%    (wins by side: A 12, B 6)
+
+`TRAINING_ALGORITHM.md` is explicit that `< 50%` here "is a regression
+against the thing it would replace". **I accepted this change without running
+the test the algorithm designates as primary.** Reverted.
+
+### Why three instruments pointed the wrong way
+
+| instrument | control | Iteration 63 | matchup type |
+|---|---|---|---|
+| benchmarks | 5/162 | 7/162 | lopsided — we lose ~97% |
+| `vs_old_bots` (g_iter1, g_iter11) | 95/108 | 97/108 | lopsided — we win ~88% |
+| peers | 65/108 | **41/108** | **even** |
+| **g_iter15 head-to-head** | (50% by definition) | **18/54 = 33.3%** | **even** |
+
+The two instruments that endorsed the change are both **lopsided matchups**
+operating near an extreme — 3% and 88% win rates — where ±2 games is the
+resolution floor. The two even matchups, peers and the `g_iter15`
+head-to-head, both say clearly negative, and they agree with each other
+(38.0% and 33.3%).
+
+This is precisely why the algorithm designates the snapshot head-to-head as
+primary: **an even matchup has resolution that a lopsided one does not.**
+
+### The reasoning error, stated plainly
+
+My 9%-vs-59% analysis was correct as a fact — benchmark and peer games really
+do reach scoring at very different rates. But I used it to *explain away* the
+peer regression instead of treating it as evidence. The peer number was a
+genuine warning that the change is worse against a bot of our own strength,
+and the head-to-head confirms it against a frozen snapshot that cannot have
+drifted.
+
+A true observation was used to license discarding a valid measurement. That
+is a more dangerous mistake than a bad hypothesis, because the supporting
+fact was real and checked — it made the wrong conclusion *more* persuasive,
+not less. The same shape appeared earlier this session with the cat-trap
+story and the King action census.
+
+### Accept criteria — corrected again
+
+The previous entry updated the criteria to rank benchmarks and `vs_old_bots`
+above peers. That was wrong and is withdrawn. The correct ordering:
+
+1. **`g_iter<latest>` head-to-head is primary** and must be run before any
+   accept. Even matchup, frozen opponent, immune to staleness and mirror
+   collapse.
+2. **Peers** are the regression check — an even matchup, so they carry real
+   information even when the regime differs.
+3. **Benchmarks and `vs_old_bots`** are lopsided; treat ±2 games as noise
+   and use them for direction, never as the deciding evidence.
