@@ -31,6 +31,26 @@ import sys
 
 THRESHOLD = 100
 
+# The seven maps whose Rat Kings spawn within ~21 tiles of each other,
+# measured from replay headers (TRAINING_LOG.md, "early wipes are entirely a
+# close-spawn phenomenon"). In the g_iter20 benchmark run these seven supplied
+# ALL 22 early wipes; the other twenty maps supplied zero, with no overlap.
+#
+# They are broken out because they are the only part of the benchmark set that
+# poses the rush at all. Averaged over all 162 games a change to rush defence
+# is diluted by twenty maps where the failure mode does not occur -- the same
+# representativeness trap as judging a defensive feature on the mirror, one
+# level down. Judge wipe work on these 42 games.
+RUSH_MAPS = {
+    "knifefight",       # King distance  5.0
+    "tiny",             #                5.0
+    "thunderdome",      #                8.0
+    "dirtfulcat",       #               15.0
+    "popthecork",       #               17.0
+    "evileye",          #               21.2
+    "toomuchcheese",    #               21.2
+}
+
 
 def rate(run_dir: pathlib.Path):
     with (run_dir / "results.csv").open() as fh:
@@ -60,6 +80,22 @@ def main(argv):
             by_map[r["map"]] = by_map.get(r["map"], 0) + 1
         top = sorted(by_map.items(), key=lambda kv: -kv[1])[:6]
         print(f"    wipes by map:   {', '.join(f'{m} {n}' for m, n in top)}")
+
+        rush = [r for r in rows if r["map"] in RUSH_MAPS]
+        if rush:
+            rl = [r for r in rush if r["bot_result"] == "loss"]
+            rw = [r for r in rl if int(r["rounds"]) < THRESHOLD]
+            stray = len(wipes) - len(rw)
+            print(
+                f"    close-spawn maps ({len(RUSH_MAPS)}):  "
+                f"wins {len(rush) - len(rl)}/{len(rush)}   "
+                f"wipes {len(rw)}/{len(rl)} = {100 * len(rw) / len(rl):.0f}% of losses"
+            )
+            if stray:
+                print(
+                    f"    NOTE: {stray} wipe(s) outside the close-spawn set --"
+                    f" the map/wipe relationship has shifted, re-measure it"
+                )
     return 0
 
 
