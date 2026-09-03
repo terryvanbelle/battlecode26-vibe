@@ -267,6 +267,37 @@ different values, but there's no evidence for that yet):
 - *MaxConsecutiveRejects*: 3 consecutive Step 6 rejections before the next
   attempt must leave the same functional area (see "Never idle").
 
+### Head-to-head against the current best is the primary accept test
+
+Added 2026-09-03, after the peer roster stopped being able to detect
+improvement at all. The synthetic archetypes deliberately share
+`src/bot/`'s economy/movement code so they isolate *backstab policy* --
+which means that once correctly re-synced they differ from `bot` by
+about eight lines, are effectively mirror matches, and land at ~50%
+**by construction, regardless of how strong the bot is**. Letting them
+go stale produces the opposite failure: inflated numbers that look like
+progress (this happened twice, most recently masking a 62.5% as 95.0%).
+Neither state yields a usable accept signal.
+
+**So the primary accept test is now: run the candidate against the
+most recent accepted snapshot, head to head.**
+
+    OPPONENTS="g_iter<latest>" tools/gauntlet.sh     # 20 games, both sides
+
+- **> 50%** means the candidate genuinely beats what it replaces. This
+  is immune to both staleness (the snapshot is frozen) and mirror
+  collapse (any real improvement shows up as a real edge).
+- **~50%** means no measurable change -- treat as a near miss, not an
+  accept, unless there's a separate mechanistic argument.
+- **< 50%** is a regression against the thing it would replace.
+
+The peer Gauntlet stays useful, but for what it actually measures:
+a **policy/regression check**, where ~50% vs. `pure_cooperator` is the
+healthy expected value and a drop meaningfully below it is a real alarm.
+The vs-old-bots chart remains the **long-run progress** metric. Three
+different questions, three different measurements -- conflating them
+under one number is what allowed a 15-point inflation to go unnoticed.
+
 1. Create Iteration 0. Set this to be our current implementation.
 2. Run the current implementation against the Gauntlet (all peers, all
    maps, both sides; benchmark bots too if due per *BenchmarkEvery*).
