@@ -3032,3 +3032,55 @@ mirror -- e.g. derived from the vector to the team's own King, or to the
 map centre -- rather than either absolute compass order or per-decision
 randomness. That is a different design from both attempts so far, and
 is the only version not yet falsified.
+
+---
+
+## Iteration 42 attempt — kite after every attack; REJECTED (the technique's premise doesn't hold here)
+
+First micro technique attempted from BC22's `RESEARCH.md` section 4,
+which argues micro outweighs macro 30-50% vs ~5% and records
+*unconditional* kiting as beating conditional kiting "in every test."
+The engine numbers looked decisive: a Baby Rat acts and moves every
+round (both cooldowns 10) while a CAT scratches once per 3 rounds
+(action 30) and moves once per 2 (movement 20), and action/movement draw
+on separate cooldowns -- so biting and stepping back is free, and the rat
+is twice as fast as the thing chasing it.
+
+**Full Gauntlet: 15/40 (37.5%)**, down hard from 62.5%.
+
+**Traced it, and the mechanism is the opposite of the premise.** On the
+same map, baseline vs. kiting:
+
+    catDamage (ours)   4320  ->  1260     (3.4x WORSE)
+    RatAttack events    776  ->   679
+    CatPounce events      0  ->     0
+
+Kiting *reduced* our cat damage by more than three times. The DPS
+argument assumed the payoff was survival -- stay alive longer, deal more
+total damage. That premise is false here because **cats have 4000 HP and
+we never kill one.** Nothing about the fight is a trade to be won; the
+cat is an effectively unkillable damage sponge, and `catDamage` is a
+*cumulative score component* (0.5 weight in coop mode). When the target
+can't be killed, total damage dealt is just (attack rate x time in
+contact) -- and kiting halves the first term to buy survival that wasn't
+the binding constraint. Rats were already getting ~15 rounds of attacks
+in before dying; trading half the attack rate for more of those rounds
+is a straight loss.
+
+(The pounce hypothesis was also wrong -- zero `CatPounce` events in
+either run, so retreating to range 2-3 was not exposing rats to
+instant-kill jumps. Worth recording since it seemed plausible.)
+
+**REJECT.** Reverted.
+
+**Generalizable lesson, and a caution on porting BC22/RESEARCH.md
+advice wholesale:** kiting is valuable when the target is *killable*, so
+that surviving longer converts into more kills and a better trade.
+Against a target you cannot kill, where the scoring quantity is
+cumulative damage dealt, the advice inverts -- maximize attack frequency
+and time in contact instead. The cross-year postmortems all assume
+killable opponents, which is true of their rulesets and false for BC26's
+cats. Check whether a ported technique's *premise* holds before porting
+its conclusion; three of this session's rejects (this, Iteration 41's
+tie-break randomization, and the congestion throttle) were all sound
+advice imported without validating that its precondition applied here.
