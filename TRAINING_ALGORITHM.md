@@ -400,6 +400,21 @@ from reasoning about what a good bot would do:
 Each trace also killed at least one of my own hypotheses before it cost an
 iteration. Trace first.
 
+**Two sampling traps to avoid when looking for the deficit:**
+
+- **Do not select replays from the loss list.** Sampling three losses and
+  finding our `catDamage` share low in all of them proves nothing -- losing on
+  points and holding a low share of the biggest term are nearly the same
+  statement. The iteration built on that observation measured 48.1%, inert.
+- **In a mirror, an inter-team difference is positional, not policy.** Both
+  sides run byte-identical code, so a gap between our number and theirs comes
+  from the map and spawn side. The mirror's own split shows it: side A
+  16W-11L (59.3%) vs side B 14W-13L (51.9%).
+
+Prefer "what is our bot doing that is degenerate" over "where are we behind
+the opponent" -- a stall over time is an absolute signal and needs no opponent
+comparison.
+
 ### Head-to-head against the current best is the primary accept test
 
 Added 2026-09-03, after the peer roster stopped being able to detect
