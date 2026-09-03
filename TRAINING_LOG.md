@@ -2895,3 +2895,59 @@ and worth fixing, but fixing it also removed the accidental
 benchmark-like behavior that made the peer numbers *look* informative.
 Two different measurements were being conflated under one number for
 most of this project's history.
+
+---
+
+## Iteration 41 — absolute-order tie-breaks caused a 45-point side asymmetry
+
+The corrected (near-mirror) peer roster immediately earned its keep by
+exposing something no previous measurement could have: across the 40
+honest re-measurement games, **side A won 85% and side B won 40%**.
+Symmetry requires ~50/50. The gap was spread across essentially every
+map (A went 2/2 on seven of ten) rather than concentrated on one, which
+per "reading a diff's shape" means systemic code bias, not map luck.
+
+**Root cause -- seven `d < bestDist` scans.** A bare `<` hands every
+*tie* to whichever candidate the engine returned first, and
+`senseNearbyRobots()` / `senseNearbyMapInfos()` /
+`getAllLocationsWithinRadiusSquared()` all return results in the
+engine's fixed absolute-coordinate order, not relative to the caller.
+On a symmetric map the two teams are mirror images, so a preference
+expressed in absolute coordinates points "toward the enemy" for one team
+and "away" for the other. The affected sites were
+`findBuildLocation` (decides where *every* Baby Rat spawns -- by far the
+costliest), `collectCheese`, `pickUpBestNearbyCheese`,
+`attackNearestHostile`, `nearestOfType`, `nearestEnemyRat`, and
+`digTowardOpenSpace`.
+
+This is the single largest recurring bug class in BC22's `LEARNINGS.md`
+-- that project rediscovered it twice, ~60 iterations apart, and traced
+it to exactly this pattern: "consumers that picked the *first* result
+satisfying a condition instead of explicitly finding the best one." It
+was inherited here despite the class-level docstring claiming the
+codebase was clean of absolute-order bias; that claim covered *movement
+directions* (which are genuinely target-relative and ID-tie-broken) and
+missed target *selection* entirely.
+
+**Fix:** a single `betterTarget(d, bestDist)` helper used at all seven
+sites, breaking ties with the per-robot `rng` (seeded from
+`rc.getID()`, unique per robot and not team-correlated -- unlike a
+shared fixed-seed `Random`, which BC22 documents as reproducing this
+same bug one level removed).
+
+**Why this matters more than the peer win rate will show.** Checking the
+independent vs-old-bots runs, there is *no* side asymmetry there at all
+(`g_iter14`: side B 100%, side A 95%; `g_iter13`: B 90%, A 85%). The
+bias only manifests against a near-equal opponent -- when both bots
+share the same absolute-order preference, the map's mirror geometry
+hands one side a systematic edge, and against a much weaker opponent we
+win from either side regardless so it stays invisible. **An
+evenly-matched opponent is exactly the tournament case**, so this is a
+real competitive defect even though it was undetectable against the
+stale roster and against old snapshots.
+
+It also means the archetypes (still carrying the unfixed tie-break)
+make this run a clean A/B: fixed bot vs. biased opponent. The side-B
+win rate is the measurement that matters; the overall number will
+overstate, since the opponent is handicapped until the next re-sync
+propagates the fix.
