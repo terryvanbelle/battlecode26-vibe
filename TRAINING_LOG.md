@@ -5755,3 +5755,51 @@ is the same evidence profile Iteration 40 had at 95.0%.
 Only the *reassignment* is ablated; the per-robot initial heading from
 Iteration 4 stays, so rats still fan out — they simply never re-pick a
 heading after stalling.
+
+---
+
+## Iteration 85 — ablate the exploration-heading reassignment — 22.2%, the largest effect measured all session
+
+    bot WITHOUT the reassignment  vs  g_iter16 WITH it:  12/54 = 22.2%
+    (wins by side: A 7, B 5)
+
+**Iteration 32 is validated, emphatically.** A ~28-point swing on the mirror
+— larger in magnitude than anything else measured on that instrument, in
+either direction, and the opposite sign from what the ablation program has
+mostly been finding.
+
+Without it, a rat whose per-robot initial heading happens to point at a
+nearby map edge reaches that edge in ~15 rounds and then oscillates in a
+handful of tiles for the remaining ~1985 rounds of a 2000-round game, never
+collecting cheese. That is the failure the user reported directly ("baby rats
+that tend to get stuck in one small region rather than moving freely to and
+from the cheese"), and it turns out to be the single most valuable behaviour
+in the bot.
+
+### The ablation program, complete
+
+| iteration | feature | headline claim when accepted | mirror (without it) | true value |
+|---|---|---|---|---|
+| 82 | King trap ring (Iter 48) | "0% → 7-10% vs `bench_finalist`" | **57.4%** | **harmful — removed** |
+| 83 | cheese-boosted bite (Iter 45) | rejected as "noise" | 46.3% | mildly helpful — kept |
+| 84 | emergency override (Iter 40) | **95.0%** | 48.1% | **~0 — inert** |
+| 85 | heading reassignment (Iter 32) | 75.0% | **22.2%** | **large and real** |
+
+Four features, four different answers: one harmful, one mildly helpful, one
+inert, one large. **The headline number at acceptance predicted none of
+them.** The feature sold at 95.0% is worth nothing; the one sold at 75.0% is
+worth ~28 points; the one credited with the session's only benchmark
+improvement was actively costing us; and one that had been formally rejected
+was mildly good.
+
+That is not four measurement accidents — it is what happens when every
+decision is made on instruments that cannot resolve the differences being
+claimed. The mirror can, because it is pinned at 50% by construction and
+plays both sides.
+
+### Where this leaves the bot
+
+`src/bot` is code-identical to `g_iter16` (comment-only diff), which is the
+Iteration 82 build: baseline minus the King trap ring. That is the session's
+one accepted change, and it is now the only one of these four features whose
+credit rests on a high-resolution measurement.

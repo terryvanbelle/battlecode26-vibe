@@ -1019,27 +1019,20 @@ public class RobotPlayer {
         }
         exploreLocTwoCallsAgo = exploreLocOneCallAgo;
         exploreLocOneCallAgo = here;
-        // Iteration 85: ABLATION of Iteration 32's heading reassignment.
+        // Iteration 85 (TRAINING_LOG.md): this reassignment is VALIDATED and
+        // is the single most valuable behaviour measured in the whole bot.
         //
-        // Iteration 32 was accepted at 75.0% on the peer set, and it was
-        // motivated by a concrete traced failure -- a rat spawned near a map
-        // corner with a preferred heading pointing straight at it reached the
-        // corner in ~15 rounds and then oscillated in a handful of tiles for
-        // the remaining ~1985 rounds of a 2000-round game, never once picking
-        // up cheese. It is also the change the user personally asked for
-        // ("baby rats that tend to get stuck in one small region").
+        // Ablating it and playing the version that has it scores **12/54 =
+        // 22.2%** on the mirror -- a ~28-point swing, the largest effect
+        // measured on that instrument in either direction, dwarfing the King
+        // trap ring (+7.4% to remove) and the cheese-boosted bite (~4%).
         //
-        // That makes it the most sympathetic candidate in this ablation
-        // program, which is exactly why it is worth measuring: a real traced
-        // bug and a 75% peer number are the same evidence profile that
-        // Iteration 40 had at "95.0%", and Iteration 40 turned out to be
-        // worth one game in 54.
-        //
-        // Ablating only the REASSIGNMENT, not the per-robot initial heading
-        // from Iteration 4 -- rats still fan out, they just never re-pick a
-        // heading after stalling.
-        final boolean EXPLORE_REASSIGN_ENABLED = false;
-        if (EXPLORE_REASSIGN_ENABLED && exploreStuckCycles >= 2) {
+        // Do not "simplify" this away. Without it a rat whose initial heading
+        // points at a nearby map edge reaches that edge in ~15 rounds and then
+        // oscillates in a handful of tiles for the rest of the game, never
+        // collecting cheese -- the failure the user reported directly, and
+        // the one traced in the Iteration 32 entry.
+        if (exploreStuckCycles >= 2) {
             Direction newDir;
             do {
                 newDir = ALL_DIRECTIONS[rng.nextInt(ALL_DIRECTIONS.length)];
