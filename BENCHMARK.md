@@ -38,13 +38,14 @@ Package renaming during vendoring was done mechanically
 | `bench_finalist` | `AlexT101/battlecode26` (`finalsbot`)   | Top 12 Finalist, Best Postmortem Award |
 | `bench_spaark`   | `erikji/battlecode26` (`SPAARK`)        | MIT Battlecode 2026 HS 4th |
 | `bench_stroke`   | `uravt/Battlecode26` (`Version41`)      | "Generalized Stroke's Theorem", 2nd place |
+| `bench_anicolao` | `anicolao/battlecode-2026` (`src/myplayer`) | requested addition; mid-tier -- we beat it |
 
 Chosen by directory name only (`finalsbot`, `SPAARK`, highest
 `VersionNN`) -- no inspection of contents.
 
 ## Running it
 
-    OPPONENTS="bench_lecture bench_finalist bench_spaark bench_stroke" \
+    OPPONENTS="bench_lecture bench_anicolao bench_finalist bench_spaark bench_stroke" \
         tools/gauntlet.sh
 
 Losing replays land in `gauntlet/<run>/losses/` and are the *only*
