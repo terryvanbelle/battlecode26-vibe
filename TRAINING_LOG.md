@@ -4817,3 +4817,40 @@ radius-2 zone is the smallest that can still cover a trap's actual trigger
 footprint. If the death reduction survives at a fraction of the economic
 cost, the trade becomes worth taking; if deaths snap back to 67, the effect
 needed the wide bubble and the whole line is a wash.
+
+---
+
+## Iteration 70 — trap-zone radius 8 → 2 — the dose was not a dose
+
+Benchmarks 4/162, and **162/162 games byte-identical to Iteration 69's
+radius-8 arm**. Changing the radius changed nothing at all.
+
+The reason is a mistake in how the dose was chosen, not in the strategy.
+`reportTrapIfHit` publishes *the rat's own tile* — where it was standing
+when it took 50 damage — and `avoidTrapZone` only ever tests the single
+**adjacent** tile the rat is about to step into, which sits at distance²
+1 or 2 from that point. Both radius 2 and radius 8 include d² ≤ 2, so the
+condition actually evaluated was identical in both arms. The radius only
+discriminates for tiles ≥3 away, and a one-step lookahead never asks about
+those.
+
+> **A parameter is only a dose if it changes the condition actually
+> evaluated.** Scaling a number that sits outside the tested range produces
+> a perfect null and looks exactly like "the mechanism is insensitive".
+
+Had I not run the arm-to-arm identity check and instead compared only
+against the control, "4/162 at both radii" would have read as a flat
+dose-response curve — evidence that the mechanism is real but insensitive
+to tuning. It is neither; the second arm was never a different bot.
+
+### Verdict on trap avoidance
+
+Rejected. The mechanism does what it claims — deaths 67 → 31, trap
+triggers 71 → 28 — but pays for it one-for-one in `cheeseTransferred`
+(2595 → 1200), because the traps sit on the lanes the cheese is on. There
+is no dial on this design that separates the two: the detour *is* the cost.
+Reverted to the control.
+
+A real alternative would have to buy back the ground rather than concede
+it — which is what the grab/throw system (#59) does, and that is the next
+line.
