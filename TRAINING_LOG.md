@@ -3430,3 +3430,46 @@ failure this project spent Iterations 28-40 fixing. So the one external
 bot we comfortably beat is one that shares both our toolkit *and* an
 economy bug we already solved, while the three that use the full toolkit
 beat us in under 50 rounds. The correlation is hard to miss.
+
+## Benchmark baseline for g_iter14 -- a hard wall at the tournament tier
+
+    vs bench_lecture     20/20  (100%)   official example bot
+    vs bench_anicolao    20/20  (100%)   earlier LLM-vibe-coded bot
+    vs bench_finalist     0/20    (0%)   Top 12 Finalist
+    vs bench_spaark       0/20    (0%)   MIT BC26 HS 4th
+    vs bench_stroke       0/20    (0%)   2nd place overall
+    -----------------------------------
+    overall              40/100  (40%)
+
+Not a gradient -- a **wall**. We win every single game against both
+non-tournament bots and lose every single game against all three
+tournament bots, typically inside 21-50 rounds. There is no map, no
+side, and no lucky game in the middle.
+
+**Two defensive attempts, both essentially inert.** Since losing the
+King is an instant loss, the obvious response was to defend it:
+
+1. *Reactive alarm* -- King broadcasts on slot 6 while taking damage,
+   nearby rats converge. Result: r21 / r50 / r39 vs. a r21 / r33 / r46
+   baseline. Noise.
+2. *Standing home guard* -- one rat in three never leaves a radius-6
+   ring around the King, so defenders are already in place. Result:
+   **r21 / r33 / r39 -- identical to baseline.**
+
+The second result is the informative one. A permanent third of the army
+parked on the King changes nothing, because the attackers arrive with
+7-10 rats using traps, stuns and throws, and a handful of plain-biting
+defenders is not a speed bump. **This is not a positioning problem and
+cannot be fixed by moving our existing units around** -- which is what
+every iteration this project has ever run amounts to.
+
+**The honest read.** Iterations 1-46 optimised movement, economy,
+targeting and thresholds within a fixed action set: move, bite, pick up,
+transfer, dig, build. The tournament bots use `PlaceTrap`, `RatNap` and
+`ThrowRat` constantly (14-27, 19-71, 9-36 respectively in the first 60
+rounds) and open with a coordinated King rush. Closing a 0/60 gap
+requires acquiring those mechanics and an opening plan, which is a
+rewrite of the combat layer, not another parameter iteration. Recorded
+as the project's central open problem rather than attempted as a quick
+fix -- and the benchmark now measures it honestly, which nothing before
+today could.
