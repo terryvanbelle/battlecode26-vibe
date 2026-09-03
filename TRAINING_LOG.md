@@ -7193,3 +7193,47 @@ unexplained and is now known NOT to be fixable through this gate:
 
 We still die to cats far more than opponents do at comparable attack volume.
 Whatever they do differently, it is not this threshold.
+
+## Analysis note — capability audit: what the bot has never once called
+
+Prompted by the Iteration 106 discovery. Replay tracing can only show what the
+bot DID, so every hypothesis it generates is a variation on existing
+behaviour; an entire unused capability never becomes a candidate. Diffing
+`RobotController.java` against `rc.` call sites in `RobotPlayer.java` takes a
+few minutes and found three major mechanics with zero call sites, plus the
+one already under test.
+
+**1. `becomeRatKing()` — under test as Iteration 106.** Opponent fields up to
+five kings, we have always had one, and the win condition is *all* kings dead.
+
+**2. `carryRat()` / `throwRat()` — and the opponents already use it.**
+`ThrowRat` appears in replays on the opponent side in games we lost:
+
+    g20_spaark_kf.txt   round 12  id11643(team1=bench_spaark,RAT) ThrowRat
+    spaark.txt          round 9   id10949(team2=bench_spaark,RAT) ThrowRat
+    round 17 same rat again
+
+`carryRat(loc)` grabs an ADJACENT robot, enemy included; `throwRat()` hurls it
+in the facing direction. With `THROW_DURATION = 4` and `TILES_FLOWN_PER_TURN =
+2` a thrown rat travels about eight tiles. Two distinct uses: launch our own
+rats at the enemy King far faster than they can walk, or grab an enemy rat --
+which removes it from play and, per the backstab attribution table in
+RULES.md, credits the grabber.
+
+**3. `squeak()` / `readSqueaks()` — a Baby Rat comms channel we do not have.**
+`readSqueaks(roundNum)` returns messages sent to this unit in the last five
+rounds. Every coordination attempt so far has gone through the shared array,
+which **only Rat Kings may write** -- that restriction caused the Iteration 80
+bug where Baby Rats threw `CANT_DO_THAT` and aborted their turns, and it is
+why Iteration 100's threat broadcast had to be King-side. Squeaks are the
+rat-to-rat channel that limitation implied we lacked.
+
+Remaining zero-call-site methods worth noting: `placeCatTrap` (consistent with
+the measurement that neither side places cat traps), `placeDirt` (walling),
+`getBackstabbingTeam`, and the `isActionReady`/`isMovementReady` family.
+
+**Why this took 105 iterations to notice.** I found it by counting `kings=` in
+the per-round team-stats line -- a field `ReplayDump` has printed all session.
+I had read past it hundreds of times because for us it was always `1`. The
+signal was not a number that moved; it was a number that never moved, beside
+an opponent's that did. Worth doing the same scan on every constant column.
