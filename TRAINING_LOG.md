@@ -6540,3 +6540,35 @@ it: **an instrument must both resolve the effect and pose the threat.** No
 single Gauntlet available here does both, so a change that survives the
 mirror still needs a benchmark reading before it is trusted, and the
 early-wipe rate is the counter that moves first.
+
+### The decisive measurement: the mirror has ZERO VARIANCE on the deciding counter
+
+    early-wipe rate (losses before round 100)
+
+    mirror, g_iter17 baseline      0/40  = 0%
+    mirror, all four accepts       0/24  = 0%
+
+    benchmarks, session control   25/157 = 16%
+    benchmarks, g_iter19          41/160 = 26%
+    benchmarks, + trap ring       21/159 = 13%
+    benchmarks, + reserve revert  21/158 = 13%
+
+**The counter that exposed the entire regression is identically zero on the
+mirror, in every build.** This is stronger than "low resolution" — a
+low-resolution instrument gives a noisy reading of the right quantity. Here
+the quantity does not vary at all, so no sample size, no dose-response and no
+identity check could ever have recovered it. The mirror is not a blurry view
+of King defence; it is blind to it.
+
+That is the precise statement of what went wrong today. I ranked instruments
+by resolution, which is the correct ranking *for effects the instrument can
+express*, and then applied it to an effect one instrument could not express.
+The fix is not to demote the mirror — it remains the only thing that can
+resolve a 4-game economic change — but to check, before trusting an ablation,
+whether the counter the feature protects has any variance on that instrument
+at all.
+
+**Concrete pre-flight check, cheap enough to always run:** before ablating a
+defensive feature, compute the relevant failure counter on the instrument you
+plan to use. If it reads 0 across builds, that instrument cannot answer the
+question, and the benchmark set — however coarse — is the only one that can.
