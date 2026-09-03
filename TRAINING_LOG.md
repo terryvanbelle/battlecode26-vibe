@@ -6572,3 +6572,67 @@ at all.
 defensive feature, compute the relevant failure counter on the instrument you
 plan to use. If it reads 0 across builds, that instrument cannot answer the
 question, and the benchmark set — however coarse — is the only one that can.
+
+---
+
+# Session outcome: four accepts, all reverted. Net bot change: zero.
+
+    build                                    benchmarks   early wipes
+    session control (g_iter15-equivalent)      5/162          16%
+    all four accepts (g_iter19)                2/162          26%
+    + King trap ring restored  (rev. 82)       3/162          13%
+    + reserve decay reverted   (rev. 92)       4/162          13%
+    + cap gate reverted        (rev. 88/90)    5/162          16%
+
+Reverting the last accept returns **exactly the control's score and its
+per-opponent breakdown** (finalist 4, spaark 0, stroke 1) and its identical
+16% early-wipe rate. `src/bot` is now functionally identical to the build the
+session started with.
+
+**All four accepts improved the mirror and peers and cost benchmark games.**
+Peers moved 60.2% → 71.3% and the real target moved 5/162 → 2/162. Every
+experiment was correctly run — controls on the same map set, arm-to-arm
+identity checks, dose curves with interior optima, mechanism checks in
+replays. The measurements were right; the instrument was wrong for the
+question.
+
+## What actually happened
+
+The mirror and peers are both our own lineage. They never rush the King
+(**0% early wipes, in every build**) and never punish a thin treasury. So on
+those instruments:
+
+- a defensive trap ring is pure cost → ablating it scores +7.4%
+- spending the King's survival buffer is free → decaying it scores +3
+- building more rats when rich is free → gating the cap scores +7.4
+
+All three are true statements about the game the mirror plays. The tournament
+plays a different game: 91% of benchmark losses end by King destruction, and
+the fastest are rounds 17-28.
+
+## What the session is actually worth
+
+No bot improvement. The output is methodological, and it is not small:
+
+- **`TRAINING_ALGORITHM.md` rewritten** around instruments-by-resolution, the
+  three cheap checks (arm-to-arm identity, per-round normalisation, timestamp
+  correlation), dose-response semantics, the ablation programme, trace-first
+  hypothesis finding, the post-accept routine, and now the representativeness
+  limit.
+- **`RULES.md` audited** against the engine; three real gaps closed (backstab
+  attribution asymmetry, score terms as accruing shares, the Kings-only
+  shared-array write that had silently broken Iteration 80).
+- **Six features ablated** and their true values measured for the first time:
+  the exploration-heading reassignment is worth ~+28 and `REPLACEMENT_RESERVE`
+  ~+24, while the feature accepted at a headline "95.0%" is worth ~0.
+- **The central lesson**, which cost the day to learn: *an instrument must
+  both resolve the effect and pose the threat, and no single Gauntlet here
+  does both.* The early-wipe counter is identically 0 on the mirror and moves
+  16→26→13 on benchmarks — not low resolution, zero variance.
+
+## What to do next, concretely
+
+Any future economic change must be measured on **both** the mirror (for
+resolution) and the benchmark set (for representativeness), with the
+early-wipe rate read alongside the win count. A change that improves the
+mirror and raises early wipes is a regression regardless of its mirror score.
