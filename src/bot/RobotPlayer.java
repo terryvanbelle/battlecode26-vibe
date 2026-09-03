@@ -495,8 +495,39 @@ public class RobotPlayer {
             // Baby Rats killed, none replaced fast enough) while our King
             // starved alone afterward with no economy left. Chase like
             // cat-engagement already does, instead of waiting to get lucky.
+            // Iteration 54 (TRAINING_LOG.md): **grab and throw enemy rats.**
+            // Benchmark replays show we lose the unit exchange 96 to 33 --
+            // a 3:1 slaughter -- which is why their army sits at 82-96
+            // against our 30, and therefore why their cat damage is 5x
+            // ours. Scoring is *share*-based, so removing their rats
+            // raises our `catDamage` share from both directions at once:
+            // fewer of their rats dealing damage, more of ours surviving
+            // to deal it. Unlike our own cat damage -- now a documented
+            // dead end, since a 4000 HP cat is unkillable at our contact
+            // volume -- an enemy rat has 100 HP and dies to ten bites.
+            //
+            // `carryRat` + `throwRat` is the tool they use and we never
+            // have: `THROW_DAMAGE=10` plus `THROW_DAMAGE_PER_TILE=4` over
+            // `THROW_DURATION=4`, and the landing applies a stun. At
+            // `THROW_RAT_COOLDOWN=20` it costs two bites' worth of time to
+            // both damage a rat and remove it from the fight, which is a
+            // far better trade than trading bites one for one while losing
+            // 3:1.
+            //
+            // Iteration 17 tried the nap mechanic and rejected it, but
+            // that was pre-benchmark against peers who also lacked it --
+            // the same regime error that made Iterations 15 (traps) and 18
+            // (multi-King) look wrong at the time.
+            if (rc.canThrowRat()) {
+                rc.throwRat();
+                return;
+            }
             RobotInfo enemy = nearestEnemyRat(rc, nearby);
             if (enemy != null) {
+                if (rc.canCarryRat(enemy.getLocation())) {
+                    rc.carryRat(enemy.getLocation());
+                    return;
+                }
                 if (rc.canAttack(enemy.getLocation())) {
                     rc.attack(enemy.getLocation());
                     return;

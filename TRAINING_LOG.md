@@ -3857,3 +3857,36 @@ The lesson is not "don't pre-register" -- pre-registration is what
 stopped the earlier 0/60 from being rationalised away -- but that a
 pre-registered rule is a commitment about *reasoning*, not a licence to
 skip verification when the number happens to land favourably.
+
+## Iteration 54 — grab and throw enemy rats (attacking the share, not our own damage)
+
+The insight that reframed the problem: **scoring is share-based.**
+`catDamage%` is ours/(ours+theirs), so reducing *their* damage raises our
+share exactly as much as raising ours. Our own cat damage is a
+documented dead end -- a 4000 HP cat is unkillable at our contact volume
+-- but their cat damage is produced by *their rats*, and an enemy rat
+has 100 HP and dies to ten bites. Twenty-odd iterations were spent
+trying to move the immovable number while the movable one sat next to it.
+
+The supporting measurement is stark: across a full game we lose
+**96 units to their 33** -- a 3:1 slaughter -- which is why their army
+holds at 82-96 against our 30, and therefore why their cat damage is 5x
+ours. One exchange ratio explains the entire cascade.
+
+`carryRat` + `throwRat` is the tool they use constantly and we never
+have (`THROW_DAMAGE=10`, `THROW_DAMAGE_PER_TILE=4`,
+`THROW_DURATION=4`, plus a stun on landing; `THROW_RAT_COOLDOWN=20`).
+Two bites' worth of time to damage a rat *and* remove it from the fight
+is a far better trade than swapping bites one-for-one while losing 3:1.
+Iteration 17 rejected the nap mechanic, but pre-benchmark against peers
+who also lacked it -- the same regime error as Iterations 15 and 18.
+
+**Result on the 10-map benchmark: 2/60 (3.3%)**, against a hard 0/60
+baseline, with the mechanism verified engaged and the exchange ratio
+improving from **2.9:1 to 2.4:1** (their losses 33 -> 39, ours 96 -> 94).
+
+Two wins still sits inside the measured noise floor, and unlike a
+threshold this mechanic has no dose to scale, so the usual
+dose-response is unavailable. Running the **full 27-map set (162
+games)** instead -- more maps is genuinely more information, unlike
+re-running identical deterministic games.
