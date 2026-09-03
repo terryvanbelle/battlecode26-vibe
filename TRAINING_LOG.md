@@ -7237,3 +7237,44 @@ the per-round team-stats line -- a field `ReplayDump` has printed all session.
 I had read past it hundreds of times because for us it was always `1`. The
 signal was not a number that moved; it was a number that never moved, beside
 an opponent's that did. Worth doing the same scan on every constant column.
+
+## Iteration 106 — second Rat King via becomeRatKing() — VOID (mechanism never fired)
+
+                          g_iter21        iter106
+    benchmark wins        7/162           7/162
+    early wipes           12/155 = 8%     12/155 = 8%
+    close-spawn wins      4/42            4/42
+    fastest losses        19,20,21,21,27  19,20,21,21,27   identical
+
+Byte-identical outcomes on every counter, including the exact list of fastest
+loss rounds. That is the signature of an arm that never differed, so the
+mechanism check was mandatory rather than optional:
+
+    bench_stroke__rift__botB, rounds 1-300
+        2:kings=1  in every sampled round      <- us, never upgraded
+        1:kings=2  in 5 of 16 sampled rounds   <- bench_stroke DOES upgrade
+        our BecomeRatKing actions: 0
+
+**VOID, not negative.** The task pre-registered exactly this: "if it never
+fires, the 3x3 condition is unreachable and the result is void rather than
+negative." Reverted rather than left in, since a `canBecomeRatKing()` call
+that never succeeds is pure bytecode cost on every rat every round.
+
+### Why it cannot fire, which was in the preconditions I read and under-weighted
+
+`assertCanBecomeRatKing` rejects the upgrade if **any rat king is in the
+3x3**. The only place seven of our rats are ever adjacent to one another is
+the spawn congestion around our own King -- and that cluster is disqualified
+by the King sitting in it. Everywhere else, rats have dispersed to collect
+cheese, deliberately: spreading out for cheese search has been the policy
+since Iterations 1-4, and Iteration 9's population cap exists specifically to
+*prevent* rats bunching up.
+
+So the capability is not merely unused, it is unreachable under our current
+movement policy. Making it fire is not a one-line call, it is a rallying
+behaviour: some rats must be told to gather at a point away from the King and
+wait there until eight are present.
+
+Also corrects a claim from the capability audit: `bench_stroke` upgrades too.
+The earlier two-replay check that showed only `bench_finalist` doing it was
+too small a sample.
