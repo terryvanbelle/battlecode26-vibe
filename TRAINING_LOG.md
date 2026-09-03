@@ -6214,3 +6214,53 @@ really is the binding constraint on those maps and the mechanism is confirmed
 by response rather than by inspection. If it inverts, 400 is near an interior
 optimum — also informative. If it is flat, the +3 was not about the reserve at
 all and the change should be re-examined before it is trusted.
+
+---
+
+## RULES.md audit, and a bug it exposed in Iteration 80
+
+Audited RULES.md against the vendored engine source. **The document is
+substantially accurate** — the per-type stats table, the HP-summing cap on
+King formation (`Math.min(health, 600)`), own-team trap immunity
+(`trap.getTeam() == this.robot.getTeam()` → skip), the King count limits, the
+cheese-carry cooldown penalty and the cooldown mechanics all check out
+against the source. The gaps were three things I got wrong *in practice*
+today, none of which the document had claimed incorrectly — it had simply
+not said them.
+
+Added:
+
+1. **Backstab attribution, which is not symmetric.** Bite and kidnap mark the
+   *actor*; a sprung rat trap marks the **trap's owner**
+   (`backstab(robot.getTeam().opponent())`). Walking into an enemy trap marks
+   *them*. Plus the consequence: the marked team is permanently barred from
+   cat traps while the victim keeps them 100 rounds.
+2. **Score terms are shares, and cat damage accrues per point dealt** — a cat
+   never has to die. This is the error that made `catDamage` look unreachable
+   for most of the project ("4000 HP, 10 per bite, therefore impossible"),
+   when `bench_finalist` earns ~9,700 per game from ~1,000 ordinary bites and
+   zero cat traps.
+3. **Only Rat Kings may write the shared array.**
+
+### The third item is a live bug I shipped
+
+`writeSharedArray` throws `CANT_DO_THAT` for a Baby Rat. **Iteration 80
+published enemy-King sightings from `runBabyRat`** — so every rat that saw an
+enemy King threw, and because the call sat inside the turn logic the
+exception propagated to the handler in `run()` and **aborted the rest of that
+rat's turn.**
+
+That invalidates Iteration 80's stated conclusion. I recorded it as "steering
+by sighting instead of the wrong mirror-guess changed 66 games and changed
+nothing, therefore the raid does not fail on aim." In fact the sighting was
+never published, the raiders still used the guess, and the 66 changed games
+were rats aborting their turns near enemy Kings. The aim was never fixed, so
+that experiment did not test what it claimed.
+
+The raid line's *verdict* still stands on other grounds — Iteration 81 cut
+the raider fraction and scored 3/162, and the economic cost was measured
+directly at −27% `cheeseTransferred` — but the specific inference from
+Iteration 80 is withdrawn.
+
+The code is not in the tree (the raid line was reverted), so there is nothing
+to fix in `src/bot`; the correction is to the record and to RULES.md.

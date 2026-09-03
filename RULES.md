@@ -30,6 +30,26 @@ Backstabbing is immediate and one-way for the rest of that game (resets to
 cooperation at the start of the next game in the match). There is no
 "un-backstabbing."
 
+**Who gets blamed is not symmetric, and it is not always the actor**
+(verified 2026-09-03 against `GameWorld`/`InternalRobot`; this cost real
+iterations before it was checked):
+
+| trigger | engine call | team marked as backstabber |
+|---|---|---|
+| bite a non-cat | `InternalRobot.bite` → `backstab(this.team)` | the **attacker** |
+| kidnap an enemy rat | `grabRobot` → `backstab(this.getTeam())` | the **grabber** |
+| a rat triggers a rat trap | `GameWorld.triggerTrap` → `backstab(robot.getTeam().opponent())` | the **trap's OWNER** |
+
+So walking into an enemy trap marks *them*, not you — and having your own
+trap sprung marks *you*. Only the first trigger of the game counts
+(`backstab()` is guarded by `if (this.isCooperation)`).
+
+**Consequence for cat traps:** `catTrapsAllowed(team)` is
+`isCooperation || (roundsSinceBackstab <= 100 && backstabber != team)`, so
+the team marked as backstabber is **permanently barred from placing cat
+traps** while the victim keeps them for 100 more rounds. Laying rat traps
+therefore risks forfeiting your own cat-trap access.
+
 **Win conditions:**
 - If **all of a team's Rat Kings** die at any point, that team **auto-loses**
   the game immediately (regardless of coop/backstab state) — *unless* both
@@ -51,6 +71,19 @@ cooperation at the start of the next game in the match). There is no
   (`%X` = this team's `X` divided by the sum of both teams' `X`; 0 if the sum
   is 0.) Tiebreakers in order: total global cheese, then total rats
   (baby+king) alive, then a uniform coin flip.
+
+**Every term is a SHARE, not an absolute**, and this has a consequence that
+is easy to get backwards: `%dmg_to_cats` accrues on *every point of damage
+dealt* via `TeamInfo.addDamageToCats`, so **a cat never has to die** for the
+damage to count. A cat has 4000 HP against `RAT_BITE_DAMAGE` 10, which makes
+killing one look impossible and the whole term look unreachable — it is not.
+Measured 2026-09-03: `bench_finalist` earns ~9,700 cat damage per game from
+~1,000 ordinary bites and **zero** cat traps, while placing 81 rat traps.
+Cat damage is won by biting volume, not by kills and not primarily by traps.
+
+Because the terms are shares, conceding one that is currently close costs up
+to its full weight, while conceding one already lost costs almost nothing —
+the same change can be right against one opponent and wrong against another.
 
 **Design implication:** a backstab decision is a first-class strategic axis
 distinct from anything in Battlecode 2022 — this project has no prior
@@ -133,7 +166,13 @@ above is unambiguous: `CAT.visionConeRadiusSquared = 17`. Trust `√17`.
   - **Dig/place dirt**: adjacent only, 5 cheese to dig (action CD 25), free
     to place.
 - **Rat King** — one per team at game start (up to 5 total, no new ones after
-  round 1200 if a team already has ≥2 living). 600 HP start (capped there
+  round 1200 if a team already has ≥2 living).
+  - **Only Rat Kings may write the shared array.** `writeSharedArray` throws
+    `CANT_DO_THAT` ("Only rat kings can write to the shared array!") for any
+    other type. This is easy to violate accidentally: a Baby Rat calling it
+    throws, and if the call sits inside the rat's turn logic the exception
+    propagates and **aborts the rest of that rat's turn**, which looks like a
+    behaviour change rather than an error. Baby Rats can still *read*. 600 HP start (capped there
   even if formed from more), move CD 40, turn CD 10, bytecode limit
   **20000**. 360° vision, radius `√25`. Consumes 2 cheese/round or takes 10
   damage if it can't. Can attack/place/dig/squeak like a baby rat (attack
