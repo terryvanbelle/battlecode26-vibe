@@ -277,7 +277,28 @@ public class RobotPlayer {
         // measured at ~+24 points and which stays exactly as is.
         final int MAX_POPULATION = rc.getGlobalCheese() > 1000 ? 40 : 25;
         final int BUILD_WINDOW_ROUNDS = 400;
-        final int REPLACEMENT_RESERVE = 1000;
+        // Iteration 92 (TRAINING_LOG.md): let the replacement reserve DECAY
+        // late, when a survival buffer is worth less than the rats it buys.
+        //
+        // Iteration 90's mechanism check located this. Closing the cap-gate
+        // dead band widened the cheese range only from 134 to 246 and left
+        // cheese hovering at ~900-1150 for the whole game, because **the
+        // hover point is set by this constant**: we build until we cannot
+        // afford to, so any reserve creates an equilibrium just above itself
+        // and moving other thresholds only shifts it slightly.
+        //
+        // The reserve cannot simply be lowered -- Iteration 87 ablated it and
+        // measured ~+24 points, the second-largest effect in the bot. But its
+        // JUSTIFICATION is time-dependent in a way the constant is not: it
+        // exists to keep the King alive through a future collapse, and after
+        // round 1200 there are at most 800 rounds of future left. A rat built
+        // then still collects for those 800 rounds; a hoarded 600 cheese does
+        // nothing unless the collapse actually arrives.
+        //
+        // Distinct from Iteration 40's emergency override, which tried to
+        // DETECT an emergency (`noVisibleArmy`) and measured inert at 48.1%.
+        // This is unconditional and predictable -- no detector to misfire.
+        final int REPLACEMENT_RESERVE = rc.getRoundNum() > 1200 ? 150 : 1000;
         if (rc.getRoundNum() - buildWindowStart >= BUILD_WINDOW_ROUNDS) {
             buildWindowStart = rc.getRoundNum();
             builtCount = 0;

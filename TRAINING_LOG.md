@@ -6178,3 +6178,39 @@ near-miss, not an accept.
 All four charts regenerated per the corrected routine: `vs_old_bots.png`
 (17 rows), `cumulative_iterations.png` (18 accepted iterations,
 `g_iter1..g_iter18`), `peer_win_spread.png` (57 runs).
+
+## Iteration 92 — decay `REPLACEMENT_RESERVE` after round 1200 — positive, mechanism ambiguous, dosing
+
+    reserve 400 after rd1200 vs g_iter18:  30/54 = 55.6%
+    peers:                                 77/108 = 71.3%  (baseline 76/108 = 70.4%)
+
+Primary clearly above 50%, peers flat-positive. By the letter of the accept
+criteria that is enough. I am dosing before accepting anyway, because the
+mechanism check did not confirm what it was supposed to.
+
+### The mechanism check disagreed with its own prediction
+
+Predicted: cheese after round 1200 should fall toward the new 400 floor.
+Measured on `keepout|A` (2000 rounds):
+
+    cheese BEFORE rd1200:  1121, 1909, 1120, 3065, 2067
+    cheese AFTER  rd1200:  4144, 3151, 5435, 2907, 5595
+
+Cheese *rises*. On that map we are **cap-bound, not reserve-bound** — sitting
+on 3000-5500 cheese with the population cap binding — so lowering the reserve
+cannot do anything there. Yet the run is +3 games overall, which means the
+gain comes from a different subset of maps: the ones where we are genuinely
+poor late.
+
+That is a real ambiguity, not a formality. A change can be +3 games for a
+reason unrelated to its stated mechanism, and this session has already
+produced four such cases (the trap ring, the emergency override, Iteration
+63, Iteration 78). Accepting on the win rate while the mechanism check points
+elsewhere is precisely the pattern that produced the retracted Iteration 63
+accept.
+
+So: dose it. `400 → 150` after round 1200. If the effect scales, the reserve
+really is the binding constraint on those maps and the mechanism is confirmed
+by response rather than by inspection. If it inverts, 400 is near an interior
+optimum — also informative. If it is flat, the +3 was not about the reserve at
+all and the change should be re-examined before it is trusted.
