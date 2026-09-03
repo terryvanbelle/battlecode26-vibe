@@ -593,7 +593,7 @@ public class RobotPlayer {
         // 0.3 -> 0.5. Given that scoring decides ~9% of games, that is a
         // trade worth making, and the livingKings side of it moves in our
         // favour anyway.
-        if (rc.getRoundNum() >= 120 && rc.getID() % 2 == 0 && rc.getRawCheese() == 0) {
+        if (rc.getRoundNum() >= 120 && rc.getID() % 4 == 0 && rc.getRawCheese() == 0) {
             RobotInfo enemyKing = nearestEnemyKing(rc, nearby);
             if (enemyKing != null) {
                 if (rc.canAttack(enemyKing.getLocation())) {

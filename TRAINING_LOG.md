@@ -5384,3 +5384,30 @@ enemy King publishes its location to shared-array slots 14/15, and raiders
 prefer that over the guess, falling back to the guess only while no King has
 ever been seen. This is BC22's accumulate-locally-publish-once census pattern
 and costs two writes only on turns when a King is in view.
+
+---
+
+## Iteration 80 — raid by sighting instead of guessing — no better
+
+Benchmarks **4/162**, identical total to Iteration 79 and below the 5/162
+control. 26/162 identical to control; **96/162 identical to Iteration 79**,
+so correcting the targeting genuinely changed 66 games and changed nothing
+about the outcome.
+
+That is informative: the raid does not fail because it aims at the wrong
+tile. Fixing the aim left the result exactly where it was. The measured cost
+— 27% of `cheeseTransferred` — is the whole story, and it is the same
+per-capita tax that sank trap avoidance and unrestricted throwing.
+
+### Iteration 81
+
+Apply the remedy that worked for throwing. Bounding *that* mechanism moved
+its economics from −53% to +5% per round; the analogous dial here is the
+raider fraction, so `rc.getID() % 2` becomes `% 4` — a quarter of the army
+instead of half, sighting retained.
+
+If a quarter still costs more than it returns, the King-rush direction is
+correct in principle (it is how 91% of games are decided) but unaffordable at
+our population, and the honest conclusion is that our army is too small to
+project force *and* run an economy — which is the same wall every line has
+hit this session.
