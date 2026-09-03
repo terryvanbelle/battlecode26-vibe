@@ -3651,3 +3651,34 @@ Marginal analysis behind `TARGET_KINGS = 2`: against an opponent holding
 (+5 points) for 7 rats; 2->4 buys a further +5 for 14 more rats. The
 later Kings cost double per point, in the exact currency that drives the
 component we are actually losing.
+
+## Iteration 51 REJECTED (inert), and multi-King rejected outright
+
+Capping Kings at 2 produced results **byte-identical** to uncapped
+Iteration 50 -- `finalist` 1026, `stroke` 495, `spaark` 512. An
+identical result means the cap never bound: in most games we were
+already forming fewer than 2 extra Kings, and the 4-King `spaark` game
+that motivated the whole line was a single outlier.
+
+That isolates the real conclusion: **the cost is King formation itself,
+not the number of Kings.** Even one extra King consumes 7 Baby Rats,
+and reverting King formation entirely (back to Iteration 48's
+traps-only state) restores the best benchmark numbers on record
+(r1250 / r748 / r703 vs. r1026 / r512 / r495). Multi-King is rejected on
+the benchmark despite winning the `livingKings` component exactly as
+designed -- winning a 0.3-weight term by spending the resource that
+generates the 0.5-weight one is a bad trade, and the measurement says so
+even though the mechanism worked.
+
+**Kept as a finding, not as code:** the census pattern (accumulator on
+slot 7, first-actor-per-round publishes to slot 8, first actor detected
+via a per-robot static) is implemented and correct, and is the only way
+this bot can ever know a live team-wide count -- there is no API for it.
+It is reverted along with the King logic since nothing currently
+consumes it, but it is recorded here because any future team-wide
+policy (population targets, role quotas, coordinated timing) needs
+exactly this and it took BC22's `LEARNINGS.md` to point at the pattern.
+
+**State restored to Iteration 48** -- traps only -- which remains the
+project's best result against tournament bots: survival r21-46 -> means
+of r703-1250 with r2000 reached on all three opponents, still 0/60 wins.
