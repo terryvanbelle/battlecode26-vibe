@@ -231,44 +231,7 @@ public class RobotPlayer {
         // discretionary spending: a committed investment (the opening army)
         // and a discretionary one (topping it back up) should not be gated
         // at the same bar.
-        // Iteration 60 (TRAINING_LOG.md): 25 -> 50. This cap, not the King's
-        // action budget and not cheese, is what actually limits our army.
-        //
-        // Note what it really caps: `builtCount` is BUILDS PER WINDOW (reset
-        // every BUILD_WINDOW_ROUNDS), not live population. Under attrition we
-        // spend the quota on replacements and then sit blocked with far fewer
-        // than 25 rats actually alive. The name misleads.
-        //
-        // Measured, on a game lost by both the control and Iteration 59
-        // (`pure_cooperator__hatefullattice__botB`, 2000 rounds = 5 windows,
-        // so a 125-build ceiling): both runs spawned **exactly 126**. Iteration
-        // 59 freed the King's actions (traps 23 -> 0, attacks 170 -> 5) and
-        // converted that into *zero* extra rats, because the cap was binding
-        // the whole time. Cheese was not the constraint either -- at round
-        // 1925 we were sitting on **10,797 cheese with 11 living rats**.
-        //
-        // The gap this opens against real opponents is severe:
-        //
-        //     hatefullattice  rd  550   bench_finalist 56 alive, us  6
-        //                     rd 1175   bench_finalist 61 alive, us  0
-        //     knifefight      rd   75   bench_finalist 25 alive, us  5  (King dies rd 77)
-        //
-        // and it is self-reinforcing: fewer rats -> less cheese collected ->
-        // cannot rebuild -> zero income. Our cheese hits 0 by round 1175 in
-        // the first game *because* the cap starved the collectors, which then
-        // looks like an economy problem rather than the cap that caused it.
-        //
-        // Deliberately the ONLY change in this iteration, and deliberately a
-        // dose (25 -> 50, with 75 to follow if 50 moves the number) rather
-        // than a rewrite -- the Gauntlet is deterministic, so scaling the
-        // mechanism is the way to tell a causal effect from noise.
-        //
-        // Evaluated primarily on the BENCHMARK set, inverting the usual
-        // preference for peers: `pure_cooperator` and `immediate_defector`
-        // are forks of this same file and carry the identical cap, so the
-        // peer Gauntlet is structurally blind here -- it handicaps both
-        // sides equally.
-        final int MAX_POPULATION = 50;
+        final int MAX_POPULATION = 25;
         final int BUILD_WINDOW_ROUNDS = 400;
         final int REPLACEMENT_RESERVE = 1000;
         if (rc.getRoundNum() - buildWindowStart >= BUILD_WINDOW_ROUNDS) {

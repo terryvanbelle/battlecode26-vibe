@@ -4330,3 +4330,70 @@ replacements. Iteration 60 raises it 25 → 50 as a dose, changing nothing
 else, and is evaluated primarily on the **benchmark** set — the peer bots
 are forks of this same file carrying the identical cap, so that Gauntlet is
 structurally blind to this change.
+
+---
+
+## Iteration 60 — MAX_POPULATION 25 → 50 — REJECTED, and it refutes the whole production thesis
+
+Benchmarks: **1/162** against a control of **5/162**. Worse.
+
+The mechanism fired exactly as designed. `tools/king_census.py` on
+`bench_finalist__hatefullattice__botB`, the same game in both runs:
+
+| window | rounds | spawn | alive | cheese | verdict |
+|---|---|---|---|---|---|
+| **control, cap 25** ||||||
+| 0 | 0-399 | 25 | 4 | 2306 | CAP-LIMITED |
+| 1 | 400-799 | 25 | 1 | 726 | CAP-LIMITED |
+| 2 | 800-1199 | 16 | 0 | 0 | cheese-limited |
+| **Iteration 60, cap 50** ||||||
+| 0 | 0-399 | **50** | **4** | 565 | CAP-LIMITED |
+| 1 | 400-799 | 22 | 0 | 35 | cheese-limited |
+| 2 | 800-1199 | 0 | 0 | 1 | cheese-limited |
+
+**We built twice as many rats in window 0 and ended it with exactly the same
+four alive.** The extra 25 rats died as fast as they were produced, and paid
+for it out of the treasury — cheese at the end of window 0 fell from 2306 to
+565, bringing bankruptcy forward a full window and ending the game with zero
+spawns in window 2.
+
+### This retires the production thesis behind Iterations 59 and 60
+
+Three iterations chased army size (59 freed the King's actions, 60 raised the
+cap) on the strength of a real and repeatedly-confirmed observation: the
+opponent fields 25-61 rats to our 4-6. That observation is correct. The
+inference from it was wrong.
+
+**`alive` is invariant at 4 across a 2× change in production.** Our rats are
+not scarce because we fail to build them; they die on contact at whatever
+rate we build them. Production was never the binding constraint on *army
+size* — survival is. Every lever pulled on the production side has now come
+back inert or negative:
+
+| iteration | lever | spawns | live rats | result |
+|---|---|---|---|---|
+| 59 | free the King's actions | 126 → 126 | — | worse both |
+| 60 | double the cap | 25 → 50 (window 0) | **4 → 4** | worse |
+
+The pattern across this whole session is one error repeated in three forms:
+**a correct measurement of a symptom, followed by a causal story that the
+measurement did not license.** The action census showed how the King spends
+its budget and I read it as scarcity. The population gap showed how many rats
+each side fields and I read it as a production shortfall. In both cases the
+number was right and the mechanism it implied was not, and in both cases the
+refutation came from a *counterfactual* measurement — change the input, see
+whether the output moves — rather than from more careful inspection of the
+original number.
+
+### Where this points
+
+Survival, not production. Supporting evidence already collected:
+
+- `knifefight`: we build 22 rats and have **5 alive** at round 75; the
+  opponent's 32 forward-placed traps stunned ours **27** times (they
+  triggered only 13 of ours), and each `RAT_TRAP` is 50 damage on a 100 HP
+  rat plus a **30-round** movement freeze.
+- `hatefullattice`: 88 `StunAction`s and 71 trap triggers against us.
+
+Building more rats to feed into that is what Iteration 60 tested, and it
+bought nothing. The next hypotheses must reduce the death rate.
