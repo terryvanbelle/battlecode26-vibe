@@ -4211,3 +4211,50 @@ Note this is a second instance of the pattern behind the cat-policy bug:
 a mechanism that measured as working (Iteration 48 did lift `bench_finalist`
 0% → 7-10%) while quietly paying a large cost elsewhere that no single-number
 win rate exposed.
+
+---
+
+## Iteration 57 — bite in-range cats before the delivery return — REJECTED
+
+Hoisted `nearestCat` above the cheese-delivery early return and took a free
+bite when a cat was already in range, to reach the cat policy that carriers
+could never reach (see the unreachable-branch finding above).
+
+| | control | Iteration 57 |
+|---|---|---|
+| peers, `immediate_defector` (54) | 36/54 = 66.7% | 36/54 = 66.7% |
+| peers, `pure_cooperator` (54) | 29/54 = 53.7% | **23/54 = 42.6%** |
+| **peers overall (108)** | **65/108 = 60.2%** | **59/108 = 54.6%** |
+
+−6 games is inside the ±9 noise band at this sample size, so the win rate
+alone would have been ambiguous. The mechanism check settled it — on two
+games present in both runs:
+
+| game | our catDamage | our `RatAttack` |
+|---|---|---|
+| `immediate_defector__dirtfulcat__botB` | 2496 → **1150** | — |
+| `immediate_defector__closeup__botB` | 1338 → **780** | 258 → **179** |
+
+**Adding an extra attack made us attack less and deal less cat damage.**
+That is an inversion, not noise, and per the dose-response rule an inverted
+effect rejects the approach rather than retuning it.
+
+### Why — and it is the same hazard the iteration was fixing
+
+The code comment claimed this change "changes no positioning at all",
+distinguishing it from the three failed hunting iterations. **That was
+wrong.** Spending the action at the top of the turn flips which branch runs
+later: by the time the rat reaches the cat block, `rc.canAttack()` is now
+false, so it skips the attack-and-return path and falls through into the
+`engage`/`flee` **movement** path instead. An early action silently
+rewrote downstream control flow — the same class of bug as the unreachable
+branch it was meant to repair, in the opposite direction.
+
+Generalised rule: in a turn function built from `if (...) return;` stages,
+**consuming a resource early is never local** — it changes which later
+stages fire. Check the branch conditions downstream of any new action, not
+just the action's own cost.
+
+The underlying measurement stands and is not retracted: we deal 14.6% of
+all cat damage, and `bench_finalist` bites cats ~1015 times a game to our
+57. The diagnosis was right; this particular repair was not.
