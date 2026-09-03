@@ -6150,3 +6150,31 @@ tried to detect an emergency and measured inert.
 
 Peers have moved 60.2% → 70.4% across the three. Every one is *relieve a
 degenerate state*; none adds a tactic.
+
+### Iteration 90 on vs_old_bots — down 3 games, and worth stating plainly
+
+    g_iter18: 46/54 = 85.2% vs g_iter1, 46/54 = 85.2% vs g_iter11
+    overall 92/108 = 85.2%   (g_iter17 was 95/108 = 88.0%)
+
+Three games worse. The accept stands — the two even instruments both
+improved, and `vs_old_bots` is a lopsided matchup at ~85-88% where three
+games is inside the resolution floor established earlier today. But it is
+the one instrument that moved against this change, and burying that would be
+exactly the error I made accepting Iteration 63 on a story rather than the
+numbers.
+
+For the record, all four instruments on Iteration 90:
+
+| instrument | matchup | baseline | Iteration 90 | weight |
+|---|---|---|---|---|
+| `g_iter17` mirror | **even** | 50% | **53.7%** | primary |
+| peers | **even** | 67.6% | **70.4%** | regression check |
+| `vs_old_bots` | lopsided (~88%) | 95/108 | 92/108 | direction only |
+| benchmarks | lopsided (~3%) | — | not run | direction only |
+
+If the two even instruments had disagreed with each other, this would be a
+near-miss, not an accept.
+
+All four charts regenerated per the corrected routine: `vs_old_bots.png`
+(17 rows), `cumulative_iterations.png` (18 accepted iterations,
+`g_iter1..g_iter18`), `peer_win_spread.png` (57 runs).
