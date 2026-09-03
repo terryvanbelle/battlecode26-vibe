@@ -2834,3 +2834,64 @@ them useful as a roster:
 Both compile clean against the engine.
 
 Re-measurement against the corrected roster follows.
+
+---
+
+## CORRECTION: the 95.0% was inflated. Honest re-measurement is 62.5% -- and neither number means what it looks like.
+
+Re-ran `g_iter14` against the re-synced roster
+(`gauntlet/20260902-235707/`): **25/40 (62.5%)**, not 95.0%.
+`pure_cooperator` 90%->**50%**, `immediate_defector` 100%->**75%**.
+The 95.0% reported for Iteration 40 was substantially stale-opponent
+inflation and **should not be quoted**.
+
+**But 62.5% is not "the bot got worse," and 50% is not a weak result.**
+Diffing `src/bot/` against the re-synced `pure_cooperator`, ignoring
+comments, they now differ by **8 lines of code** -- the desperation
+latch and one conditional. On any map where a backstab never triggers
+they are the *same bot*. A ~50% win rate against a near-identical
+opponent is what the arithmetic requires, independent of how strong
+either bot is.
+
+**This exposes a real flaw in how the peer roster has been read all
+along.** Sharing `src/bot/`'s economy/movement code was a deliberate
+choice so the archetype isolates *backstab policy* as the only variable
+-- a clean controlled experiment. The consequence, never previously
+stated, is that the resulting win rate measures **policy advantage
+only**, centred on 50%, and cannot measure absolute strength at all. So:
+
+- **Stale archetypes** -> inflated absolute-looking numbers (what
+  happened twice).
+- **Perfectly synced archetypes** -> ~50% by construction (what we have
+  now).
+- Neither is a progress metric. Both were being read as one.
+
+**The metric that was right all along is vs-old-bots**, against frozen
+`g_iterN` snapshots that genuinely cannot drift:
+
+    vs g_iter1    g_iter12 80%  -> g_iter13 85%  -> g_iter14 95%
+    vs g_iter11   g_iter12 70%  -> g_iter13 90%  -> g_iter14 100%
+
+Clean, monotonic, large gains on fixed references. **Iterations 39 and
+40 were real improvements** -- that conclusion survives the correction
+intact; only the *magnitude* claimed from the peer roster was wrong.
+This is also why the user's catch about the every-10th old-bot roster
+mattered so much: without `g_iter11` in it, the one uncontaminated
+progress signal would have been a single data point.
+
+**Reinterpretation going forward** (no code change, a reading change):
+- `progress/vs_old_bots.png` is the **progress** metric. Quote this.
+- The peer Gauntlet is a **policy/regression** check: ~50% vs.
+  `pure_cooperator` is the healthy expected value; a drop meaningfully
+  *below* 50% is a genuine regression signal, and the
+  `immediate_defector` number says our policy beats always-defecting
+  (75%).
+- The new baseline for diffing is `gauntlet/20260902-235707/` at 62.5%.
+
+**Methodology lesson:** an opponent that shares almost all of the
+bot's code is a *controlled experiment*, not a benchmark, and its
+absolute win rate is close to meaningless. The staleness bug was real
+and worth fixing, but fixing it also removed the accidental
+benchmark-like behavior that made the peer numbers *look* informative.
+Two different measurements were being conflated under one number for
+most of this project's history.
