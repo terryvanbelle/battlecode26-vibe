@@ -6636,3 +6636,54 @@ Any future economic change must be measured on **both** the mirror (for
 resolution) and the benchmark set (for representativeness), with the
 early-wipe rate read alongside the win count. A change that improves the
 mirror and raises early wipes is a regression regardless of its mirror score.
+
+## Iteration 99 — ACCEPTED. King attacks below the build. (This is Iteration 77, re-judged.)
+
+| instrument | control | Iteration 99 |
+|---|---|---|
+| **benchmark early wipes** (primary) | 16% (25/157) | **14% (22/157)** |
+| early wipes fixed / added | — | **3 fixed, 0 added** |
+| benchmark wins | 5/162 | 5/162 |
+| mirror vs `g_iter15` | 50% by construction | **50.0%** |
+| fastest loss | round 17 | round **20** |
+
+Snapshotted as `src/g_iter20`.
+
+### The trace that found it
+
+`bench_stroke__knifefight__botB`, a 17-round loss:
+
+    rounds  them                            us
+    1-5     SpawnAction every round         SpawnAction x4
+    6-17    SpawnAction + RatAttack x3-6    RatAttack x1, nothing else
+    17      -                               our King dies
+
+They spawn **16** rats in 17 rounds; we spawn **4** and then stop. From round
+6 our only action each round is a single `RatAttack` — the King swinging
+instead of building, because `attackNearestHostile` ran before the build and a
+King has one action per turn. **The moment an enemy arrives, production
+halts.** Same signature on `thunderdome`: spawns every round 1-5, then rounds
+6-13 are attack-only while the opponent spawns every round (36 to our 22).
+
+### Why this was rejected once already
+
+**Iteration 77 made this exact change today and I called it inert** — 5/162
+wins, unchanged. I never looked at the early-wipe rate. Its census even showed
+King spawns rising 22 → 25 on `knifefight`, which I dismissed as "hits the
+cap, +3 rats, not enough to matter." In a 17-round game the cap is irrelevant
+and three extra rats early is the entire game.
+
+So the same code, measured against a counter that is upstream of 91% of these
+losses and that actually varies on this instrument, is an improvement. The
+diff is one-directional — 3 early wipes fixed, none added, across 44 changed
+games — which is the shape the algorithm calls causal rather than chance.
+
+### What made the difference
+
+Not a better idea; a better instrument choice. Today's sequence on this one
+change: accepted-then-retracted on the mirror (Iteration 63 pattern), rejected
+as inert on benchmark *wins* (Iteration 77), accepted on benchmark *early
+wipes* (Iteration 99). The mechanism never changed. **Choosing the counter is
+as consequential as choosing the change**, and the counter to choose is the
+one that is upstream of how the games are actually lost and that has variance
+on the instrument that poses the threat.
