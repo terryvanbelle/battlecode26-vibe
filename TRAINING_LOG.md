@@ -6063,3 +6063,41 @@ This is the second degenerate state caused by two independently-reasonable
 constants interacting, and the third found by tracing rather than theorising.
 
 Iteration 91 doses the gate to 600 to see whether the effect scales.
+
+### Process fix — the cumulative-iterations chart was being skipped
+
+User instruction: *"please remember to regenerate cumulative-iterations graph
+after every accept."* Correct, and I had not been. After each accept today I
+regenerated `vs_old_bots.png` and `peer_win_spread.png` but not
+`cumulative_iterations.png`, which sat stale at 02:27 while Iterations 82 and
+88 were accepted. Now regenerated: 17 accepted iterations, `g_iter1..g_iter17`.
+
+The post-accept routine is four commands, not three, and the ordering matters
+— `plot_progress.py` reads the `src/g_iterN/` directories, so it is only
+correct once the new snapshot exists:
+
+    tools/.venv/bin/python3 tools/track_vs_old_bots.py gauntlet/<run-id>/
+    tools/.venv/bin/python3 tools/plot_vs_old_bots.py
+    tools/.venv/bin/python3 tools/plot_progress.py        # <-- was being skipped
+    tools/.venv/bin/python3 tools/plot_alt_metrics.py
+
+Recorded in the standing memory note so it survives the session.
+
+## Iteration 91 — dose the gate to 600 — inverted; optimum is interior
+
+    gate  600 vs g_iter17:  22/54 = 40.7%
+    gate 1000 vs g_iter17:  29/54 = 53.7%
+    gate 1200 (g_iter17)  :  50% by construction
+
+A clean interior optimum at 1000. Dropping the gate to 600 is actively
+harmful — building down that far strips the survival reserve, which is the
+same mechanism that made Iteration 60's flat cap bankrupt us.
+
+The non-monotone shape matters for interpreting Iteration 90. On its own,
++2 games at gate 1000 is marginal enough to dismiss; as the peak of a curve
+that falls away on *both* sides (50% at 1200, 53.7% at 1000, 40.7% at 600) it
+is structure rather than noise. This is the reading that the corrected
+dose-response rule makes available — measure the arms around a candidate
+rather than treating one number as the verdict.
+
+Peer regression check on gate 1000 running.

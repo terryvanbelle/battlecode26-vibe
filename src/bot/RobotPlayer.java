@@ -275,7 +275,7 @@ public class RobotPlayer {
         // afford to build at all, we build against the higher cap. This does
         // not touch REPLACEMENT_RESERVE itself, which the ablation program
         // measured at ~+24 points and which stays exactly as is.
-        final int MAX_POPULATION = rc.getGlobalCheese() > 600 ? 40 : 25;
+        final int MAX_POPULATION = rc.getGlobalCheese() > 1000 ? 40 : 25;
         final int BUILD_WINDOW_ROUNDS = 400;
         final int REPLACEMENT_RESERVE = 1000;
         if (rc.getRoundNum() - buildWindowStart >= BUILD_WINDOW_ROUNDS) {
