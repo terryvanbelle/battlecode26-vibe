@@ -6400,3 +6400,55 @@ So of the three loss buckets against the mirror: **A is unrecoverable once it
 happens, B is largely symmetric, and the points-losses turn on a cat-damage
 share that is mostly positional.** That is a reasonable place for the session
 to have arrived — the remaining losses are not obviously defects.
+
+---
+
+## g_iter19 on the benchmark set — 2/162. The session's accepts do not transfer.
+
+| instrument | control (start of session) | g_iter19 (4 accepts) |
+|---|---|---|
+| `g_iter<latest>` mirror | 50% by construction | 53.7-57.4% per step |
+| peers | 65/108 = 60.2% | **77/108 = 71.3%** |
+| **benchmarks** | **5/162** | **2/162** |
+| early wipes (< rd 100) | 25/157 = 16% | **41/160 = 26%** |
+
+Four accepts improved our own lineage by ~11 points on peers and made us
+**measurably worse against real MIT tournament entries**, with early King
+wipes up by more than half.
+
+This is the third branch of the reading I pre-registered before running it:
+*"the accepts may be overfitting to the mirror, which would be worth
+investigating before continuing the same method."* Taking that seriously.
+
+### The likely cause, and the tension it exposes
+
+All four accepts were economic — build more rats when rich, spend the reserve
+later, and (Iteration 82) **remove the King's defensive trap ring**. On the
+mirror and against peers those are free, because *nobody rushes the King
+there*: 0% of mirror losses are early wipes. Against tournament bots, 91% of
+games are decided by King destruction and they rush from round 6.
+
+So Iteration 82's ablation was correctly measured and wrongly generalised.
+The trap ring is worthless on instruments where the King is never attacked
+early, and its original benchmark credit (`bench_finalist` 0% → 7-10%) may
+have been real all along. I dismissed that as "measured on an instrument that
+cannot resolve ±2 games" — true of the *resolution*, but the instrument was
+the only one exhibiting the threat the feature defends against.
+
+**Resolution and representativeness are different properties, and I traded
+the second for the first.** The mirror is pinned at 50% and plays both sides,
+so it resolves small effects — but it cannot measure a defence against a
+behaviour it does not contain. A feature can be genuinely inert on every even
+matchup available and still matter against the actual opponent.
+
+That is a sharper statement of the earlier "peers and benchmarks play
+different games" finding, and it cuts the other way: I used that finding to
+justify trusting the even instruments, and it equally implies they are blind
+to threats their opponents never pose.
+
+### Immediate test
+
+Restoring the King trap ring (`KING_TRAPS_ENABLED = true`) on top of the
+other three accepts and measuring benchmarks directly. If it recovers toward
+5/162, Iteration 82 is the regression and should be reverted regardless of
+its mirror score.

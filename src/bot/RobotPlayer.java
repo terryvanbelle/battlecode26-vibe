@@ -386,7 +386,7 @@ public class RobotPlayer {
         // Ablation rather than another new mechanism, because the session's
         // failures were mostly new mechanisms and its findings were mostly
         // measurements. This checks an assumption several conclusions rest on.
-        final boolean KING_TRAPS_ENABLED = false;
+        final boolean KING_TRAPS_ENABLED = true;   // Iteration 96: restore, see benchmark regression
         boolean placedTrap = false;
         if (KING_TRAPS_ENABLED && builtCount >= 5 && !lastBuildWasTrap && rc.getGlobalCheese() > RESERVE + 100) {
             MapLocation trapSpot = findTrapLocation(rc);
