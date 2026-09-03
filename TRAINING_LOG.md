@@ -7150,3 +7150,46 @@ engagement, not less -- exactly the shape of the trap ratio, where Iteration
 Iteration 105 therefore lowers the threshold rather than raising it: a rat
 keeps closing until 10 HP instead of 30. Dose 80 is NOT worth running -- it
 is further along the direction already measured as harmful twice.
+
+## Iteration 105 — engage cats longer (gate 30 -> 10) — REJECTED, parameter CLOSED
+
+    g_iter21 mirror:  27/54 = 50.0%
+
+Exactly inert. Reverted. The full dose curve is now:
+
+    cat engagement                     mirror
+    abstain entirely   (Iter 103)      38.9%
+    disengage at 60 HP (Iter 104)      48.1%
+    disengage at 30 HP (inherited)     50.0% by construction
+    disengage at 10 HP (Iter 105)      50.0%
+
+Monotone rising to 30, then FLAT. The inherited value sits on a plateau, so
+**the cat-engagement threshold is closed** -- no further dose is worth a run,
+in either direction.
+
+**Why the high dose was inert, which the arithmetic predicts in hindsight.**
+`CAT_SCRATCH_DAMAGE` is 20 against 100 HP, so a rat's health from cat damage
+is always a multiple of 20: 100, 80, 60, 40, 20. `> 30` engages at 100/80/60/40
+and stops at 20; `> 10` engages at those plus 20. The dose therefore moved
+exactly ONE health band, and a rat at 20 HP is dead to the next scratch
+whether it approaches or flees. It did change the evaluated condition -- so it
+was a legitimate dose, not the Iteration 70 mistake of an arm that never
+differed -- but it could only ever have moved a sliver.
+
+That check was available before the run: enumerate the discrete states the
+threshold can separate, not just the numeric gap between arms. A parameter
+whose input is quantised to multiples of 20 has only five reachable settings,
+and 60/30/10 already sampled three of them.
+
+### The cat question, settled
+
+Three iterations, one conclusion. Cat engagement is worth **~+11 points** and
+is the second-most valuable behaviour measured in this bot, but its threshold
+is already optimal. The remaining oddity from the mechanism baseline stands
+unexplained and is now known NOT to be fixable through this gate:
+
+    dirtpassageway   cat kills ours 6, theirs 1   RatAttacks 14 vs 15
+    peaceinourtime   cat kills ours 6, theirs 2   RatAttacks 35 vs 2
+
+We still die to cats far more than opponents do at comparable attack volume.
+Whatever they do differently, it is not this threshold.
