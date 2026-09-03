@@ -6877,3 +6877,65 @@ opening, not less -- dose 0.5, so to speak. That is Iteration 102.
 decided on points. Close and far maps do not differ in HOW we lose, only
 WHEN: every close-spawn loss is over before round 500, while 61% of far
 losses run 500-1999.
+
+## Analysis note — a 300-round production blackout in every far-map game
+
+Measured with `tools/king_census.py --window 100` on five far-map losses from
+the g_iter20 benchmark run, chosen to span the loss-round range (475, 521,
+705, 970, 2000) and three different opponents. The shape is identical in all
+five:
+
+    game (far map)        alive at rd 99/199/299/399   cheese rd400   rd400 burst
+    peaceinourtime         25 / 20 / 18 / 14              1263            6
+    whatsthecatdoin        25 / 22 / 19 / 18               490            1
+    dirtpassageway         20 /  4 /  1 /  0               130            0
+    corridorofdoomand...   18 /  5 /  2 /  1               715            7
+    minimaze               23 / 20 / 20 / 15              1636           15
+
+**Zero King spawns in rounds 100-399 in all five games.** Window 0 is
+CAP-LIMITED in all five -- 25 rats built in the first ~25 rounds, the
+proven-good opening burst -- and then nothing at all for three hundred rounds
+while the army decays by 30-100%.
+
+Two throttles interact to produce it:
+
+1. `builtCount` is cumulative-ever-built and the cap is `MAX_POPULATION = 25`,
+   so once the opening burst finishes we are locked out of replacing any loss.
+2. The lock is only released when the budget refreshes, and
+   `BUILD_WINDOW_ROUNDS = 400`.
+
+Iteration 38 identified defect 1 and fixed it *partially* by adding the window
+refresh. The 400 was never justified or tuned -- exactly like the 1:1 trap
+ratio Iteration 101 examined, it was chosen once and then inherited by every
+iteration since.
+
+**The second half of the interaction is worse than the first.** The refresh
+also latches `replacementMode = true`, which raises the bar from
+`RESERVE = 150` to `REPLACEMENT_RESERVE = 1000`. So the replacement window
+opens at round 400 -- and by round 400 the economy has usually decayed below
+the reserve it must now clear, because the economy decays *because* the army
+decayed. `whatsthecatdoin` reaches round 400 with 490 cheese and builds one
+rat; `dirtpassageway` reaches it with 130 and builds none, having already
+been at zero rats since round 300. The window opens exactly when we can no
+longer afford to use it.
+
+Where it does not bite, we survive: `minimaze` holds 1636 cheese at round
+400, builds 15, recovers to 23-28 rats and is one of only 14 games in the set
+that reaches round 2000.
+
+### Why this is not Iterations 88/90/92 again
+
+Those raised `MAX_POPULATION` (88/90) and decayed `REPLACEMENT_RESERVE` (92).
+All three were accepted on the mirror and peers and then reverted for costing
+benchmark games, so both of those constants are now defended by benchmark
+evidence and should be left alone. `BUILD_WINDOW_ROUNDS` is a third,
+untouched constant, and it is the one that sets the *duration* of the
+blackout rather than its depth. Shortening it is also the opposite direction
+from Iterations 28-31/34/37, which all tried to SLOW the King and all made
+things worse.
+
+Next: Iteration 103, dose `BUILD_WINDOW_ROUNDS` 400 -> 150, after Iteration
+102 resolves. Expected mechanism: refreshes at 150 and 300 while cheese is
+still ~1100-1200, which buys 2-3 rats each time against the 1000 reserve --
+turning 25 -> 14 into roughly 25 -> 19. Modest by construction, because the
+reserve stays where the benchmark evidence put it.
