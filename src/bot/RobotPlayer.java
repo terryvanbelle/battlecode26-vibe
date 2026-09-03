@@ -104,6 +104,20 @@ public class RobotPlayer {
         // x/y+1 (0 = not yet computed).
         final int RESERVE = 150;
         boolean desperate = economyStruggling && rc.getGlobalCheese() < RESERVE;
+        // Iteration 79 (TRAINING_LOG.md): publish the enemy-King guess
+        // ALWAYS, not only when desperate.
+        //
+        // The guess computation below already existed but was reachable only
+        // through the `desperate` branch -- i.e. only once our economy had
+        // already collapsed. Raiders need it from the opening, and writing
+        // two shared-array slots is a King-side action that costs no rat
+        // turns at all.
+        if (rc.readSharedArray(3) == 0) {
+            int gx = rc.getMapWidth() - 1 - rc.getLocation().x;
+            int gy = rc.getMapHeight() - 1 - rc.getLocation().y;
+            rc.writeSharedArray(3, gx + 1);
+            rc.writeSharedArray(4, gy + 1);
+        }
         if (desperate) {
             rc.writeSharedArray(2, 1);
             if (rc.readSharedArray(3) == 0) {
@@ -128,30 +142,7 @@ public class RobotPlayer {
             }
         }
 
-        // Iteration 77 (TRAINING_LOG.md): the King's attack moved BELOW the
-        // build attempt. Trap-laying is deliberately left exactly where
-        // Iteration 48 put it -- this iteration changes ONE thing.
-        //
-        // Iteration 59 moved the attack, deleted the King trap branch, and
-        // handed trap-laying to Baby Rats all at once, and was rejected on
-        // both instruments. Its post-mortem showed the population cap, not
-        // the King's actions, was binding on the long maps -- kingSpawn was
-        // 126 in both arms. But the short rush maps are a different regime:
-        // on `knifefight` (77 rounds) the King spent 68 actions as 22 spawns
-        // / 18 traps / **28 attacks**, with 1685 cheese banked and only 22 of
-        // a 25-cap used. There, neither cheese nor the cap was binding and
-        // the action budget genuinely was.
-        //
-        // So the attack reorder is the one component of Iteration 59 that had
-        // evidence behind it, and it was never tested alone. Iteration 48's
-        // traps are the only change all session that moved a benchmark line
-        // (bench_finalist 0% -> 7-10%), which is why they stay.
-        //
-        // This is also the right SHAPE of change given the session's central
-        // finding: rat-turn mechanisms are priced per capita and we field
-        // 4-8 rats late, so they halve our economy. The King is a single unit
-        // whose turns are not the economic bottleneck -- reordering its
-        // priorities costs no cheese collection at all.
+        attackNearestHostile(rc, desperate);
 
         // The King never moved at all in the first cut of this iteration.
         // Cats patrol fixed, map-specific waypoints (RULES.md), so a King
@@ -254,28 +245,7 @@ public class RobotPlayer {
         // discretionary spending: a committed investment (the opening army)
         // and a discretionary one (topping it back up) should not be gated
         // at the same bar.
-        // Iteration 78 (TRAINING_LOG.md): CHEESE-GATED population cap.
-        //
-        // Two prior results only make sense together. Iteration 60 raised
-        // this constant flat, 25 -> 50, and scored 1/162: on the long maps
-        // the extra builds drained window-0 cheese from 2306 to 565 and
-        // brought bankruptcy forward a whole window, while live rats stayed
-        // at exactly 4. Raising the cap when CHEESE is the real binder just
-        // spends the treasury faster.
-        //
-        // But Iteration 77 (King attacks moved below the build) put the short
-        // rush maps into the opposite state. On `knifefight` the King now
-        // spends its freed actions building -- spawns 22 -> 25, attacks
-        // 28 -> 1 -- and `tools/king_census.py` reports the window
-        // **CAP-LIMITED with 1605 cheese still banked**. There the cap is
-        // binding and the money to relieve it is sitting unused.
-        //
-        // So neither constraint is universal: cheese binds late and on long
-        // maps, the cap binds early and on short ones. Gate the extra
-        // capacity on the treasury actually being deep, so it opens exactly
-        // where Iteration 60 was wrong to open it and stays shut where
-        // Iteration 60 went bankrupt.
-        final int MAX_POPULATION = rc.getGlobalCheese() > 1200 ? 40 : 25;
+        final int MAX_POPULATION = 25;
         final int BUILD_WINDOW_ROUNDS = 400;
         final int REPLACEMENT_RESERVE = 1000;
         if (rc.getRoundNum() - buildWindowStart >= BUILD_WINDOW_ROUNDS) {
@@ -355,12 +325,6 @@ public class RobotPlayer {
             // game, for either team, on this map specifically. Dig out.
             digTowardOpenSpace(rc);
         }
-
-        // Iteration 77: only now, having already tried to build, spend the
-        // King's action on defence. A King bite is RAT_BITE_DAMAGE 10; a Baby
-        // Rat is worth far more than that, so production outranks biting
-        // whenever both are possible.
-        attackNearestHostile(rc, desperate);
 
         rc.setIndicatorString("king cheese=" + rc.getGlobalCheese()
                 + (nearestCat != null ? " cat@" + nearestCat.getLocation() : ""));
@@ -574,9 +538,80 @@ public class RobotPlayer {
             }
         }
 
+        // Iteration 79 (TRAINING_LOG.md): RAID the enemy King.
+        //
+        // This targets how these games are actually decided, which the
+        // session had been ignoring. Looking at the games we WIN rather than
+        // the ones we lose: all five control wins end with "destroyed all of
+        // the enemy team's rat kings", at rounds 183, 456, 545, 560 and 609 --
+        // **none reaches round 2000**. The loss census agrees from the other
+        // side: only 14 of 157 losses (9%) reach round 2000.
+        //
+        // So `catDamage`, `livingKings` and `cheeseTransferred` decide roughly
+        // **one game in eleven**, which is why a run of demonstrably-working
+        // changes never converted: trap avoidance cut deaths 67 -> 31 (4/162),
+        // opening throws lifted cheese/round 5% (5/162), the King rally raised
+        // cheese to 3631 and stretched the game to round 1425 (1/162). All
+        // optimised quantities that almost never decide the outcome.
+        //
+        // And we have never had ANY code targeting the enemy King -- rats
+        // engaged enemy rats only reactively, gated on
+        // `!rc.isCooperation() || desperate`.
+        //
+        // Timing is tight: `bench_finalist` reaches 2 Kings at round 125, 3 at
+        // 325, 4 at 375, 5 at 825, and our wins all land at rounds 183-609,
+        // i.e. while they still have few Kings. Every ~200 rounds of delay
+        // adds another 600 HP King that must also die. `RAT_KING.health` 600
+        // against `RAT_BITE_DAMAGE` 10 is ~60 bites per King.
+        //
+        // Only HALF the rats raid (even IDs), and only from round 120, once
+        // the opening build burst has produced bodies. That split is forced by
+        // the per-capita finding: sending every rat would gut the economy the
+        // way trap avoidance and unrestricted throwing did. `rc.getID()` is
+        // unique and not team-correlated, so this is symmetry-safe.
+        //
+        // Note `InternalRobot.bite` calls `backstab(this.team)` for any
+        // non-cat target, so raiding makes us the backstabber -- ending
+        // cooperation, dropping catDamage 0.5 -> 0.3 and raising livingKings
+        // 0.3 -> 0.5. Given that scoring decides ~9% of games, that is a
+        // trade worth making, and the livingKings side of it moves in our
+        // favour anyway.
+        if (rc.getRoundNum() >= 120 && rc.getID() % 2 == 0 && rc.getRawCheese() == 0) {
+            RobotInfo enemyKing = nearestEnemyKing(rc, nearby);
+            if (enemyKing != null) {
+                if (rc.canAttack(enemyKing.getLocation())) {
+                    rc.attack(enemyKing.getLocation());
+                    rc.setIndicatorString("biting enemy King");
+                    return;
+                }
+                if (engage(rc, enemyKing.getLocation())) return;
+            }
+            int gx = rc.readSharedArray(3);
+            int gy = rc.readSharedArray(4);
+            if (gx != 0 && gy != 0) {
+                if (moveToward(rc, new MapLocation(gx - 1, gy - 1), true)) return;
+            }
+        }
+
         if (collectCheese(rc)) return;
 
         explore(rc);
+    }
+
+    /** Iteration 79: nearest visible enemy Rat King, or null. */
+    static RobotInfo nearestEnemyKing(RobotController rc, RobotInfo[] nearby) {
+        RobotInfo best = null;
+        int bestDist = Integer.MAX_VALUE;
+        for (RobotInfo info : nearby) {
+            if (info.getTeam() == rc.getTeam()) continue;
+            if (info.getType() != UnitType.RAT_KING) continue;
+            int d = info.getLocation().distanceSquaredTo(rc.getLocation());
+            if (d < bestDist) {
+                bestDist = d;
+                best = info;
+            }
+        }
+        return best;
     }
 
     static MapLocation readHomeKingFromSharedArray(RobotController rc) throws GameActionException {

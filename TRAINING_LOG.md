@@ -5293,3 +5293,49 @@ one, and our population peaks near 25 rats around round 50.
 Note `InternalRobot.bite` calls `backstab(this.team)` for any non-cat target,
 so rushing their King makes us the backstabber — which matters far less than
 it appears, precisely because scoring rarely decides anything.
+
+---
+
+## Iteration 78 — cheese-gated population cap — REJECTED
+
+Benchmarks **4/162** against 5/162 for both Iteration 77 and the control.
+
+The combination was well-motivated — Iteration 77 had put the short maps into
+a cap-limited state with 1605 cheese banked, and gating capacity on the
+treasury opens it there while staying shut where Iteration 60 went bankrupt.
+It still did not convert, and the reason is now clear from the King-kill
+finding: **more rats and more cheese feed scoring terms that decide ~9% of
+games.** Iterations 77 and 78 both reverted.
+
+That closes the production line for good. Every lever on it has now been
+pulled and measured:
+
+| lever | result |
+|---|---|
+| free the King's actions (59) | worse both instruments |
+| free the King's actions alone (77) | inert, hits the cap at +3 spawns |
+| raise the cap flat (60) | 1/162, bankruptcy |
+| raise the cap when rich (78) | 4/162 |
+| raise the standing army at all (60) | live rats 4 → 4 |
+
+### Iteration 79 — raid the enemy King
+
+The first change aimed at how these games are actually won. Half the rats
+(even IDs, so symmetry-safe) become raiders from round 120: they bite an
+enemy King in range, close on one they can see, and otherwise path to the
+mirror-guess in shared-array slots 3/4.
+
+Two supporting changes, both deliberate:
+
+- The enemy-King guess is now published **always**, not only inside the
+  `desperate` branch. It was previously unreachable until our economy had
+  already collapsed — useless for a raid. Writing two slots is King-side and
+  costs no rat turns.
+- Only **half** the rats raid. Sending all of them would repeat exactly the
+  mistake that sank trap avoidance and unrestricted throwing, both of which
+  halved `cheeseTransferred` by taxing every rat every round.
+
+Accepted cost: `InternalRobot.bite` calls `backstab(this.team)` for any
+non-cat target, so raiding names us the backstabber — catDamage drops 0.5 →
+0.3 and livingKings rises 0.3 → 0.5. Since scoring decides ~9% of games and
+the livingKings side moves in our favour, that is a trade worth taking.
