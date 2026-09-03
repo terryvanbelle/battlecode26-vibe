@@ -5706,3 +5706,52 @@ opponents. It was signal.
 2. The stale Iteration 45 rationale (arguing *for* a feature I had just
    removed) was left contradicting the code for several minutes. Comments
    that outlive their code are how a file starts lying.
+
+---
+
+## Iteration 84 — ablate the emergency build override — INERT
+
+    bot WITHOUT the override  vs  g_iter16 WITH it:  26/54 = 48.1%
+    (wins by side: A 13, B 13 -- a balanced split, so a genuine null
+     rather than a side artifact)
+
+**Iteration 40's emergency override is worth nothing measurable** — one game
+in 54, indistinguishable from zero. Kept, since removing it is equally
+neutral and churn carries its own risk, but it should not be credited in any
+future reasoning.
+
+That feature was accepted at a headline **95.0%**, corrected in this log to
+62.5% after resyncing stale archetypes, with the explicit note that the
+number "should be treated as provisional until re-measured". It never was.
+The re-measurement says the true value is ~0.
+
+### The ablation program so far
+
+| iteration | feature | mirror result | outcome |
+|---|---|---|---|
+| 82 | Iteration 48 King trap ring | **57.4%** without it | **removed, accepted** |
+| 83 | Iteration 45 cheese-boosted bite | 46.3% without it | kept; corrected a dose-response rule |
+| 84 | Iteration 40 emergency override | 48.1% without it | kept; credited value revised to ~0 |
+
+Three runs, three corrections to the record, one accepted change. That is a
+better yield than the new-mechanism iterations managed across the whole
+session, and the reason is structural: every one of these features was
+accepted on the peer set or the benchmark set, and neither can resolve the
+differences involved.
+
+**The pattern across all three: headline numbers from low-resolution
+instruments (95.0%, 90.0%, 75.0%, "0% → 7-10%") do not survive contact with
+the mirror.**
+
+### Iteration 85
+
+Ablating Iteration 32's exploration-heading reassignment — accepted at 75.0%,
+motivated by a traced failure (a rat cornered at spawn oscillating for ~1985
+rounds without collecting cheese), and the change the user personally asked
+for. That makes it the most sympathetic candidate in the program, which is
+precisely why it is worth measuring: a real traced bug plus a 75% peer number
+is the same evidence profile Iteration 40 had at 95.0%.
+
+Only the *reassignment* is ablated; the per-robot initial heading from
+Iteration 4 stays, so rats still fan out — they simply never re-pick a
+heading after stalling.

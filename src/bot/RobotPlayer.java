@@ -258,6 +258,18 @@ public class RobotPlayer {
                 break;
             }
         }
+        // Iteration 84 (TRAINING_LOG.md): the emergency override is KEPT,
+        // but it is now known to be worth nothing measurable.
+        //
+        // Iteration 40 was accepted at a headline "95.0%", corrected here to
+        // 62.5% after resyncing stale archetypes, with the note that it
+        // "should be treated as provisional until re-measured". Ablating it
+        // and playing the version that has it scores **26/54 = 48.1%** --
+        // a balanced side split (A 13, B 13), so a genuine null rather than
+        // a side artifact. The override is inert to within one game in 54.
+        //
+        // Kept because removing it is equally neutral and churn has its own
+        // risk, but it should not be credited in any future reasoning.
         int buildReserve = (replacementMode && !noVisibleArmy) ? REPLACEMENT_RESERVE : RESERVE;
         // Iteration 48 (TRAINING_LOG.md): **ring the King with rat traps.**
         // The external benchmark showed tournament bots killing us in
@@ -1007,7 +1019,27 @@ public class RobotPlayer {
         }
         exploreLocTwoCallsAgo = exploreLocOneCallAgo;
         exploreLocOneCallAgo = here;
-        if (exploreStuckCycles >= 2) {
+        // Iteration 85: ABLATION of Iteration 32's heading reassignment.
+        //
+        // Iteration 32 was accepted at 75.0% on the peer set, and it was
+        // motivated by a concrete traced failure -- a rat spawned near a map
+        // corner with a preferred heading pointing straight at it reached the
+        // corner in ~15 rounds and then oscillated in a handful of tiles for
+        // the remaining ~1985 rounds of a 2000-round game, never once picking
+        // up cheese. It is also the change the user personally asked for
+        // ("baby rats that tend to get stuck in one small region").
+        //
+        // That makes it the most sympathetic candidate in this ablation
+        // program, which is exactly why it is worth measuring: a real traced
+        // bug and a 75% peer number are the same evidence profile that
+        // Iteration 40 had at "95.0%", and Iteration 40 turned out to be
+        // worth one game in 54.
+        //
+        // Ablating only the REASSIGNMENT, not the per-robot initial heading
+        // from Iteration 4 -- rats still fan out, they just never re-pick a
+        // heading after stalling.
+        final boolean EXPLORE_REASSIGN_ENABLED = false;
+        if (EXPLORE_REASSIGN_ENABLED && exploreStuckCycles >= 2) {
             Direction newDir;
             do {
                 newDir = ALL_DIRECTIONS[rng.nextInt(ALL_DIRECTIONS.length)];
