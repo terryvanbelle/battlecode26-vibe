@@ -569,7 +569,7 @@ public class RobotPlayer {
         // is a 0.2-weight component where we already hold ~47% share,
         // while `catDamage` is 0.5 weight where we hold 16.5% -- the
         // scoring math makes this trade strongly favourable.
-        if (catHotspot != null && rc.getID() % 2 == 0) {
+        if (catHotspot != null) { // dose-response: ALL rats camp (was half)
             if (rc.getLocation().distanceSquaredTo(catHotspot) > 8) {
                 if (moveToward(rc, catHotspot, true)) return;
             } else {

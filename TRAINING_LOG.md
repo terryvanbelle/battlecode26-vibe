@@ -3776,3 +3776,31 @@ failed. Hunting (x3), kiting, cheese-boosted bites, army size and
 targeting were all attempts to get *more or better damage per contact*.
 None of them created more contact, and contact is the term that is
 short by 5x.
+
+## Iteration 53 (camp cat waypoints): first win against a tournament bot -- but treated as unproven
+
+    overall            1/60  (was 0/60)
+    vs bench_finalist  1/20  -- won `minimaze` at r2000
+    vs bench_spaark    0/20
+    vs bench_stroke    0/20
+
+    survival:  finalist 1260 (was 1250), spaark 770 (748), stroke 670 (703)
+
+The first win this project has ever taken off a real tournament bot.
+Task #38's pre-registered rule called any nonzero win a breakthrough --
+but that rule was written *before* this benchmark's variance was
+understood, and **one win in sixty is not distinguishable from noise**.
+The supporting evidence is equally mixed: survival is flat, and
+`catDamage` moved in opposite directions on different opponents
+(`finalist` 3764 -> 4188, but `spaark` 3770 -> 2724).
+
+Honouring the *spirit* of the pre-registration rather than its letter:
+the rule existed to stop me rationalising a 0/60 away, not to license
+accepting a single lucky game. A pre-registered threshold that turns out
+to be mis-calibrated should be corrected openly, not exploited because
+it happens to favour the result.
+
+So the standing marginal-result rule applies instead: **dose-response,
+not resampling.** If camping is causal, doubling the camping fraction
+(half the army -> all of it) should move wins further; if the single win
+was chaotic variance, it will not. Running that now.
