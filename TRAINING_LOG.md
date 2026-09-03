@@ -2980,3 +2980,55 @@ entirely, and is now the isolated open question. Running a *true* mirror
 against that snapshot) to measure the asymmetry with the cleanest
 possible instrument -- no policy difference, no strength difference,
 nothing but code-and-map interaction left in the measurement.
+
+## True mirror match: the side asymmetry is a deterministic code x map-geometry interaction
+
+Ran current `bot` (byte-identical to the frozen `g_iter14`) against that
+snapshot -- identical code on both sides, so the only remaining
+variables are the engine and the map.
+
+    overall   10/20 (50.0%)   <- forced by symmetry; carries no information
+    side A     7/10 (70%)
+    side B     3/10 (30%)
+
+    A wins:  closeup, knifefight, minimaze, pipes, rift, thunderdome, tiny
+    B wins:  keepout, sittingducks, whereisthecheese
+
+**The per-map split is exactly the same set of maps that favored each
+side in the peer runs.** So it is fully deterministic and map-specific,
+not noise, and not a uniform engine first-mover advantage -- if it were
+simply "team 1 acts first" (their King is always `id1` vs `id2`, and
+robots act in ID order) every map would favor A. Three maps reliably
+favor B. This matches BC22's own conclusion from the same experiment:
+"a true mirror match split roughly 6-4 across the 10-map pool, different
+maps favoring different sides."
+
+**Why the overall 50% is not reassuring.** In a true mirror the total is
+*forced* to 50% -- one side's win is the other's loss -- so the metric
+that looks fine is the one that structurally cannot show the problem.
+Against a near-mirror opponent (the 8-line-different archetype) the same
+underlying bias surfaces as 85%/40%. Our absolute-geometry preferences
+make the bot strong where map geometry aligns with them and weak where
+it doesn't; averaged over both sides that is simply a worse bot than one
+which performs uniformly.
+
+**Status: known-hard, deliberately deprioritized.** Iteration 41's
+randomization fix is now the *second* independent attempt across two
+projects to narrow this gap by removing the absolute preference, and
+both narrowed fairness while *losing* net win rate for the same reason
+(consistency provides real movement cohesion). BC22 also tried a
+center-relative tiebreak, which "narrowed the fairness gap but caused a
+much worse asymmetry on one specific map," and after 128 iterations that
+project still lists this as an open question. Given two failed attempts
+at the obvious fix and a well-documented history of the non-obvious ones
+also failing, further attempts here are low expected value compared to
+untouched areas. Recording it as a characterized, quantified limitation
+rather than burning more iterations on it.
+
+**What would make a future attempt worthwhile:** a fix that keeps a
+*consistent* per-robot preference (preserving cohesion) while making
+that preference relative to something symmetric under the map's own
+mirror -- e.g. derived from the vector to the team's own King, or to the
+map centre -- rather than either absolute compass order or per-decision
+randomness. That is a different design from both attempts so far, and
+is the only version not yet falsified.
