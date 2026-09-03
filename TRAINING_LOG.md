@@ -3222,3 +3222,34 @@ Running the same 54-game head-to-head at `BITE_BOOST_CHEESE = 16`.
 A clearly larger win rate is real evidence of a causal mechanism;
 a flat or worse result means the 53.7% was noise and the whole approach
 should be rejected regardless of how good the theory looks.
+
+**Dose-response result: `BITE_BOOST_CHEESE = 16` -> 20/54 (37.0%)**,
+against 4-cheese's 29/54 (53.7%). The effect scales **negatively and
+steeply** -- quadrupling the spend costs ~17 points of win rate.
+
+**REJECT the cheese-boosted bite entirely** (Iteration 45), including
+the 4-cheese version. The dose-response curve resolves what the p=0.34
+could not: the mechanism is real (verified engaged via the
+damage-parity signature) but its true direction is *harmful*, and
+53.7% was noise sitting on top of a slightly-negative-to-neutral effect.
+Had the marginal result been accepted, a mildly harmful change would
+have been baselined as an improvement, and every subsequent iteration
+measured against it.
+
+**Why it's harmful, in hindsight:** the exchange-rate reasoning
+(0.2-weight cheese into 0.5-weight cat damage) accounted for the
+*scoring* cost of spending cheese but not its *operational* cost.
+Cheese is not merely a scored quantity; since Iterations 38-40 it is
+also the fuel for replacement building, and the King's treasury sitting
+near its reserve floor is what keeps population up. Draining thousands
+of cheese into chip damage starves that loop, and population feeds
+everything -- cheese collection, cat contact, and cat damage itself.
+The 0.2 weight understates what cheese is worth because part of its
+value is instrumental rather than scored.
+
+**Methodology note worth keeping.** With a deterministic harness,
+repeating a run tells you nothing, so the usual answer to a marginal
+result (gather more samples) is unavailable. Varying the *dose* of the
+mechanism is the substitute, and it worked: an ambiguous p=0.34 became a
+decisive rejection in one additional run. **For any future marginal
+result, prefer a dose-response or ablation test over another sample.**
