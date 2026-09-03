@@ -5339,3 +5339,48 @@ Accepted cost: `InternalRobot.bite` calls `backstab(this.team)` for any
 non-cat target, so raiding names us the backstabber — catDamage drops 0.5 →
 0.3 and livingKings rises 0.3 → 0.5. Since scoring decides ~9% of games and
 the livingKings side moves in our favour, that is a trade worth taking.
+
+---
+
+## Iteration 79 — raid the enemy King — the raid never arrives
+
+Benchmarks **4/162** against 5/162 control, with 39/162 identical, so 123
+games changed behaviour.
+
+| `bench_finalist__hatefullattice__botB` | control | Iteration 79 |
+|---|---|---|
+| our `RatAttack` after round 120 | 43 | **47** |
+| our deaths | 67 | 61 |
+| `cheeseTransferred` | 2595 | **1895** (−27%) |
+| game ended | rd 1175 | rd 1025 |
+
+Half the army diverted, 27% of the economy spent, and **four extra attacks**.
+The raiders walk and never fight.
+
+### Root cause: the mirror guess is wrong on reflection maps
+
+On `knifefight` our King sits at **(22,14)** and theirs at **(17,14)** — a
+horizontal reflection. The guess computes
+`(width-1-x, height-1-y)` = **(17,25)**. We were marching half the army to an
+empty tile three tiles past the target, and on larger maps the error is
+proportionally larger.
+
+BC22's `LEARNINGS.md` flagged exactly this: several maps there turned out
+non-rotational *even though that engine exposed the symmetry type*. BC26 does
+not expose it at all, so the guess cannot be repaired — 180° rotation is one
+of three possibilities and we have no way to choose.
+
+A methodological note: I checked `DamageAction target=...RAT_KING` first and
+got 0, which looked like proof the raiders never landed a hit. That check is
+invalid — this session already established that **bites emit no
+`DamageAction` records**. The attack-count comparison above is the valid
+instrument, and it happens to agree, but the first reading was the same
+attribution error that has bitten this project repeatedly.
+
+### Iteration 80
+
+Steer by observation instead of arithmetic. Any rat that actually *sees* an
+enemy King publishes its location to shared-array slots 14/15, and raiders
+prefer that over the guess, falling back to the guess only while no King has
+ever been seen. This is BC22's accumulate-locally-publish-once census pattern
+and costs two writes only on turns when a King is in view.
