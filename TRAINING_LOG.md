@@ -3367,3 +3367,66 @@ rule added earlier today):
 the cap=50 dose-response still running -- its premise was already
 falsified (cat damage does not scale with population) and its result
 sits inside the noise floor.
+
+---
+
+## External benchmark suite added -- and it invalidates the bubble every prior metric was measured in
+
+Vendored five public BC26 bots as independent validation (see
+`BENCHMARK.md`), under a strict rule: **their source is never read**.
+Cloning, compiling, running and *replay* analysis only. That is a user
+instruction and also methodologically necessary -- reading opponent code
+invites tuning against those specific bots rather than getting stronger,
+which is exactly what an independent benchmark exists to prevent.
+Package renaming was done mechanically (`sed` on declaration lines) with
+contents never displayed; bots were chosen by directory name alone.
+
+    bench_lecture   official lectureplayer
+    bench_anicolao  anicolao/battlecode-2026 src/myplayer  (user request)
+    bench_finalist  AlexT101 finalsbot     -- Top 12 Finalist
+    bench_spaark    erikji SPAARK          -- MIT BC26 HS 4th
+    bench_stroke    uravt Version41        -- 2nd place overall
+
+**Smoke results on `knifefight` are brutal and are the point of the
+exercise:**
+
+    vs bench_lecture    WIN  (r1340)
+    vs bench_anicolao   WIN  (r131)
+    vs bench_finalist   LOSS (r33)
+    vs bench_spaark     LOSS (r21)
+    vs bench_stroke     LOSS (r46)
+
+Real tournament bots end us in **21-46 rounds** of a 2000-round game.
+
+**Replays show a structural capability gap, not a tuning gap.** Counting
+actions in the first 60 rounds:
+
+    bot            PlaceTrap  RatNap  ThrowRat
+    bench_spaark        15       19       9
+    bench_finalist      27       38      19
+    bench_stroke        14       71      36
+    ours                 0        0       0
+
+We use **none** of these. Our own class docstring has said so since
+Iteration 1 ("no traps, no ratnap/throw"). Traps were tried once
+(Iteration 15, rejected -- never triggered) and ratnap once (Iteration
+17, rejected as a bad trade); `throwRat` has never been attempted at
+all. Both rejections were made against opponents that also lacked these
+tools, so "it didn't help" meant "it didn't help *against bots as
+limited as we are*."
+
+**This reframes the whole project's measurement history.** 95-100%
+against old snapshots was real progress *inside a bubble*: the peer
+archetypes are built from our own code, and the old-bot roster is our
+own lineage, so every opponent shared our passive early game and our
+missing mechanics. No metric available before today could have detected
+that we are missing most of the game.
+
+**`bench_anicolao` is instructive as a control.** Replay shows it also
+uses zero traps/ratnaps/throws -- the same minimal toolkit as us -- and
+its `cheeseTransferred` stayed at **0** for the whole game while its
+King starved out at round 131. That is precisely the King-starvation
+failure this project spent Iterations 28-40 fixing. So the one external
+bot we comfortably beat is one that shares both our toolkit *and* an
+economy bug we already solved, while the three that use the full toolkit
+beat us in under 50 rounds. The correlation is hard to miss.
