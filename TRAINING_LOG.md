@@ -5845,3 +5845,48 @@ accepted at **90.0%** — the largest headline gain in the project's history
 keeping Iteration 38's sliding window, so refills draw on the ordinary
 `RESERVE` rather than requiring a 1000-cheese surplus. That isolates the
 reserve policy from the window it shipped alongside.
+
+---
+
+## Iteration 87 — ablate REPLACEMENT_RESERVE — validated, ~+24 points
+
+    bot WITHOUT the reserve gate  vs  g_iter16 WITH it:  14/54 = 25.9%
+
+Iteration 39 holds up, and it is the second-largest effect in the bot. It was
+accepted at 90.0% on the peer set — the largest headline gain in the
+project's history — and it is the only headline claim tested in this program
+that survived contact with the mirror.
+
+## The ablation program — complete map of where the value is
+
+| iteration | feature | headline at acceptance | mirror without it | true value |
+|---|---|---|---|---|
+| 85 | exploration-heading reassignment (32) | 75.0% | **22.2%** | **~+28** |
+| 87 | `REPLACEMENT_RESERVE` (39) | 90.0% | **25.9%** | **~+24** |
+| 86 | Bug2 navigation (35) | *unmeasured* | 44.4% | ~+5.6 |
+| 83 | cheese-boosted bite (45) | formally **rejected** | 46.3% | ~+4 |
+| 84 | emergency build override (40) | **95.0%** | 48.1% | **~0** |
+| 82 | King trap ring (48) | "0% → 7-10%" | **57.4%** | **negative — removed** |
+
+Six features measured on a common instrument for the first time. **Two of
+them carry essentially all the value, and both are failure-mode preventers
+rather than tactics:**
+
+- *don't let a rat commit forever to a heading that walks it into a wall*
+- *don't spend the King's survival reserve on routine refills*
+
+Everything clever — Bug2's wall-following, cheese-boosted bites, the
+emergency override, the trap ring — is small, zero, or harmful. The two
+eight-to-twenty-line guards against catastrophic behaviour outweigh the
+entire rest of the bot combined.
+
+That reframes what to work on. This session spent ~25 iterations inventing
+tactics (traps, throwing, kidnapping, King rushes, multi-King, cat policy)
+and every one failed. The two things that actually work are both of the form
+"detect a degenerate state and stop doing it". **The next hypotheses should
+be searches for remaining degenerate states, not new tactics.**
+
+Also settled: the acceptance headline was uninformative in five of six cases,
+including inverting the sign twice (95.0% → inert, "only benchmark
+improvement" → harmful). Every one of those decisions was made on the peer or
+benchmark set. This is now recorded as standing practice in memory.

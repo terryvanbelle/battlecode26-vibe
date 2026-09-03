@@ -237,20 +237,14 @@ public class RobotPlayer {
         if (rc.getRoundNum() - buildWindowStart >= BUILD_WINDOW_ROUNDS) {
             buildWindowStart = rc.getRoundNum();
             builtCount = 0;
-            // Iteration 87: ABLATION of Iteration 39's REPLACEMENT_RESERVE.
-            //
-            // Iterations 38/39 were accepted at 90.0% on the peer set -- the
-            // largest headline gain in the project's history (+15 points,
-            // "6 losses fixed, 0 new"). It is the last major feature never
-            // measured on an instrument with resolution, and the headline
-            // number has predicted nothing in four previous ablations.
-            //
-            // Setting this false keeps Iteration 38's sliding build WINDOW
-            // (builtCount resets every BUILD_WINDOW_ROUNDS) while removing
-            // Iteration 39's deep REPLACEMENT_RESERVE gate, so refills draw
-            // on the ordinary RESERVE instead of requiring a 1000-cheese
-            // surplus. That isolates the reserve policy from the window.
-            replacementMode = false;
+            // Iteration 87 (TRAINING_LOG.md): REPLACEMENT_RESERVE is
+            // VALIDATED and large. Ablating it scores 14/54 = 25.9% against
+            // the version that has it -- worth ~+24 points, second only to
+            // the exploration-heading reassignment's ~+28. Iterations 38/39
+            // were accepted at 90.0% on the peer set and this is the first
+            // measurement on an instrument with resolution; unlike the other
+            // headline claims tested, this one held up.
+            replacementMode = true;
         }
         // Iteration 40: emergency override. On `tiny`, tracing the one
         // remaining loss showed the King sitting on 800-950 cheese with
