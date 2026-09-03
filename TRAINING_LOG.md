@@ -3179,3 +3179,25 @@ Distinct from Iteration 16's rejected cheese-bite, which ran when cheese
 was scarce and whose spending pulled the desperation latch early,
 causing a second-order collapse; cheese is now abundant and that latch
 behaves differently since Iterations 38-40.
+
+**Mechanistic verification (Iteration 45).** Before trusting any
+aggregate, confirmed the boost actually fires, using a signature that
+can't be faked: base `RAT_BITE_DAMAGE` is 10, and a 4-cheese boost makes
+it 12, so a team using the boost accumulates `catDamage` totals that are
+*not* multiples of 10. In the head-to-head:
+
+    ours (boosted):    1214, 118, 3624     <- non-round, mixed 10s and 12s
+    theirs (g_iter14):  4420, 4000, 4450   <- all exact multiples of 10
+
+Unambiguous: the boost engaged for us and not for the frozen opponent.
+This is the check that three earlier iterations (21, 43, and the
+Iteration 34 threshold bugs) needed and didn't get -- each looked
+plausible and was silently inert. Worth making routine: find a
+*signature* of the mechanism in the replay data, not just a win-rate
+delta.
+
+**Head-to-head (10-map loop): 11/20 (55%)** -- above the 50% accept bar,
+but only one game clear of even. Since the Gauntlet is deterministic for
+fixed code, re-running adds nothing; the way to get more confidence is a
+larger *sample of maps*. Re-running on the full 27-map set (54 games)
+before deciding.
