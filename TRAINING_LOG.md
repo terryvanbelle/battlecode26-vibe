@@ -9692,3 +9692,74 @@ Both ends are now printed, and `test_grab_throw_name_both_ends` fails if either
 action ever loses its target again. Same family as the Iteration 108 retraction
 and `read-the-team-from-the-replay-header`: an id in a replay means nothing until
 you know which end of the action it names.
+
+## Iteration 143 — grab and throw enemy rats — REJECTED (flat)
+
+Direction A of the throw finding: use the weapon they use on us.
+
+**Mechanism check — FIRED, but the dose is small.**
+
+    first pass                 7 grabs,  1 throw
+    with turn-to-throw         5 grabs,  3 throws
+    them, same game           49 grabs, 46 throws
+
+The first pass exposed a real defect worth recording: `throwRat()` takes **no
+direction** — it throws along `getDirection()`, and `assertCanThrowRat` needs
+that tile on-map, passable and *empty*. A rat that grabs and then moves is
+usually facing something solid, so six of seven grabs expired on
+`MAX_CARRY_DURATION` (10 turns) instead. An expired carry deals no damage and
+neutralises the **carrier** as much as the captive — strictly worse than never
+grabbing. Adding a turn-to-a-throwable-direction step took conversion from 1/7 to
+3/5.
+
+**The backstab guard held.** `grabRobot()` on an enemy calls
+`backstab(this.getTeam())`, making the grabber the backstabber, and
+`catTrapsAllowed()` bars the backstabber from cat traps *permanently* — which
+would have silently killed the accepted Iteration 128 reactive cat traps.
+`GameWorld.backstab` is wrapped in `if (this.isCooperation)`, so once cooperation
+is broken it is a no-op and the identity is frozen. But the enclosing condition
+is `!isCooperation() || desperate`, and under `desperate` we are still
+cooperating, so the grab needed its own strict re-test. Verified in the replay:
+round 300 reads `catTraps=[9,0]`, nine live cat traps of ours, so we never became
+the backstabber. Iterations 132 and 139 both broke by assuming an enclosing guard
+implied something it did not; this time the check was written first.
+
+**Result — REJECT.**
+
+    benchmarks         8/162  ->  7/162     (-1 = 0.4 sigma, flat)
+    close-spawn wins    4/42  ->   2/42
+    early wipes                 13/155 = 8%
+
+Not a negative — a **flat** result with a mechanism that fired at roughly a
+fifteenth of the opponent's rate. Per `dose-response-not-resampling` the move
+would normally be to scale the dose. **Here the dose is structurally capped, and
+the reason is the interesting part.**
+
+To grab an enemy the engine requires (`HEALTH_GRAB_THRESHOLD = 0`) either that
+the target is *facing away* — its own 90-degree cone excludes the grabber — or
+that the grabber has more HP. Both clauses run against us:
+
+- Their rats approach ours from outside our vision cone. That is *why* they can
+  grab: our rat is facing away. The same fact means our rat cannot see them, so
+  `nearestEnemyRat` returns nothing and our grab branch never evaluates.
+- Our rats are usually the damaged ones, having already been thrown, so the
+  HP clause fails too.
+
+We cannot grab the rats that are grabbing us, because being grabbable and being
+blind are the same condition. Scaling the offensive dose does not fix that.
+
+### What this points at instead
+
+Their 49 grabs require 49 adjacencies with our rats. **We supply those
+adjacencies.** Iteration 12 added a chase — when `!isCooperation`, a rat that
+sees an enemy within d^2 8 closes on it. Iteration 12 was validated against
+`pure_cooperator` and `immediate_defector`, and per the Iteration 142 sweep
+**every peer archetype throws zero, on every map**. So the chase was accepted on
+an instrument that is blind to its single largest cost: walking into grab range
+of an opponent whose whole plan is grabbing.
+
+That is an ablation of an accepted feature, measured on the only instrument with
+resolution for it — the highest-yield shape available per
+`ablate-accepted-features-on-the-mirror`, except that here it must run on
+benchmarks rather than the mirror, per `resolution-is-not-representativeness`.
+Iteration 144.
