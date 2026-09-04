@@ -7458,3 +7458,49 @@ That is a fixable defect rather than a refutation: the design needs a
 `dropRat` fallback, or should only grab when a throw is already legal. But it
 means this run did not test the intended mechanism, so the numbers above
 describe grab-and-stall, not grab-and-throw.
+
+### Correction to Iteration 108 — both of my "findings" were wrong
+
+Checked after the fact, and the entry above needs retracting on two counts.
+
+**1. `carryRat` is NOT invisible in replays.** `InternalRobot.grabRobot`
+calls `matchMaker.addRatNapAction(robotBeingCarried.getID())`, so a grab emits
+a **RatNap action against the grabbed robot's id**. I concluded it was
+unobservable from the absence of a "GrabRat" member in the `Action` union
+without checking what the engine actually emits. Grabs are observable; they
+are merely *disguised*, since a genuine rat nap emits the same action and the
+two are told apart only by whose id carries it.
+
+**2. Our rats did not "grab and get stuck" -- they barely grabbed at all.**
+Counting RatNap by team on `knifefight`, ours vs the same matchup at baseline:
+
+    enemy (team1) RatNap    baseline 9    iter108 8
+    our   (team2) RatNap    baseline 6    iter108 6
+
+If our grabs had fired, enemy rats would show *more* RatNap. They show one
+fewer. So the grab essentially never triggered, and the grab-and-stall story
+-- rats carrying captives they could not throw -- was fabricated to explain a
+difference that had another cause.
+
+**What actually changed, most likely: bytecode.** The change added a
+`canThrowRat()` call plus a scan of `nearby` to every Baby Rat's turn.
+`RobotPlayer` already tracks overruns (`reportBytecodeBudget`, the "OVERRAN"
+indicator), and a turn that overruns is truncated mid-decision. That would
+shift outcomes slightly without any grab ever happening, which matches what
+we saw: one wipe fewer, one close-spawn win fewer, a reshuffled fastest-loss
+list.
+
+**So Iteration 108 was VOID, like Iteration 106 -- not the marginal negative I
+recorded.** The rejection stands and the reasoning for it does not. Three of
+the four capability iterations have now failed at the *reachability* stage
+rather than on merit, which is the real pattern: `becomeRatKing` needed a
+rally, `carryRat` needs the target inside a 90-degree cone while adjacent and
+while we are near our own King, and only Iteration 107 ever actually executed
+its mechanism.
+
+**Method note.** I wrote a confident causal story ("grabbed and got stuck")
+from a *difference in outcomes* plus one absent action type, without ever
+counting the action that would have confirmed the mechanism fired. The
+counting took one grep against a dump already on disk. Verify the mechanism
+fired BEFORE explaining why it underperformed -- otherwise the explanation is
+unfalsifiable decoration on noise.
