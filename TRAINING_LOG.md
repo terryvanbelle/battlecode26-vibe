@@ -9354,3 +9354,26 @@ isolates the guessed-location march.
 Three instruments positive, benchmarks flat. Removing the desperation raid --
 whose enemy-King guess was wrong on 16 of 27 maps -- is corroborated everywhere
 it could be.
+
+## Iteration 139 — early cat traps — VOID (clause nested inside the wrong guard)
+
+Byte-identical to `g_iter23` on every counter, and 0 cat traps on
+`dirtfulcat botA` -- the exact game it was written to fix.
+
+**My error.** I attached the new condition inside the existing guard:
+
+    if (nearestCat != null
+            && (dist <= CAT_TRAP_TRIGGER_DSQ
+                    || (rc.isCooperation() && rc.getNumberCatTraps() < 3)))
+
+so early placement still required a cat VISIBLE to the King, whose vision is
+radius^2 25. On `dirtfulcat` no cat is near the King during rounds 1-24, so
+`nearestCat` is null and the clause never ran.
+
+The whole point of early placement is to prepare for cats that have not arrived
+yet, so it cannot depend on seeing one. Same class of error as Iteration 132,
+where the maintenance gate also did not do what I claimed for it -- both times
+the fix was written as an extra disjunct inside a guard whose outer condition
+already excluded the case of interest.
+
+Iteration 140 hoists it into its own statement.
