@@ -10407,3 +10407,51 @@ already writes the shared array, which is the obvious untried channel.
 The rest of the Iteration 152 entry stands: the mechanism check was a clean VOID,
 no Gauntlet run was spent, and Iterations 149/150 independently closed
 withdrawing the damaged rat.
+
+## Iteration 154 — what actually kills our King (measurement, no code change)
+
+83% of benchmark losses (128 of 154) end with our King destroyed between rounds
+100 and 1999, and that damage had never been attributed — every claim about it
+came from a single Iteration 128 replay. Sampled six King-destruction losses from
+the g_iter24 run, stratified across all three opponents and the round bands
+100-499 / 500-999 / 1000-1999.
+
+**Method note: King damage is NOT emitted as a `DamageAction`.** All six replays
+contain zero such lines targeting a King. The hp curve has to be read from the
+new `--turns` dump instead, which is why this was not measurable before today.
+
+**Starvation vs combat**, partitioned by the treasury at the moment of each drop:
+
+    King hp lost while treasury <  50   1220   34.3%
+    King hp lost while treasury >= 50   2335   65.7%
+    per replay: 2 of 6 STARVED, 4 KILLED while fed
+
+**What deals the combat 65.7%**, from the per-round drop sizes:
+
+    -10 hp  x123   52.7%   RAT_BITE_DAMAGE
+    -20 hp  x 19   16.3%   CAT_SCRATCH_DAMAGE
+    -30/-38/-42/-52 hp     ~20%   multiple attackers in one round
+
+**Enemy rat bites are the single largest killer of our King** — about half of
+combat damage, plus most of the multi-attacker rounds. Starvation is second at a
+third of all damage. **Cats are ~16% of combat damage, i.e. roughly 11% overall.**
+
+Two things worth flagging honestly:
+
+1. **Iteration 128's reactive cat traps were accepted off one replay** showing a
+   cat parked beside the King grinding it at 20 per 3 rounds. That trace was
+   real, but this sample says cats are the *smallest* of the three sources. The
+   feature is defensible on its measured +1 game, but the story attached to it
+   over-generalised from n=1.
+2. **The reserves do not prevent starvation.** `RESERVE` 150 and
+   `REPLACEMENT_RESERVE` 1000 gate *building*, while the King's 2/round upkeep
+   continues unconditionally. So once income stops the treasury drains to zero
+   regardless of any reserve, which is why a third of King damage happens at
+   cheese < 50. Starvation is downstream of the army dying, not a separate
+   spending bug.
+
+Two false starts, both caught before they became findings: I first attributed
+100% of damage to "unattributed" (King damage is not a DamageAction), then read
+a -10/round signature as starvation when `RAT_BITE_DAMAGE` is also 10 and three
+of the six had 780-1030 cheese at death. The treasury partition is what separates
+them.

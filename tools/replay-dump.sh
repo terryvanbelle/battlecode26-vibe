@@ -27,14 +27,22 @@ IP=$(gcloud compute instances describe "$VM" --zone="$ZONE" --project="$PROJECT"
 RVM="$USER_NAME@$IP"
 for _ in $(seq 1 30); do ssh "${SSHO[@]}" "$RVM" true 2>/dev/null && break; sleep 8; done
 
-ssh "${SSHO[@]}" "$RVM" 'mkdir -p ~/replaydump'
-scp "${SSHO[@]}" "$REPO/tools/replaydump/ReplayDump.java" "$RVM:replaydump/" >/dev/null
-scp "${SSHO[@]}" "$REPLAY" "$RVM:replaydump/in.bc26" >/dev/null
+# Per-invocation remote directory. Both the uploaded replay (in.bc26) and the
+# compiled classes used to live at a single fixed path, so two dumps running at
+# once silently clobbered each other. Six replays dumped in parallel came back as
+# six identical copies of whichever won the race -- and they looked like six
+# independent traces agreeing with each other, which is the most convincing
+# possible form of wrong. Unique dir per run; cleaned up on exit.
+RUN_DIR="replaydump/run-$$-$(date +%s%N)"
+ssh "${SSHO[@]}" "$RVM" "mkdir -p ~/$RUN_DIR"
+trap 'ssh "${SSHO[@]}" "$RVM" "rm -rf ~/$RUN_DIR" >/dev/null 2>&1 || true' EXIT
+scp "${SSHO[@]}" "$REPO/tools/replaydump/ReplayDump.java" "$RVM:$RUN_DIR/" >/dev/null
+scp "${SSHO[@]}" "$REPLAY" "$RVM:$RUN_DIR/in.bc26" >/dev/null
 
 ssh "${SSHO[@]}" "$RVM" "
   export JAVA_HOME=\$HOME/jdk21 PATH=\$HOME/jdk21/bin:\$PATH
   BC_JAR=\$(find ~/.gradle -name 'battlecode26-java-*.jar' | sort -V | tail -1)
-  cd ~/replaydump
+  cd ~/$RUN_DIR
   javac -d . -classpath \"\$BC_JAR\" ReplayDump.java
   java -classpath \".:\$BC_JAR\" com.google.flatbuffers.ReplayDump in.bc26 $*
 "
