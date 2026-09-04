@@ -9546,3 +9546,39 @@ Worth watching rather than acting on immediately: if `g_iter16` stays above 50%
 as further accepts land, that is evidence the lineage has drifted into a local
 optimum that is worse head-to-head while better against benchmarks -- and the
 benchmark set is the one that resembles a tournament.
+
+### Explained: `g_iter16` is the TRAPLESS build, so 48% is expected
+
+Diffing `g_iter16` against `g_iter23` answers the question the new roster
+raised. `src/g_iter16/RobotPlayer.java:305`:
+
+    final boolean KING_TRAPS_ENABLED = false;
+
+**`g_iter16` is the Iteration 82 build, with the King's trap ring ablated.**
+Iteration 82 removed the ring on a 57.4% mirror result; Iteration 96 reversed
+that decision on representativeness grounds, because the benchmark early-wipe
+rate told the opposite story:
+
+    instrument        traps OFF (g_iter16)   traps ON
+    benchmarks        2/162                  3/162
+    early wipes       26%                    13%
+    g_iter15 mirror   57.4% (better)         --
+
+So the 26/54 = 48% is not a regression and not new information -- it is the
+*same* Iteration 82/96 result, now visible on the chart because the roster
+includes `g_iter16`. A trapless bot beats a trapped one in the lineage, where
+nobody rushes the King and the ring is pure cost. Against the benchmark set the
+ring halves early wipes, and Iteration 102 later doubled its density for
+5/162 -> 7/162.
+
+**This retracts the caution I attached to the roster result an hour ago.** I
+wrote that we should watch whether `g_iter16` stays above 50% as evidence the
+lineage had "drifted into a local optimum worse head-to-head". It has not
+drifted: we knowingly traded lineage strength for benchmark strength in
+Iteration 96, on a counter the mirror cannot see, and the trade has since paid
+5/162 -> 8/162.
+
+**Expect the `g_iter16` line to stay near or below 50% indefinitely.** That is
+the trade working as intended, not a warning. The lines worth watching for
+regression are `g_iter1`, `g_iter6` and `g_iter11`, which are trapped builds and
+sit at 91%, 83% and 94%.
