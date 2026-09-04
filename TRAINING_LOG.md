@@ -8299,3 +8299,49 @@ What would be required is a different bot -- one that can hold contested
 ground -- and that is a rewrite of the combat model, not an iteration on it.
 I am recording that rather than continuing to spend 162-game runs
 re-confirming a converged surface.
+
+## Iteration 123 — turn to face an unseen attacker — REJECTED
+
+                          g_iter21        iter123
+    benchmark wins        7/162           5/162
+    early wipes           12/155 = 8%     13/157 = 8%
+    close-spawn wins      4/42            2/42
+
+**The reflex fired and did the opposite of what it was for:**
+
+    our RatAttack   61  ->  48      (the bar said it must RISE)
+    our pickups     10  ->  10
+    our deaths      20  ->  25      (14 traps, 9 cats, 2 enemy rats)
+    alive           20/13/7/6  ->  20/10/0/1
+
+The defect it targeted is real and engine-verified: a Baby Rat's 90-degree cone
+means `senseNearbyRobots` cannot report an enemy behind it, and
+`attackNearestHostile`'s `if (!rc.canAttack(loc)) continue;` skips anything
+outside that cone, so a rat bitten from behind never turns and never fights
+back. Fixing it still made things worse.
+
+**Why: the trigger conflates three very different sources of damage.** "Health
+dropped and nothing hostile is in view" is true for an enemy rat behind us, but
+it is also true for a cat scratch (20 damage, and cats are worth fleeing, not
+facing) and for a trap (42 damage plus a 30-round stun, where there is no
+attacker to face at all). Most of our unseen damage is the latter two -- 14
+trap deaths and 9 cat deaths against 2 to enemy rats -- so the reflex mostly
+spent turns spinning in place next to a cat or while stunned. Cat deaths rose
+7 -> 9 and trap deaths 12 -> 14 precisely because turning replaced fleeing.
+
+The attack count falling rather than rising is the clean tell: the turn
+consumes the turn (`return` after `rc.turn`), so the reflex bought no extra
+bites and cost the escapes it displaced.
+
+**A narrower version is conceivable** -- trigger only when the damage is 10,
+the exact `RAT_BITE_DAMAGE`, which would exclude cat scratches (20) and trap
+hits (42). I am not queuing it: the same run shows only 2 of 25 deaths come
+from enemy rats at all, so the addressable population is about 8% of our
+losses, and the reflex would have to be nearly free to pay for itself. That is
+a much smaller prize than the mechanism seemed to promise before it was
+measured.
+
+This was the session's one genuine combat-model change rather than an economy
+or tuning change, and it does not overturn the plateau diagnosis: our rats are
+not dying to enemy rats they could have fought, they are dying to cats and
+traps.
