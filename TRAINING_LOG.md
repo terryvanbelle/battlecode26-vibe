@@ -8605,3 +8605,65 @@ a separate winnable pocket. Seven rats against fifty-five is the same
 population collapse traced throughout, arriving at the scoring screen instead
 of at a destroyed King. That is consistent with, and adds nothing new to, the
 plateau diagnosis.
+
+## Iteration 125 — cheese-gated population cap (Iteration 88 re-test) — REJECTED
+
+    bar                          result                    verdict
+    PRIMARY  g_iter21 mirror     36/54 = 66.7%  (+9)       pass, strongly
+    GATE     vs_old_bots subset  97/108 = 89.8% (-2)       FAIL (bar was 91.7%)
+    GUARD    benchmarks          5/162          (-2)       FAIL (bar was >= 7)
+    GUARD    early wipes         12/157 = 8%               pass
+             close-spawn wins    4/42 -> 3/42
+
+**The mechanism worked, and through a path I did not predict.** Window 0 stays
+capped at 25 because the treasury falls under the 1200 gate partway through it.
+The gain is afterwards -- with the ceiling at 40, the King resumes building
+whenever cheese pops back over 1200:
+
+    window        spawns (baseline 0/0/0)    alive
+    100-199             4                     27
+    200-299             6                     32
+    300-399             5                     35     <- baseline decays to 7-14
+
+The army *grows* instead of collapsing. That is the population deficit --
+measured at 7 rats against 55 in point games, 5 against 24 mid-game -- directly
+addressed, and it produced the largest mirror result of the session.
+
+### Why it is rejected anyway
+
+66.7% is +9 games on an even, high-resolution instrument; the two failures are
+-2 each on lopsided ones, which is the documented noise floor (0.8 sigma). Read
+in isolation, each failure is weak and the mirror is strong.
+
+I am rejecting because **this exact profile is the one my own log records as
+overfitting.** The "four accepts, all reverted" entry describes four changes
+accepted on mirror gains whose combined build measured 2/162 against a 5/162
+control -- **and Iteration 88 was one of those four.** Its benchmark number
+then was *flat*; here it is -2, so this re-test is a strictly worse version of
+the profile that already failed once.
+
+Two further points against:
+
+- Both lopsided instruments moved down. Two independent -2s in the same
+  direction is a weaker coincidence than either alone.
+- Benchmarks are the tournament-representative instrument. The mirror measures
+  play against our own lineage, which is exactly the population regime this
+  change alters -- a bigger army beats a smaller identical bot almost by
+  definition, which is why a mirror gain here is close to circular.
+
+The `compare_gauntlets` detail supports calling the vs_old_bots move noise --
+4 scattered flips (peaceinourtime, popthecork x2, jail) against Iteration 112's
+12 flips clustered on tiny/whereisthecheese/closeup -- but noise cutting *both*
+ways is not a reason to accept a change that also loses two benchmark games.
+
+**Pre-registered bars decide.** Two of four failed. Reverted.
+
+### What is worth keeping from this
+
+The population deficit is real and this change genuinely fixes it (army 35 at
+round 400 against a baseline that decays to 7). It still loses games. That is
+the eighth mechanism-verified change to improve its target quantity and lose,
+and the first to do so while *also* posting the session's best mirror number --
+which is the sharpest available demonstration that the mirror cannot arbitrate
+population changes, because more rats trivially beats fewer rats of identical
+code.
