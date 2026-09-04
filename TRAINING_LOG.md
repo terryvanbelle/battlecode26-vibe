@@ -7777,3 +7777,55 @@ justifies it. Had I accepted Iteration 112 without it, I would have banked the
 right change for a reason the evidence contradicted; had I accepted the
 simpler Iteration 113 on the identical benchmark score -- which was my stated
 intention -- I would have shipped a 37% regression.
+
+## Iteration 112 — ACCEPT RETRACTED before it landed: vs_old_bots reverses it
+
+I had snapshotted `g_iter22` and was running the post-accept routine when the
+vs-old-bots Gauntlet came back. It disagrees with everything else, and it
+disagrees by more than the other instruments agreed:
+
+    matchup            g_iter21        g_iter22 (Iteration 112)
+    vs g_iter1         49/54 (91%)     45/54 (83%)     -4
+    vs g_iter11        50/54 (93%)     44/54 (81%)     -6
+    comparable subset  99/108 = 91.7%  89/108 = 82.4%  -9.3 points
+
+Those two sub-scores are directly comparable -- same opponents, same maps, the
+roster merely grew by `g_iter21`. Ten games is far outside the +-2 resolution
+floor of a matchup sitting at ~90%, and it swamps the evidence in favour:
+
+    benchmarks        7/162 -> 8/162        +1 game, at the resolution floor
+    g_iter21 mirror   28/54 = 51.9%         +1 game, at the resolution floor
+    vs_old_bots       99/108 -> 89/108      -10 games
+
+`src/g_iter22/` deleted, working tree back to `g_iter21`.
+
+### What I nearly did
+
+Three instruments, two of them showing single-game moves I would normally call
+noise -- and I was treating those two as the verdict because they were the
+ones I had pre-registered. The one instrument that moved decisively was the
+one I had not yet run. This is the same failure as the "four accepts, all
+reverted" episode: accepting on the instruments that happen to be in front of
+you, when a cheap one you have not run yet would reverse it.
+
+The post-accept routine saved this by accident. `vs_old_bots` is listed as a
+*post*-accept step -- something you run to record progress after deciding --
+and it caught a bad accept only because the snapshot happened before the run
+finished. **It should be a pre-accept gate, not a post-accept record**, at
+least whenever the benchmark and mirror moves are both within one game.
+
+### What the result actually means
+
+Removing the emergency override costs games against weaker, longer-lived
+opponents, and shortening the build window does not fully compensate. That is
+consistent with the override's real function -- a crude replacement valve for
+a collapsing army -- being worth more in exactly the games our army has time
+to collapse in. Against benchmarks those games mostly end early, which is why
+the benchmark set could not see the cost, and the mirror is a 50/50 matchup
+where both sides suffer it equally.
+
+So all three of Iterations 111, 112 and 113 are rejected, and the emergency
+override stays. Its Iteration 84 measurement (48.1%, "inert") remains the best
+single-number description of it on the mirror, but the honest summary is now:
+inert on the mirror, mildly positive on benchmarks to remove, and clearly
+load-bearing against weaker opponents in long games.
