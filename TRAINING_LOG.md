@@ -9505,3 +9505,44 @@ the ENGINE for capabilities and interactions the bot never used. Iteration 128
 found `CAT_TRAP` (half the cost, double the damage of a rat trap, credited as
 catDamage); Iteration 138 found that the raid's symmetry assumption is wrong on
 16 of 27 maps. Neither was a tuning question.
+
+## vs_old_bots roster widened to every 5th snapshot (user request)
+
+`roster_opponents()` now steps by 5 rather than 10, so the roster is every
+accepted iteration ending in 1 or 6: `g_iter1, g_iter6, g_iter11, g_iter16,
+g_iter21`. Five opponents means 270 games per run rather than 108.
+
+First run at `g_iter23`:
+
+    vs g_iter1    49/54 = 91%
+    vs g_iter6    45/54 = 83%
+    vs g_iter11   51/54 = 94%
+    vs g_iter16   26/54 = 48%     <-- below even
+    vs g_iter21   29/54 = 54%
+    overall      200/270 = 74.1%
+
+**The denser roster immediately shows something the decade spacing hid: we do
+not beat `g_iter16`,** a snapshot seven accepts back, and we only just beat
+`g_iter21`. The old two-point roster (g_iter1, g_iter11) reported 91% and 94%
+and made the lineage look uniformly dominated.
+
+### Reading it honestly
+
+This is not straightforwardly a regression. Benchmarks over the same span went
+**5/162 -> 8/162**, and peers 55.6% -> 59.3%, so the bot has improved against
+the opponents that matter. What the head-to-head says is that the improvements
+since `g_iter16` are **benchmark-directed rather than lineage-directed** -- the
+trap-density accept (Iteration 102), the cat traps (128) and the raid removal
+(138) all target behaviours the benchmark bots exploit, and none of them help
+much against a copy of ourselves that never rushes and never lays a trap field.
+
+That is the same representativeness split recorded throughout: our own lineage
+does not pose the threats we have been fixing. It is also a caution about the
+mirror as the primary accept test -- `g_iter16` beating `g_iter23` head-to-head
+is exactly what "the mirror cannot arbitrate changes aimed at a threat it does
+not pose" predicts.
+
+Worth watching rather than acting on immediately: if `g_iter16` stays above 50%
+as further accepts land, that is evidence the lineage has drifted into a local
+optimum that is worse head-to-head while better against benchmarks -- and the
+benchmark set is the one that resembles a tournament.
