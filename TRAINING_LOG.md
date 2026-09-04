@@ -10142,3 +10142,50 @@ So the trade is now explicit and quantified rather than hand-waved: face your
 pursuer and become ungrabbable at full HP, but move at 10/18 = 0.55x speed; or
 flee at full speed and stay grabbable. No previous iteration knew this trade
 existed, and `MOVE_STRAFE_COOLDOWN` had never been read.
+
+## Iteration 149 — damaged rats retreat into the trap ring — REJECTED (guard broken)
+
+Aimed at the facing-trap finding: 52% of our rat deaths are landing damage from
+being thrown. A **damaged** rat is undefendable in the open — `canGrab` succeeds
+if the target faces away OR the grabber has more HP, and rats do not heal, so
+facing cannot save it. Home is different because the King sits in a rat-trap ring
+(50 damage, 30-round stun), so a pursuer has to cross it.
+
+**Dose curve measured on rift before spending any run** (same map, opponent and
+side as g_iter24):
+
+    variant                throws of us   deaths   cheeseXfer   King survived to
+    g_iter24 (none)             158         147      12745          r2000
+    hp < 30                     129         128      11195          r1925
+    hp < 50                      97         102       9645          r1800
+    hp < 50 + cheese > 1000     146         136      13380          r2000
+
+Ungated retreat is monotone **in the wrong direction for the outcome**: it buys
+fewer throws by starving the King — cheese to 0 and the King dead before r2000,
+which is our dominant loss mode. `rat-turn-mechanisms-are-priced-per-capita`
+again: a retreating rat stops earning.
+
+The surplus gate removed that cost and, on the control map, was strictly better
+than g_iter24 on every line — fewer throws, fewer deaths, *more* cheese delivered
+(13380 vs 12745), more catDamage, no starvation.
+
+**Result — REJECT on the guard.**
+
+    benchmarks          8/162  ->  8/162    (flat)
+    close-spawn wins     4/42  ->   2/42    (BROKEN)
+    early wipes          8%    ->   9%      (wipe maps gained evileye, toomuchcheese)
+
+**Why the gate failed, and I predicted the opposite.** I wrote that a
+`cheese > 1000` gate "should protect close-spawn games, which never reach 1000".
+They do — **every map starts at ~2488 cheese**. The gate is on *current* treasury,
+so it is wide open from round 1, and damaged rats retreat during the opening rush
+precisely when we cannot spare them. Iteration 147's population gate has the same
+property and is harmless there, because building more early is fine; retreating
+early is not.
+
+**The lesson is about gate variables, not about retreat.** A gate on a quantity
+that is large at spawn is not a late-game gate. Iteration 147's cat-seek design
+had both a cheese gate *and* `round >= 300`, and I dropped the round clause here
+without noticing it was doing separate work. Close-spawn games are decided long
+before round 300 — the fastest losses are rounds 19-40 and every wipe is before
+round 100 — so a round gate excludes exactly the games this broke.
