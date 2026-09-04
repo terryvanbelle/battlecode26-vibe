@@ -9342,3 +9342,15 @@ neutral-or-better.
 Only the `desperate` RAID MOVEMENT was gated. The `desperate` flag itself is
 untouched, so rats are still willing to fight enemy rats pre-backstab, and this
 isolates the guessed-location march.
+
+## g_iter23 confirmed on peers
+
+    instrument            g_iter22          g_iter23
+    benchmarks            8/162             8/162  (round-delta +1525, 38 up / 8 down)
+    peers                 62/108 = 57.4%    64/108 = 59.3%   (pure_cooperator 25 -> 27)
+    vs_old_bots subset    98/108 = 90.7%    100/108 = 92.6%
+    g_iter22 mirror       --                28/54 = 51.9%
+
+Three instruments positive, benchmarks flat. Removing the desperation raid --
+whose enemy-King guess was wrong on 16 of 27 maps -- is corroborated everywhere
+it could be.
