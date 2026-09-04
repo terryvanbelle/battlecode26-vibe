@@ -8563,3 +8563,45 @@ Still not queued as a change: benchmarks are the representative instrument and
 the ring is validated there in both directions (Iterations 101, 102, 122).
 Recorded because the previous entry's mechanism was simply wrong, and because
 the scoring formula is worth having written down exactly.
+
+## Pre-flight — a late second Rat King cannot win the point games (idea killed without a run)
+
+The scoring work suggested an obvious play: kings tie 1-1 in point-decided
+games for 15 points each, so a second King would take the share to 2/3 and swing
+~10 points against margins measured at ONE point. `RAT_KING_CUTOFF_ROUND` is
+1200 with a cap of 2 after it, so a game alive at round 1250 is heading to a
+points finish and could afford the 7 rats that Iteration 107 could not afford at
+round 30.
+
+**Checked the actual numbers first. The premise is false in two ways.**
+`bench_finalist__minimaze__botA`, one of the 14 benchmark games that reach round
+2000 (we are team1, cooperation already false so weights are kings 0.5 /
+catDamage 0.3 / cheese 0.2):
+
+    round 2000        us      them     points
+    kings              1        2      16  vs  33
+    catDamage       1764     3460      10  vs  20
+    cheeseTransferred 5385   10535       6  vs  13
+    aliveBabies        7       55
+    TOTAL                             32  vs  66
+
+**1. Kings do not tie in these games -- `bench_finalist` already has two and we
+have one.** The tie I generalised from the peer game does not hold against the
+opponent that actually reaches scoring. So the term is not a free 15 apiece; it
+is already 16 vs 33, our single largest deficit.
+
+**2. Even winning that term does not close the gap.** Upgrading would take our
+share from 1/3 to 2/4, worth about +9 points, and would consume all 7 of our
+surviving rats to do it. We lose by 34. We are behind roughly 2:1 on every
+term simultaneously.
+
+So the idea is rejected by arithmetic, at the cost of one replay dump rather
+than a 162-game run. Recording it because the reasoning that produced it --
+"kings tie, so a second King is a 10-point swing" -- was sound given the peer
+game and simply did not survive contact with the games it was aimed at.
+
+**What the numbers do show:** the point-decided games are not close and are not
+a separate winnable pocket. Seven rats against fifty-five is the same
+population collapse traced throughout, arriving at the scoring screen instead
+of at a destroyed King. That is consistent with, and adds nothing new to, the
+plateau diagnosis.
