@@ -8462,3 +8462,50 @@ is supported by the *pattern*, not by any single run. Individual rejections in
 this session should be read as weak evidence that happens to point the same
 way, which also means any one of them could be revisited cheaply if a reason
 appeared.
+
+## Archetypes re-synced, and a clean peer baseline at last
+
+Both synthetic peers rebuilt from `src/bot/` with their policy edits re-applied,
+then verified by comment-stripped diff. The ONLY remaining differences are the
+intended ones:
+
+    pure_cooperator      desperate = false (King and Baby Rat)
+                         Baby Rat gate `if (!rc.isCooperation())`
+                         no King trap block
+    immediate_defector   LEASH_RADIUS_SQUARED = 100 + turtle block
+                         desperate = true, gate `if (true)`
+                         no King trap block
+
+No stray drift in either. The date-based staleness warning no longer fires.
+
+**Clean peer baseline, first in this session:**
+
+    overall                60/108 = 55.6%
+    vs pure_cooperator     24/54  = 44%
+    vs immediate_defector  36/54  = 67%
+
+### We lose to pure_cooperator, which is our own bot minus traps and backstab
+
+44% against a strictly simpler variant of ourselves is worth recording. A
+plausible mechanism, from the engine: `GameWorld.triggerTrap` calls
+`backstab(robot.getTeam().opponent())`, so **our own trap ring initiates the
+backstab** as soon as an enemy rat steps on one. That flips scoring from
+cooperation weights (catDamage 0.5, kings 0.3) to backstab weights (kings 0.5,
+catDamage 0.3). With both sides holding exactly one King the kings term ties,
+so we trade away the half-weighted term we were contesting and gain a tied one.
+
+`pure_cooperator` never triggers that flip, keeps catDamage at 0.5, and most
+of these games run to round 2000 where points decide.
+
+**This does not argue for removing the trap ring.** Iteration 102 measured it
+as the single accept of this session on the benchmark set -- early wipes
+14% -> 8%, wins 5 -> 7 -- because tournament opponents rush the King and traps
+stop that. It is the same representativeness split seen throughout: traps buy
+survival against aggressive opponents and cost scoring weight against
+cooperative ones, and the benchmark set is the one that resembles a real
+tournament.
+
+What it does suggest is that the auto-backstab side effect of trapping has
+never been examined on its own terms. Logged as an observation, not queued: any
+change here would be judged primarily on benchmarks, where the ring is already
+validated in both directions (Iterations 101, 102, 122).

@@ -37,6 +37,7 @@ public class RobotPlayer {
     static int builtCount = 0;
     static int buildWindowStart = 0;      // Iteration 38, see runRatKing
     static boolean replacementMode = false; // Iteration 39, see runRatKing
+    static int trapsSinceBuild = 0; // Iteration 102, see runRatKing
     static int cheeseCheckpoint = -1;
     static int cheeseCheckpointRound = 0;
     static boolean economyStruggling = false;
@@ -132,7 +133,27 @@ public class RobotPlayer {
             }
         }
 
-        attackNearestHostile(rc, desperate);
+        // Iteration 99 (TRAINING_LOG.md): the King's attack moved BELOW the
+        // build attempt -- re-testing Iteration 77 against the counter that
+        // actually matters.
+        //
+        // Traced on `bench_stroke__knifefight__botB`, a 17-round loss:
+        //
+        //     round   them                              us
+        //     1-5     SpawnAction every round           SpawnAction x4
+        //     6-17    SpawnAction + RatAttack x3-6      RatAttack x1, nothing else
+        //     17      -                                 our King dies
+        //
+        // They spawn 16 rats in 17 rounds; we spawn 4 and then stop. From
+        // round 6 our only action is a single RatAttack per round -- that is
+        // the KING, swinging instead of building, because
+        // `attackNearestHostile` runs before the build and a King has one
+        // action per turn. The moment an enemy arrives, production halts.
+        //
+        // Iteration 77 made exactly this change and I rejected it as inert on
+        // 5/162 WINS. I never looked at the early-wipe rate, which is the
+        // counter upstream of 91% of these losses and the only one with
+        // variance on this instrument. Re-testing on that counter.
 
         // The King never moved at all in the first cut of this iteration.
         // Cats patrol fixed, map-specific waypoints (RULES.md), so a King
@@ -235,12 +256,90 @@ public class RobotPlayer {
         // discretionary spending: a committed investment (the opening army)
         // and a discretionary one (topping it back up) should not be gated
         // at the same bar.
+        // Iteration 88 (TRAINING_LOG.md): cheese-gated population cap,
+        // RETESTED on the mirror after being rejected on a low-resolution
+        // instrument.
+        //
+        // Iteration 78 tried exactly this and scored 4/162 against a 5/162
+        // benchmark control -- but the ablation program has since established
+        // that the benchmark set (~3% win rate) cannot resolve +/-2 games, and
+        // that its headline numbers inverted the sign twice. Iteration 78 was
+        // never tested on the mirror.
+        //
+        // The degenerate state it targets is now measured directly. Tracing
+        // `g_iter16__closeup__botA`, our per-100-round action count collapses
+        // to 6-13 across rounds 200-599 while cheese sits at **1271-1581**
+        // and living rats decay **25 -> 6**. We hit the 25-build window cap
+        // around round 50 and then cannot build for ~350 rounds despite
+        // having the money -- a cap-blocked stall with a full treasury.
+        //
+        // My first theory was that REPLACEMENT_RESERVE caused the lull; the
+        // cheese trace refutes it (the lull is at HIGH cheese, and activity
+        // peaks once cheese falls below the reserve). The cap is the binder.
+        //
+        // Unlike Iteration 78 this changes the cap ALONE -- Iteration 77's
+        // King-attack reorder is not bundled in.
+        // Iteration 90 (TRAINING_LOG.md): align the cap gate with the build
+        // reserve, 1200 -> 1000, to close a dead band.
+        //
+        // Tracing the CURRENT build (`g_iter17__closeup__botB`) shows cheese
+        // pinned in a narrow band for the whole game -- 1118, 1045, 1034,
+        // 1004, 1016, 988, 998, 998, 988, 1012, 992, 1004 -- never escaping
+        // ~1000-1100 between rounds 100 and 2000, with activity at 5-19
+        // events per 100 rounds and 4-14 rats alive.
+        //
+        // That is an interaction between two thresholds set independently.
+        // The cap gate opens above **1200**; REPLACEMENT_RESERVE blocks
+        // building below **1000**. Between them lies a 200-cheese dead band
+        // where we are rich enough to keep building at the OLD cap of 25 but
+        // never rich enough to unlock 40 -- so the treasury is held at
+        // equilibrium and the gate accepted in Iteration 88 is mostly shut
+        // for the rest of the game.
+        //
+        // Setting the gate to the reserve removes the band: whenever we can
+        // afford to build at all, we build against the higher cap. This does
+        // not touch REPLACEMENT_RESERVE itself, which the ablation program
+        // measured at ~+24 points and which stays exactly as is.
+        // Iterations 88/90 raised this to a cheese-gated 40 and were
+        // ACCEPTED on the mirror (+7.4) and peers (+7.4). Measured against the
+        // benchmark set they cost a game, so they are reverted -- see the
+        // "four accepts, all reverted" entry in TRAINING_LOG.md.
         final int MAX_POPULATION = 25;
         final int BUILD_WINDOW_ROUNDS = 400;
+        // Iteration 92 (TRAINING_LOG.md): let the replacement reserve DECAY
+        // late, when a survival buffer is worth less than the rats it buys.
+        //
+        // Iteration 90's mechanism check located this. Closing the cap-gate
+        // dead band widened the cheese range only from 134 to 246 and left
+        // cheese hovering at ~900-1150 for the whole game, because **the
+        // hover point is set by this constant**: we build until we cannot
+        // afford to, so any reserve creates an equilibrium just above itself
+        // and moving other thresholds only shifts it slightly.
+        //
+        // The reserve cannot simply be lowered -- Iteration 87 ablated it and
+        // measured ~+24 points, the second-largest effect in the bot. But its
+        // JUSTIFICATION is time-dependent in a way the constant is not: it
+        // exists to keep the King alive through a future collapse, and after
+        // round 1200 there are at most 800 rounds of future left. A rat built
+        // then still collects for those 800 rounds; a hoarded 600 cheese does
+        // nothing unless the collapse actually arrives.
+        //
+        // Distinct from Iteration 40's emergency override, which tried to
+        // DETECT an emergency (`noVisibleArmy`) and measured inert at 48.1%.
+        // This is unconditional and predictable -- no detector to misfire.
+        // Iteration 92 decayed this to 400 after round 1200 and was ACCEPTED
+        // on the mirror (+3) and peers. It cost a benchmark game -- reverted.
         final int REPLACEMENT_RESERVE = 1000;
         if (rc.getRoundNum() - buildWindowStart >= BUILD_WINDOW_ROUNDS) {
             buildWindowStart = rc.getRoundNum();
             builtCount = 0;
+            // Iteration 87 (TRAINING_LOG.md): REPLACEMENT_RESERVE is
+            // VALIDATED and large. Ablating it scores 14/54 = 25.9% against
+            // the version that has it -- worth ~+24 points, second only to
+            // the exploration-heading reassignment's ~+28. Iterations 38/39
+            // were accepted at 90.0% on the peer set and this is the first
+            // measurement on an instrument with resolution; unlike the other
+            // headline claims tested, this one held up.
             replacementMode = true;
         }
         // Iteration 40: emergency override. On `tiny`, tracing the one
@@ -262,13 +361,97 @@ public class RobotPlayer {
                 break;
             }
         }
+        // Iteration 84 (TRAINING_LOG.md): the emergency override is KEPT,
+        // but it is now known to be worth nothing measurable.
+        //
+        // Iteration 40 was accepted at a headline "95.0%", corrected here to
+        // 62.5% after resyncing stale archetypes, with the note that it
+        // "should be treated as provisional until re-measured". Ablating it
+        // and playing the version that has it scores **26/54 = 48.1%** --
+        // a balanced side split (A 13, B 13), so a genuine null rather than
+        // a side artifact. The override is inert to within one game in 54.
+        //
+        // Kept because removing it is equally neutral and churn has its own
+        // risk, but it should not be credited in any future reasoning.
         int buildReserve = (replacementMode && !noVisibleArmy) ? REPLACEMENT_RESERVE : RESERVE;
+        // Iteration 48 (TRAINING_LOG.md): **ring the King with rat traps.**
+        // The external benchmark showed tournament bots killing us in
+        // 21-46 rounds by swarming the King with 7-10 rats, and proved
+        // that rearranging our own units cannot stop it (a standing guard
+        // of a third of the army changed the result by zero rounds).
+        // Traps are the counter we already had and never used:
+        // `TrapType.RAT_TRAP` is **50 damage and a 30-round stun for 20
+        // cheese, with maxCount 25** -- half an attacker's 100 HP and it
+        // is removed from the fight for 30 rounds, at a total cost of 500
+        // cheese for a full set against a treasury averaging 4220.
+        //
+        // Iteration 15 tried traps and rejected them as "never triggered",
+        // but that was against peers that never rushed the King; traps
+        // laid around a King that nobody attacks are inert by
+        // construction. Against opponents whose whole opening is a King
+        // rush, the same traps sit exactly on the attack path. The
+        // mechanic didn't change -- the opposition did.
+        //
+        // Interleaved with building rather than deferred until after it:
+        // the opening burst runs rounds 1-25 and `bench_spaark` finishes
+        // us at round 21, so traps laid only after the burst would arrive
+        // after we are already dead. Alternating from round 5 yields
+        // roughly ten traps down by round 25 while still building most of
+        // the army.
+        // Iteration 82: ABLATION of Iteration 48's King trap ring.
+        //
+        // Iteration 48 is credited as the only change that ever moved a
+        // benchmark line (bench_finalist 0% -> 7-10%), and that credit has
+        // been load-bearing all session -- it is why Iteration 59's trap
+        // deletion was blamed for its benchmark drop, and why Iteration 77
+        // deliberately kept traps. But it was measured on the BENCHMARK set,
+        // which we now know is lopsided (~3% win rate) and cannot resolve
+        // +/-2 games.
+        //
+        // The g_iter15 head-to-head is a true mirror -- the two files differ
+        // only in their package line -- so it sits at 50% by construction and
+        // has the resolution to settle this. Turning the ring OFF and playing
+        // the version that has it: >50% means the traps have been costing us,
+        // ~50% means they are inert, <50% means Iteration 48 is real.
+        //
+        // Ablation rather than another new mechanism, because the session's
+        // failures were mostly new mechanisms and its findings were mostly
+        // measurements. This checks an assumption several conclusions rest on.
+        // Iteration 96 (TRAINING_LOG.md): the King trap ring is RESTORED,
+        // reversing Iteration 82's accept on grounds of REPRESENTATIVENESS.
+        //
+        // Iteration 82 ablated this ring and scored 57.4% on the mirror --
+        // a clean, well-measured result on the instrument with the best
+        // resolution available. It was wrong about the game that matters.
+        //
+        //     instrument        traps OFF      traps ON
+        //     benchmarks        2/162          3/162
+        //     early wipes       26%            13%
+        //     mirror            57.4% (better) --
+        //
+        // Early King wipes HALVED when the ring came back, to below even the
+        // session's starting 16%. The wipes cluster exactly where a rush is
+        // possible -- knifefight 6, tiny 6, dirtfulcat 5, thunderdome 4 --
+        // and the fastest losses are rounds 17-28, i.e. the King dies before
+        // the game begins.
+        //
+        // Why the mirror could not see it: 0% of mirror losses are early
+        // wipes, because our own lineage never rushes. A defensive feature is
+        // free to remove on an instrument that never poses the threat it
+        // defends against. RESOLUTION AND REPRESENTATIVENESS ARE DIFFERENT
+        // PROPERTIES, and the mirror has only the first.
+        // ARCHETYPE DIFFERENCE: no King trap ring. This is REQUIRED, not
+        // drift: GameWorld.triggerTrap calls backstab(robot.getTeam().opponent()),
+        // so the TRAP'S OWNER initiates the backstab when an enemy steps on one.
+        // A trap-laying bot is not a pure cooperator, and the defector turtles
+        // rather than mining the map.
         MapLocation buildLoc = findBuildLocation(rc);
         if (buildLoc != null && rc.canBuildRat(buildLoc)
                 && rc.getGlobalCheese() - rc.getCurrentRatCost() >= buildReserve
                 && builtCount < MAX_POPULATION) {
             rc.buildRat(buildLoc);
             builtCount++;
+            trapsSinceBuild = 0;
         } else if (buildLoc == null) {
             // Replay evidence on `closeup` (TRAINING_LOG.md, tools/replay-dump.sh's
             // new terrain dump): both Kings spawned boxed in entirely by DIRT
@@ -277,6 +460,11 @@ public class RobotPlayer {
             // game, for either team, on this map specifically. Dig out.
             digTowardOpenSpace(rc);
         }
+
+        // Iteration 99: only now, having tried to build, spend the action on
+        // defence. A King bite is RAT_BITE_DAMAGE 10; a rat that collects for
+        // the rest of the game is worth more.
+        attackNearestHostile(rc, desperate);
 
         rc.setIndicatorString("king cheese=" + rc.getGlobalCheese()
                 + (nearestCat != null ? " cat@" + nearestCat.getLocation() : ""));
@@ -298,6 +486,29 @@ public class RobotPlayer {
         if (best != null) {
             rc.removeDirt(best);
         }
+    }
+
+    /**
+     * Iteration 48: a tile to trap, preferring the ring just outside the
+     * King rather than right against it -- attackers must cross that ring
+     * to reach the King, and a trap on the King's own doorstep is one an
+     * attacker only touches after it is already in bite range.
+     */
+    static MapLocation findTrapLocation(RobotController rc) throws GameActionException {
+        MapLocation me = rc.getLocation();
+        MapLocation best = null;
+        int bestScore = Integer.MIN_VALUE;
+        for (MapLocation loc : rc.getAllLocationsWithinRadiusSquared(me,
+                GameConstants.RAT_KING_BUILD_DISTANCE_SQUARED)) {
+            if (!rc.canPlaceRatTrap(loc)) continue;
+            int d = loc.distanceSquaredTo(me);
+            int score = -Math.abs(d - 5); // prefer the ring at distance^2 ~5
+            if (score > bestScore) {
+                bestScore = score;
+                best = loc;
+            }
+        }
+        return best;
     }
 
     static MapLocation findBuildLocation(RobotController rc) throws GameActionException {
@@ -360,7 +571,38 @@ public class RobotPlayer {
             // the cat isn't going to *not* attack because we didn't, and it's
             // the only thing that's ever put a nonzero number in catDamage.
             if (rc.canAttack(nearestCat.getLocation())) {
-                rc.attack(nearestCat.getLocation());
+                // Iteration 83 (TRAINING_LOG.md): the 4-cheese boosted bite
+                // is KEPT, after a direct test that had never been run.
+                //
+                // The log had rejected it -- "REJECT the cheese-boosted bite
+                // entirely (Iteration 45), including the 4-cheese version" --
+                // and the revert was then never applied, so it stayed live.
+                // Finding that looked like a straightforward defect.
+                //
+                // But the rejection was an INFERENCE, not a measurement.
+                // Iteration 45 measured 4 cheese at 29/54 (53.7%) and 16
+                // cheese at 20/54 (37.0%), then reasoned that a negative
+                // slope at the high dose condemned the low one. That step
+                // assumes the response is monotone. It is not: removing the
+                // boost entirely scores **25/54 (46.3%)** against the version
+                // that has it, i.e. the 4-cheese build wins **53.7%** -- the
+                // same figure Iteration 45 measured, now reproduced against a
+                // different opponent on the mirror.
+                //
+                // Three points, 0 / 4 / 16 cheese, describe a concave curve
+                // with an interior optimum near 4, not a monotone decline.
+                // Keeping it.
+                // Restored EXACTLY as g_iter16 has it -- the guarded form is
+                // what measured 53.7%, and an unguarded rc.attack(loc, 4)
+                // would both change behaviour and risk a GameActionException
+                // when the boost is unaffordable.
+                final int BITE_BOOST_CHEESE = 4;
+                if (rc.getGlobalCheese() > 1000
+                        && rc.canAttack(nearestCat.getLocation(), BITE_BOOST_CHEESE)) {
+                    rc.attack(nearestCat.getLocation(), BITE_BOOST_CHEESE);
+                } else {
+                    rc.attack(nearestCat.getLocation());
+                }
                 return;
             }
             // High-risk structural change (TRAINING_ALGORITHM.md): the
@@ -399,9 +641,8 @@ public class RobotPlayer {
         // a sighted enemy even while still nominally cooperating: certain
         // starvation is worse than betting on a combat edge we've already
         // demonstrated (see the King-side comment for the full reasoning).
-        // ARCHETYPE DIFFERENCE: hostile to enemy rats from turn 1,
-        // regardless of cooperation state -- it does not wait to be
-        // backstabbed, it defects immediately.
+        // ARCHETYPE DIFFERENCE: hostile to enemy rats from turn 1, regardless
+        // of cooperation state -- it does not wait to be backstabbed.
         boolean desperate = true;
         if (true) {
             // Replay evidence (TRAINING_LOG.md, `closeup` vs. `immediate_defector`):
@@ -444,10 +685,8 @@ public class RobotPlayer {
         if (collectCheese(rc)) return;
 
         // ARCHETYPE DIFFERENCE (immediate_defector): a turtle. Rather than
-        // ranging freely like src/bot/, it stays near its own King and
-        // heads home whenever it drifts beyond the leash -- defending a
-        // compact area instead of contesting the whole map. This is the
-        // policy contrast the peer roster exists to test against.
+        // ranging freely like src/bot/, it stays near its own King and heads
+        // home whenever it drifts beyond the leash.
         if (kingLoc != null
                 && rc.getLocation().distanceSquaredTo(kingLoc) > LEASH_RADIUS_SQUARED) {
             if (moveToward(rc, kingLoc, true)) return;
@@ -538,7 +777,7 @@ public class RobotPlayer {
         int bestDist = Integer.MAX_VALUE;
         for (RobotInfo info : rc.senseNearbyRobots(rangeSq)) {
             boolean hostile = info.getType() == UnitType.CAT
-                    || info.getTeam() != rc.getTeam(); // always hostile
+                    || ((!rc.isCooperation() || desperate) && info.getTeam() != rc.getTeam());
             if (!hostile) continue;
             if (!rc.canAttack(info.getLocation())) continue;
             int d = info.getLocation().distanceSquaredTo(me);
@@ -664,6 +903,12 @@ public class RobotPlayer {
                               boolean useBugNav) throws GameActionException {
         MapLocation here = rc.getLocation();
         if (here.equals(target)) return true;
+        // Iteration 86 (TRAINING_LOG.md): Bug2 is VALIDATED, mildly.
+        // Ablating it scores 24/54 = 44.4% against the version that has it,
+        // so it is worth roughly +5.6 points -- real, but an order of
+        // magnitude smaller than the exploration-heading reassignment's ~28.
+        // It was originally accepted on a purely mechanistic argument with no
+        // win-rate evidence; this is its first measurement.
         if (!useBugNav) {
             return tryMove(rc, here.directionTo(target), allowStuckEscape);
         }
@@ -912,6 +1157,19 @@ public class RobotPlayer {
         }
         exploreLocTwoCallsAgo = exploreLocOneCallAgo;
         exploreLocOneCallAgo = here;
+        // Iteration 85 (TRAINING_LOG.md): this reassignment is VALIDATED and
+        // is the single most valuable behaviour measured in the whole bot.
+        //
+        // Ablating it and playing the version that has it scores **12/54 =
+        // 22.2%** on the mirror -- a ~28-point swing, the largest effect
+        // measured on that instrument in either direction, dwarfing the King
+        // trap ring (+7.4% to remove) and the cheese-boosted bite (~4%).
+        //
+        // Do not "simplify" this away. Without it a rat whose initial heading
+        // points at a nearby map edge reaches that edge in ~15 rounds and then
+        // oscillates in a handful of tiles for the rest of the game, never
+        // collecting cheese -- the failure the user reported directly, and
+        // the one traced in the Iteration 32 entry.
         if (exploreStuckCycles >= 2) {
             Direction newDir;
             do {
