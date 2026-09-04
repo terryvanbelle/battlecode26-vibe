@@ -9173,3 +9173,47 @@ close-spawn wins collapsing to 1/42 in both. Combined with the trap-line closure
 from Iterations 130-133, every trap variant this session has now been tested:
 density, ratio, cheese gate, ring maintenance, rat-placed rat traps, and
 rat-placed cat traps. Only the King's reactive cat trap survives.
+
+## Iteration 135 — stunned rats lay cat traps — REJECTED; the shared cap was the answer all along
+
+    trigger                       wins     close-spawn wins
+    none (g_iter22)               8/162    4/42
+    rat, cat within d^2 20 (130)  5/162    1/42
+    rat, cat within d^2 8  (134)  4/162    1/42
+    rat, stunned only      (135)  6/162    1/42
+
+Three completely different triggers, the same collapse to 1/42. The pre-
+registered risk said that would settle it, and it does -- but not for the reason
+any of the three iterations proposed.
+
+**The mechanism, measured on the map where cat traps were validated
+(`peaceinourtime`):**
+
+    g_iter22   King 52 placements, rats  0
+    iter135    King 24 placements, rats 13   (37 total, down from 52)
+    live catTraps reach 10 -- the cap -- by round 500
+
+**Rat placements starve the King's budget.** `CAT_TRAP.maxCount` is 10 for the
+whole team, so every trap a rat lays in the field is a slot the King cannot
+refill when a cat actually reaches it. The King's placements more than halved.
+The `> 8 tiles from our King` guard I put in all three iterations prevented
+*spatial* competition and did nothing about the *global* cap, which is the
+resource that was actually contested.
+
+### What this says about my reasoning
+
+I explained these three failures three different ways -- too many early
+placements (130), firing when the rat should flee (134), and then a mobility
+rule that was supposed to fix it (135). The first two explanations were
+plausible and both were wrong; the third was a genuine insight about the King
+and still did not rescue the idea, because the binding constraint was never the
+trigger.
+
+The tell was available from Iteration 130 onward: `teamCatTrapCount` was in the
+Round table the whole time, and I only added it to the dump two iterations ago
+while chasing something else. A shared-resource change needs the shared resource
+measured *first* -- I was measuring placements and outcomes, never the pool they
+draw from.
+
+**Closed for good.** Only the King may place cat traps, because the King's are
+the ones the cap should be spent on.
