@@ -10046,3 +10046,24 @@ none of it.
 Honest limits: this did not flip a single benchmark game, and the eight
 points-losses remain 33-64 points adrift. It compounds our economy without
 closing the gap that decides those games.
+
+**vs_old_bots after g_iter24** (270 games, roster = every 5th snapshot):
+
+    overall     212/270 (78.5%)
+    g_iter1      49/54 (91%)
+    g_iter6      45/54 (83%)
+    g_iter11     51/54 (94%)
+    g_iter16     33/54 (61%)     -- was 48% at g_iter23
+    g_iter21     34/54 (63%)
+
+`g_iter16` moving 48% -> 61% is the notable line. It is the trapless build, and
+the log has expected it to sit "near or below 50% indefinitely" as the price of
+the Iteration 96 trap trade. Population compounding appears to pay in exactly the
+long games where a trapless opponent was previously winning on points.
+
+Sample game archived as `replays/iter147_g_iter23_closeup_botA.bc26` — a mirror
+win over the previous accepted build, chosen over a benchmark win because
+benchmarks were flat (8/162 both) and the benchmark wins are identical to
+baseline, so none of them is attributable to this change. It ends
+`catDamage=[2918,948]`, a 3x advantage over `g_iter23` on the term we are most
+behind on against real opponents: more rats, more bites.
