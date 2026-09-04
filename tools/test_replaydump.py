@@ -199,6 +199,34 @@ def test_footer(text: str, rounds: list) -> None:
               int(m.group(3)) >= max(rounds), f"{m.group(3)} vs {max(rounds)}")
 
 
+def test_grab_throw_name_both_ends(text: str) -> None:
+    """RatNap/ThrowRat must name the ACTOR and the VICTIM separately.
+
+    The schema is not self-consistent about which end an action's payload id
+    refers to: RatAttack carries the biter (the actor), while RatNap carries
+    the captive and ThrowRat the thrown rat (both victims). ReplayDump prints
+    `who` from turn.robotId(), so for these two the printed robot is the
+    grabber/thrower and the payload is the target.
+
+    Printing only `who` made "team2 RatNap" mean either "a team2 rat grabbed
+    someone" or "a team2 rat got grabbed" -- readings that support opposite
+    conclusions about who is winning the fight. That is the ambiguity behind
+    the Iteration 108 retraction, so pin both ends here.
+    """
+    naps = re.findall(r"\) RatNap grabbed=(\S+)", text)
+    throws = re.findall(r"\) ThrowRat thrown=(\S+) to=", text)
+    bare_nap = re.search(r"\) RatNap(?! grabbed=)", text)
+    bare_throw = re.search(r"\) ThrowRat(?! thrown=)", text)
+    check("every RatNap names the grabbed robot", bare_nap is None,
+          "a RatNap printed without grabbed=; actor/victim ambiguity is back")
+    check("every ThrowRat names the thrown robot", bare_throw is None,
+          "a ThrowRat printed without thrown=; actor/victim ambiguity is back")
+    label = re.compile(r"^id\d+\(team[12],\w+\)$")
+    bad = [x for x in naps + throws if not label.match(x)]
+    check(f"grab/throw targets are resolved labels ({len(naps)} naps, {len(throws)} throws)",
+          not bad, str(bad[:3]))
+
+
 def test_bad_flag_errors(replay: str) -> None:
     """A misspelled flag must fail loudly, not silently dump the whole game."""
     r = subprocess.run([str(DUMP), replay, "--form", "100"],
@@ -222,6 +250,7 @@ def main(argv):
     test_spawn_ids_unique(full)
     test_spawn_in_bounds(full)
     test_footer(full, rounds)
+    test_grab_throw_name_both_ends(full)
     lo, hi = window_for(full)
     print(f"  (sub-window for this replay: rounds {lo}-{hi})")
     test_window_respected(replay, lo, hi)

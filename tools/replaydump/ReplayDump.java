@@ -273,10 +273,16 @@ public class ReplayDump {
                     break;
                 }
                 case Action.RatNap: {
-                    // Also emitted by grabRobot() against the CAPTIVE's id, so
-                    // a RatNap on an enemy rat is how carryRat shows up. See the
-                    // Iteration 108 retraction in TRAINING_LOG.md.
-                    System.out.println("round " + round + " " + who + " RatNap");
+                    // grabRobot() emits this with the CAPTIVE's id in the
+                    // payload, while `who` is the GRABBER (the robot whose turn
+                    // it is). Printing only `who` left every grab ambiguous --
+                    // "team2 RatNap" reads equally well as a team2 rat grabbing
+                    // or a team2 rat being grabbed, and the two give opposite
+                    // conclusions. That ambiguity is what produced the
+                    // Iteration 108 retraction, so print both ends.
+                    RatNap d = new RatNap();
+                    d.__init(pos, bb);
+                    System.out.println("round " + round + " " + who + " RatNap grabbed=" + label(d.id()));
                     break;
                 }
                 case Action.RatSqueak: {
@@ -302,7 +308,16 @@ public class ReplayDump {
                     break;
                 }
                 case Action.ThrowRat: {
-                    System.out.println("round " + round + " " + who + " ThrowRat");
+                    // Same actor/victim split as RatNap: addThrowAction() is
+                    // called with robotBeingCarried.getID(), so the payload is
+                    // the THROWN rat and `who` is the thrower. Note this is the
+                    // opposite convention from RatAttack, whose payload is the
+                    // biter (the actor) -- the schema is not consistent, so
+                    // never assume which end an id refers to.
+                    ThrowRat d = new ThrowRat();
+                    d.__init(pos, bb);
+                    System.out.println("round " + round + " " + who + " ThrowRat thrown=" + label(d.id())
+                            + " to=" + loc(d.loc()));
                     break;
                 }
                 case Action.RatCollision: {
