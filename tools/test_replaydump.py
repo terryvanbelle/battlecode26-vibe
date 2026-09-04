@@ -227,6 +227,35 @@ def test_grab_throw_name_both_ends(text: str) -> None:
           not bad, str(bad[:3]))
 
 
+def test_turns_mode(replay: str) -> None:
+    """`--turns` must emit position+facing lines, including for idle robots.
+
+    Two traps this pins. First, the line is emitted before dumpActions' early
+    return for turns with no actions -- a robot standing still does nothing, and
+    those turns are exactly the ones a rotate-to-scan proposal depends on.
+
+    Second, dir is NOT the Direction enum ordinal. GameMaker writes
+    FlatHelpers.getOrdinalFromDirection, a bespoke mapping where 0=CENTER,
+    1=WEST, 2=SOUTHWEST, ... 7=NORTH, 8=NORTHWEST. Decoding it as the enum
+    ordinal turns 44% of moves into an apparent 96%, which reads as a
+    catastrophic finding rather than a units bug.
+    """
+    r = subprocess.run([str(DUMP), replay, "--turns", "1", "--from", "300", "--to", "320"],
+                       capture_output=True, text=True, timeout=600)
+    check("--turns exits cleanly", r.returncode == 0, r.stderr[:200])
+    lines = [l for l in r.stdout.splitlines() if " TURN " in l]
+    check("--turns emits turn lines", len(lines) > 0)
+    bad_team = [l for l in lines if "(team2," in l]
+    check("--turns 1 filters to team 1", not bad_team, str(bad_team[:2]))
+    dirs = [int(m) for m in re.findall(r" dir=(\d+)", "\n".join(lines))]
+    check(f"dir is in the 0..8 wire range ({len(dirs)} turns)",
+          dirs and all(0 <= d <= 8 for d in dirs),
+          str(sorted(set(dirs))[:12]))
+    fields = re.findall(r"TURN id\d+\(team\d,\w+\) at \(\d+,\d+\) dir=\d+ hp=\d+ moveCd=\d+ turnCd=\d+", "\n".join(lines))
+    check("every turn line is fully formed", len(fields) == len(lines),
+          f"{len(fields)} of {len(lines)}")
+
+
 def test_bad_flag_errors(replay: str) -> None:
     """A misspelled flag must fail loudly, not silently dump the whole game."""
     r = subprocess.run([str(DUMP), replay, "--form", "100"],
@@ -251,6 +280,7 @@ def main(argv):
     test_spawn_in_bounds(full)
     test_footer(full, rounds)
     test_grab_throw_name_both_ends(full)
+    test_turns_mode(replay)
     lo, hi = window_for(full)
     print(f"  (sub-window for this replay: rounds {lo}-{hi})")
     test_window_respected(replay, lo, hi)

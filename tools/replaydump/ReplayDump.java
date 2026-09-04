@@ -30,6 +30,15 @@ public class ReplayDump {
     // number at all. Printed on transition only.
     static Boolean lastCoop = null;
 
+    // `--turns <team>`: emit one line per robot turn carrying position and
+    // FACING. The Turn table has had x(), y() and dir() all along and this dump
+    // read none of them, which left two questions unanswerable from a replay:
+    // how often a rat holds still, and which way it faced when something
+    // happened to it. Both are central to the facing trap (TRAINING_LOG.md) --
+    // canGrab succeeds when the target faces away, and only turn() changes
+    // facing. 0 = both teams, 1 or 2 = that team only, -1 = off.
+    static int turnsTeam = -1;
+
     public static void main(String[] args) throws Exception {
         // Every flag takes exactly one value. An unknown or misspelled flag is a
         // hard error rather than a silent no-op: the old loop ignored anything it
@@ -49,6 +58,7 @@ public class ReplayDump {
                     terrainY = Integer.parseInt(xy[1]);
                     break;
                 }
+                case "--turns": turnsTeam = Integer.parseInt(val); break;
                 default: throw new IllegalArgumentException("unknown flag: " + flag);
             }
         }
@@ -186,6 +196,22 @@ public class ReplayDump {
         // Turn fields become 13 vtable slots and `actions` lands at 0-based
         // index 11, i.e. (11+2)*2 = 26. Verified against the generated
         // Turn.java accessor; tools/test_replaydump.py pins it.
+        // Emitted BEFORE the no-actions early return below. A rat that stands
+        // still and does nothing has no actions at all, and those turns are
+        // precisely the ones a rotate-to-scan proposal depends on -- returning
+        // first would have hidden exactly the population being measured.
+        if (turnsTeam >= 0 && print) {
+            String lbl = label(turn.robotId());
+            if (turnsTeam == 0 || lbl.contains("team" + turnsTeam)) {
+                System.out.println("round " + round + " TURN " + lbl
+                        + " at (" + turn.x() + "," + turn.y() + ")"
+                        + " dir=" + turn.dir()
+                        + " hp=" + turn.health()
+                        + " moveCd=" + turn.moveCooldown()
+                        + " turnCd=" + turn.turningCooldown());
+            }
+        }
+
         int o = turn.__offset(26);
         if (o == 0) return;
         int len = turn.__vector_len(o);
