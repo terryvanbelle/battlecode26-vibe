@@ -9091,3 +9091,43 @@ after the cap". The idea is untested; the implementation was wrong.
 
 Iteration 133 gates the maintenance clause on `builtCount >= MAX_POPULATION`,
 so it genuinely cannot fire until building has stopped.
+
+## Iteration 133 — ring maintenance, properly gated — REJECTED; ring decay is FINE
+
+                          g_iter22        iter133
+    benchmark wins        8/162           6/162
+    early wipes           12/154 = 8%     12/156 = 8%
+    close-spawn wins      4/42            2/42
+
+**This time the gate did what it claimed.** King census, rounds 0-99:
+
+    g_iter22   25 spawns, 18 traps, cheese 1148   CAP-LIMITED
+    iter133    25 spawns, 18 traps, cheese 1148   CAP-LIMITED
+
+Byte-identical opening, so Iteration 132's confound (trapping continuously from
+round 25) is gone. And the ring is maintained as intended: 16 / 12 / 12 / 12
+against a baseline 16 / 12 / 7 / 7.
+
+**With the opening held fixed, maintaining the ring costs two wins.** The only
+difference between the arms is post-cap trapping, so the extra standing traps --
+and the King actions and cheese spent replacing them -- are a net negative.
+
+### What that settles
+
+The ring decaying from 16 to 7 is not a defect to fix. It is harmless, and
+replacing it is worse than letting it erode. That is consistent with where the
+ring's value actually lies: **every early wipe happens before round 100**, when
+the ring is still at 16 and freshly built. After the build cap the King's
+alternative use of its action -- `attackNearestHostile`, which Iteration 99
+established is worth having in the right order -- beats laying a replacement
+trap.
+
+So I was wrong that this was "an idle resource". After the cap the King's action
+is not idle; it is attacking. Iteration 128 worked because a cat trap is laid
+*only when a cat is present*, i.e. exactly when attacking a 4000 HP cat is worth
+less than trapping it. A rat trap laid on a timer has no such trigger.
+
+That closes trap-ring maintenance, and with it the whole trap line: density is
+peaked (Iterations 101/102/122), the cheese gate is not the starvation cause
+(131), rat-placed cat traps cost the opening (130), and ring decay is harmless
+(132/133).
