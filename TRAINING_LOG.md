@@ -8667,3 +8667,59 @@ and the first to do so while *also* posting the session's best mirror number --
 which is the sharpest available demonstration that the mirror cannot arbitrate
 population changes, because more rats trivially beats fewer rats of identical
 code.
+
+## Root cause — why "more rats" loses: the cost curve starves the King
+
+Traced after Iteration 125, on the game whose round-delta was worst
+(`bench_finalist__minimaze__botB`, r2000 -> r1298; we are team2):
+
+                     rd200  rd400  rd600  rd800  rd1000  rd1200  rd1275
+    iter125 cheese    1061   1126    946    666     326      76       0
+            rats        23     15      5      4       4       0       0
+    baseline cheese   1151   1456    946    796     776     576      --
+            rats        21     17     18      8       7       5      --
+
+The treasury reached **zero** and the King starved to death at round 1298. The
+baseline never falls below ~576 and survives to the round limit.
+
+**The mechanism, from engine source:**
+
+    getCurrentRatCost() = 10 + 10 * (LIVE babyRats / 4)
+    only the KING consumes cheese: RAT_KING_CHEESE_CONSUMPTION = 2 per round
+    if team cheese < 2, the King takes RAT_KING_HEALTH_LOSS = 10 per round
+
+Rats carry no upkeep, so a bigger army does not directly drain anything. What
+drains is **buying** it: at 35 live rats each additional rat costs 10 + 80 =
+**90**, against 30 at eight rats. The cost curve makes a large army
+self-limiting, and once the treasury empties the King loses 10 HP per round and
+dies within 60 rounds regardless of how many rats are standing around it.
+
+### This unifies six previously separate rejections
+
+Every change that let the King spend more died the same way:
+
+    Iteration 111  shorter build window            treasury 553 -> 68, bankrupt
+    Iteration 112  window + override off           -10 on vs_old_bots
+    Iteration 113  override off alone              mirror 37.0%
+    Iteration 114  override fires earlier          -23 on vs_old_bots
+    Iteration 120  REPLACEMENT_RESERVE 1000 -> 500 -9 on vs_old_bots
+    Iteration 125  MAX_POPULATION 25 -> 40         treasury to 0, King starved
+
+`REPLACEMENT_RESERVE = 1000` is not a production throttle that happens to be
+badly tuned. **It is the anti-starvation floor**, and every one of these six
+iterations was an attempt to spend through it. That is why the reserve measured
++24 points when ablated (Iteration 87) and why every relaxation since has lost
+games on the instrument with long enough games to show starvation.
+
+### And it closes the population line for good
+
+Population cannot be bought. The cost curve prices it against a treasury we
+cannot refill, because income requires rats and rats require income -- the
+circularity noted earlier, now with its exact mechanism. `bench_finalist`
+fields 75 rats and 5 Kings in that same game while holding 3810 cheese: it
+affords the army because its `cheeseTransferred` is roughly double ours, not
+because its cap is higher.
+
+So the ordering is fixed and unavoidable: **income first, then population.**
+Every attempt this session to take them in the other order has failed, and now
+there is a mechanism that says they always will.
