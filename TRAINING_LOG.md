@@ -10238,3 +10238,72 @@ direction is closed rather than merely untuned.
 The facing-trap finding itself stands: 52% of our rat deaths are throws, and a
 damaged rat is undefendable by engine rule. What is now ruled out is *withdrawing*
 the damaged rat as the answer.
+
+## Iteration 151 — turn before stepping (kill the strafe penalty) — REJECTED on representativeness
+
+Found while doing Iteration 152's reachability pre-check. Adding `--turns` to
+`ReplayDump` exposed `Turn.x/y/dir`, which had never been read, and comparing
+actual displacement against reported facing showed **3094 of 7048 rat moves
+(43.9%) were strafes**.
+
+`addMovementCooldownTurns(d)` charges a Baby Rat `MOVE_STRAFE_COOLDOWN` 18
+instead of `movementCooldown` 10 whenever `dir != d`, and `move()` never changes
+facing. `tryMove`'s main path already turned first, but every *fallback* —
+both sidesteps, the stuck-escape shuffle, the Bug2 boundary-follow, and
+`tryMoveDirect`'s fallback — called `rc.move(d)` raw, so a blocked rat paid the
+1.8x penalty on the step it actually took.
+
+Fixed with a `stepTo(rc, d)` helper that turns then moves forward. The first
+version left 30.4% strafes; the residual was **my own preamble**, which turned
+toward `want` *before* checking it could move there, spending the round's single
+turn on a direction it then did not take, so the sidestep found `canTurn` false
+and strafed anyway. `stepTo` tests `canMove` first, so deleting the preamble was
+strictly better.
+
+**Mechanism — fully achieved.** Measured in the *same game* (both builds playing
+each other, so it is a true control):
+
+    build              moves    strafe
+    g_iter24          10802     50.6%
+    iteration 151     13658      0.0%
+
+Zero strafes, and **26% more moves in the same game** because cooldown clears
+faster.
+
+### Result — REJECT, and the two instruments disagree completely
+
+    strafe share        benchmarks    mirror vs g_iter24
+      46.2% (g_iter24)     8/162          --
+      30.4%                7/162        55.6%
+       0.0%                6/162        75.9%
+
+**Both curves are monotone, in opposite directions.** Eliminating the strafe
+penalty is worth +14 games over even in the lineage — 3.8 sigma, the largest
+mirror result this project has produced — and costs two benchmark wins.
+
+This is Iteration 82/96 again, and the log's own words apply verbatim: *"a
+defensive feature is free to remove on an instrument that never poses the threat
+it defends against. RESOLUTION AND REPRESENTATIVENESS ARE DIFFERENT PROPERTIES,
+and the mirror has only the first."* Here it is the mirror rewarding a feature
+whose cost only real opponents impose.
+
+**Why speed helps in the mirror and hurts against benchmarks.** In a mirror both
+sides run the same policy, so 26% more movement is 26% more cheese collection and
+the economy race decides it. Against benchmarks 91% of games end in King
+destruction, and our rats' problem is not that they arrive slowly — it is that
+they die when they arrive (52% to throws, per the facing trap). Faster movement
+delivers rats into contested ground sooner without changing what happens to them
+there. Early wipes rose 8% -> 9% and the fastest losses tightened to rounds
+20-26, which is that mechanism visible.
+
+**An honest caveat about g_iter24.** Iteration 147 was accepted on flat
+benchmarks (8/162) plus a 59.3% mirror, and this result shows the mirror can
+strongly reward economy-and-speed changes that benchmarks do not. g_iter24 is not
+*harmful* — its benchmark score is unchanged and `vs_old_bots` rose — but its
+evidence is weaker than it looked on the day, and it should not be treated as
+proven against real opponents. **The rule going forward: a mirror win can
+break a tie when benchmarks are flat and guards hold, but it cannot buy benchmark
+losses.** Iterations 147 and 151 sit on opposite sides of exactly that line.
+
+`stepTo` is reverted with the rest, but the measurement stands and the tooling to
+repeat it is committed: `replay-dump.sh --turns <team>` plus the strafe analysis.
