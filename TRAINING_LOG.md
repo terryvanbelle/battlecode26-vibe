@@ -9377,3 +9377,48 @@ the fix was written as an extra disjunct inside a guard whose outer condition
 already excluded the case of interest.
 
 Iteration 140 hoists it into its own statement.
+
+## Iteration 140 — early cat traps, hoisted out of the guard — REJECTED
+
+                          g_iter23        iter140
+    benchmark wins        8/162           4/162
+    early wipes           12/154 = 8%     17/158 = 11%
+    close-spawn wins      4/42            2/42
+    close-spawn wipes     32%             42%
+
+**The mechanism fired, at the worst possible moment.** Three cat traps placed
+on `dirtfulcat botA` -- rounds **1, 2 and 3**, before a single rat exists:
+
+    window 0-99   g_iter23  25 spawns, 27 traps, 16 alive, cheese 1184
+                  iter140   25 spawns, 45 traps, 12 alive, cheese 1130
+
+The King spent its first three actions on cat traps, delaying the round-1-to-25
+opening burst that Iteration 38 identified as the proven-good behaviour and
+warned against disturbing. Standing army at round 99 fell 16 -> 12 and early
+wipes rose 8% -> 11%, with close-spawn wipes 32% -> 42%.
+
+### The blocked-cat-trap problem is real but has no cheap fix
+
+The diagnosis stands and is worth keeping: `catTrapsAllowed` bars placement once
+we are the backstabber, and our own rat-trap ring makes us the backstabber
+whenever an enemy steps on it -- on `dirtfulcat` that happens by round 24, after
+which we place zero cat traps all game despite 29 CatScratches. The accepted
+Iteration 128 feature is genuinely switched off on those maps.
+
+But the only window in which we may place them is the one where King actions are
+most valuable. Iteration 122 already priced that: raising opening trap density
+from 2:1 to 3:1 cost four wins. Three cat-trap actions at rounds 1-3 cost four
+here. Gating at `builtCount >= 5` would move them to rounds 6-8, which is
+cheaper but still inside the burst, for a benefit that only materialises on maps
+where a cat later approaches the King -- 0 of 8 sampled.
+
+Not pursuing further: the cost is certain and immediate, the benefit is
+conditional and rare.
+
+### Two iterations, one mistake worth naming
+
+Iteration 139 was void because I wrote the new condition as an extra disjunct
+inside `if (nearestCat != null && ...)`, whose outer test already excluded the
+case I was targeting. Iteration 132 failed the same way. **When adding a
+condition to an existing branch, check the guard I am nesting inside, not just
+the condition I am writing.**
