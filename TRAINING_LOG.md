@@ -8509,3 +8509,57 @@ What it does suggest is that the auto-backstab side effect of trapping has
 never been examined on its own terms. Logged as an observation, not queued: any
 change here would be judged primarily on benchmarks, where the ring is already
 validated in both directions (Iterations 101, 102, 122).
+
+### Correction — "our trap ring initiates the backstab" is WRONG in both regimes
+
+I wrote that last entry from the engine signature alone and never checked a
+replay. Instrumented `ReplayDump` to print cooperation transitions and checked
+both regimes. The claim fails in each.
+
+**Benchmarks -- the backstab is THEIRS, not ours.**
+`bench_finalist__corridorofdoomanddespair__botA`, cooperation flips at round 46:
+
+    round 46 id12334(team1,RAT) TriggerTrap
+    round 46 COOPERATION -> false
+
+That is OUR rat stepping on THEIR trap. `triggerTrap` calls
+`backstab(robot.getTeam().opponent())` where `robot` is the *triggering* robot,
+so the credit goes to the trap's owner -- them. Our ring did not cause it.
+
+**Peers -- cooperation NEVER ends.**
+`pure_cooperator__safelycontained__botB` runs the full 2000 rounds with
+cooperation true throughout. Our trap ring flipped nothing, because
+`pure_cooperator` never walks into the ring around our King.
+
+### What actually decides a peer game, with the formula
+
+`GameWorld.setWinnerIfMorePoints` scores each team as a PROPORTION of the
+match total, using **`cheeseTransferred`** (cumulative deliveries), not held
+cheese:
+
+    points = cat_w*100*share(catDamage) + king_w*100*share(kings)
+                                        + 0.2*100*share(cheeseTransferred)
+    cooperating: cat 0.5 / king 0.3 / cheese 0.2
+    after backstab: cat 0.3 / king 0.5 / cheese 0.2
+
+On that peer game:
+
+    catDamage          0 vs 0        -> share 0 for BOTH; the 0.5 term is DEAD
+    kings              1 vs 1        -> 15 points each
+    cheeseTransferred  24510/47615   -> them 10, us 9   (int truncation)
+    total              them 25, us 24 -- decided by ONE point
+
+So the 0.5-weighted term contributed nothing to either side, the 0.3 term tied,
+and the entire game turned on a 6% gap in cheese delivered.
+
+**The likely cause is still the trap ring, but through production, not
+scoring.** At `TRAPS_PER_BUILD = 2` the King spends two of every three opening
+actions laying traps instead of building rats, so we field fewer collectors and
+deliver ~6% less over 2000 peaceful rounds. That is the same trade Iteration
+102 measured as strongly positive on benchmarks (wipes 14% -> 8%, wins 5 -> 7),
+where opponents rush the King and the ring earns its cost.
+
+Still not queued as a change: benchmarks are the representative instrument and
+the ring is validated there in both directions (Iterations 101, 102, 122).
+Recorded because the previous entry's mechanism was simply wrong, and because
+the scoring formula is worth having written down exactly.

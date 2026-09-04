@@ -24,6 +24,11 @@ public class ReplayDump {
     static int toRound = Integer.MAX_VALUE;
     static int trackRobot = -1;
     static int terrainX = Integer.MIN_VALUE, terrainY = Integer.MIN_VALUE, terrainR = 8;
+    // Iteration-agnostic: cooperation state decides which score weights apply
+    // (cooperating = catDamage 0.5 / kings 0.3; after a backstab = kings 0.5 /
+    // catDamage 0.3), so knowing WHEN it flips is needed to price any catDamage
+    // number at all. Printed on transition only.
+    static Boolean lastCoop = null;
 
     public static void main(String[] args) throws Exception {
         // Every flag takes exactly one value. An unknown or misspelled flag is a
@@ -140,6 +145,13 @@ public class ReplayDump {
                 }
                 for (int ti = 0; ti < r.turnsLength(); ti++) {
                     Turn turn = r.turns(ti);
+                    boolean coop = turn.isCooperation();
+                    if (lastCoop == null || lastCoop != coop) {
+                        System.out.println("round " + round + " COOPERATION -> " + coop
+                                + " (weights: " + (coop ? "catDamage 0.5 / kings 0.3"
+                                                       : "kings 0.5 / catDamage 0.3") + ")");
+                        lastCoop = coop;
+                    }
                     if (trackRobot >= 0 && turn.robotId() == trackRobot) {
                         System.out.println("round " + round + " TRACK id" + trackRobot + " at (" + turn.x() + "," + turn.y()
                                 + ") dir=" + turn.dir() + " hp=" + turn.health() + " cheese=" + turn.cheese()
