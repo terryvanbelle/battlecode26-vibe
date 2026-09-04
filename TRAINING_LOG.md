@@ -9461,3 +9461,47 @@ Kept, with the Iteration 84 caveat: inert means inert given the current
 configuration. If the reserve, the cap, or the economy ever change enough that
 cheese sits below 150 for meaningful stretches, this flag wakes up and will
 start handing the opponent our cat traps.
+
+## Constant audit — every LIVE constant is tested, every untested one is dormant
+
+Applying the reachability discipline systematically rather than one hypothesis
+at a time. The bot has nine tunable constants; cross-referencing each against
+the measured treasury trajectory (2500 -> 1098 @100, 958 @200, 773 @300,
+553 @400) and the test history:
+
+    constant                  reachable?                          tested
+    MAX_POPULATION 25         live, binds rounds ~25-99            125 raised, 136 bypassed
+    BUILD_WINDOW_ROUNDS 400   live at round 400                    111 / 112 / 113
+    REPLACEMENT_RESERVE 1000  live (cheese 553 < 1000 late)        87 ablation, 120 dose
+    TRAPS_PER_BUILD 2         live every King turn                 101 / 102 / 122, peak
+    KING_TRAPS_ENABLED        live                                 82 / 96
+    CAT_TRAP_TRIGGER_DSQ 20   live when a cat nears the King       129 dose
+    DESPERATE_RAID            removed                              138, accepted
+    RESERVE 150               DORMANT -- cheese >= 553 until       untested
+                              starvation                           
+    BITE_BOOST_CHEESE 4       DORMANT -- gated `cheese > 1000`,    45 / 83
+                              dead after round ~150                
+
+**Every live constant has been tested in both directions where a direction
+exists. The two untested ones are dormant, and dormancy is correct for both.**
+
+`RESERVE = 150` only binds when the treasury is already near zero, i.e. in games
+lost to starvation regardless. Lowering the bite-boost gate would make the boost
+live all game, but the arithmetic is against it: `ceil(sqrt(4))` is +2 damage for
+4 cheese, so ~61 bites a game buys ~122 damage for ~244 cheese -- 0.5 damage per
+cheese against the cat trap's 10, spent on the resource that half our mid-game
+losses run out of.
+
+### Where that leaves the parameter search
+
+Closed. Combined with the behaviour ablations -- heading reassignment (+28),
+`REPLACEMENT_RESERVE` (+24), cat approach (+11), Bug2 (+5.6), cheese-boost
+(kept), King trap ring (reversed then validated), emergency override (inert but
+load-bearing), King flee (dormant), desperation (dormant, removed raid) -- there
+is no untested live knob left in this bot.
+
+The two accepts of this stretch both came from the same place instead: reading
+the ENGINE for capabilities and interactions the bot never used. Iteration 128
+found `CAT_TRAP` (half the cost, double the damage of a rat trap, credited as
+catDamage); Iteration 138 found that the raid's symmetry assumption is wrong on
+16 of 27 maps. Neither was a tuning question.
