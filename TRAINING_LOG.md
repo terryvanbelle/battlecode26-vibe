@@ -7639,3 +7639,62 @@ hunting: not "is this value optimal" but "was this value ever chosen at all".
 `BUILD_WINDOW_ROUNDS = 400` has exactly that signature, and the trajectory
 measurement above shows the deficit opening inside the window it controls.
 That is Iteration 111.
+
+## Iteration 111 — BUILD_WINDOW_ROUNDS 400 -> 150 — REJECTED, but the mechanism worked
+
+                          g_iter21        iter111
+    benchmark wins        7/162           6/162
+    early wipes           12/155 = 8%     12/156 = 8%
+    close-spawn wins      4/42            2/42
+    far-map wins          3/120           4/120
+
+**Mechanism check passed.** `king_census --window 100` on
+`corridorofdoomanddespair`, the same game the trajectory came from:
+
+    window       g_iter21 spawns      iter111 spawns
+    100-199            0                   4
+    200-299            0                   6
+    300-399            0                   1
+    total             25                  36
+
+The three-hundred-round production blackout is gone. Iteration 103's original
+mechanism argument was correct and its withdrawal was correctly overturned.
+
+**And it bankrupted us anyway.** Same game, our treasury:
+
+                    g_iter21    iter111
+    round 300         773         328
+    round 400         553          68    cheese-limited
+    round 500         123           0
+
+This is Iteration 39's failure mode returning -- a replacement burst draining
+the treasury until the King starves -- which the task pre-registered as the
+risk, on the belief that the unchanged `REPLACEMENT_RESERVE = 1000` would
+prevent it.
+
+### Why the reserve did not hold, which is the real finding
+
+Six rats were built in rounds 200-299 while cheese fell 808 -> 328. The build
+gate is `cheese - cost >= buildReserve`, so those builds are only possible if
+`buildReserve` was **150, not 1000**. The only thing that lowers it is
+Iteration 40's emergency override: when no allied Baby Rat is visible to the
+King, the bar drops from `REPLACEMENT_RESERVE` back to `RESERVE`.
+
+As the army decays the King increasingly sees no allies, the override fires,
+and the reserve stops existing exactly when the shorter window has given
+`builtCount` the headroom to spend. **The override was measured INERT at
+48.1% on the mirror (Iteration 84) -- and it is inert only while
+`BUILD_WINDOW_ROUNDS = 400` keeps `builtCount` pinned at the cap, so there is
+nothing for it to unlock.** Change the window and the same dormant feature
+becomes the thing that bankrupts the treasury.
+
+That is a general hazard worth naming: **a feature measured inert is inert
+*given the rest of the configuration*, not inert absolutely.** Iteration 84
+explicitly said the override "should not be credited in any future
+reasoning"; the correct reading is stronger, that it should not be assumed
+harmless either, because an interaction can wake it up.
+
+Two facts now point the same way -- far-map wins actually rose 3 -> 4, and the
+blackout is genuinely fixed -- so the idea is not refuted. The untested
+version is the window shortened *and* the override disabled, so the reserve
+actually holds. That is Iteration 112.
