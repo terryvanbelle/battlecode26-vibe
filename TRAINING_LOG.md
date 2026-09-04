@@ -9257,3 +9257,41 @@ cap, and rebuilding a collapsed army for free.
 
 The rats are not what we are short of. We rebuilt nine of them into a game we
 lost by exactly as much as before.
+
+## Iteration 137 — ablate the King's flee-from-cat — REJECTED; the behaviour is dormant, not harmful
+
+    g_iter22 mirror, flee OFF, playing the build that has it:  26/54 = 48.1%
+
+One game below even. Per the ablation rule that is inert -- keep it, do not
+credit it. My hypothesis was that it is actively HARMFUL, walking the King out
+of the rat-trap ring it spends the opening building. Not supported.
+
+**Why inert: it barely executes.** Tracking both Kings in
+`g_iter22__safelycontained__botB` (team1 = g_iter22 with the flee, team2 = the
+ablated build):
+
+    ours    id4 at (48,15) from round 1 to 200+, never moves
+    theirs  id3 at (11,15) from round 1 to 200+, never moves
+
+Neither King moves at all, because no cat comes within d^2 20 of either. The
+ablation is a no-op wherever that holds, which is most maps -- the same map
+property that limits Iteration 128's cat traps to firing in 0 of 8 sampled
+losses.
+
+So the flee is dormant rather than balanced, and the Iteration 128 death mode
+(a cat grinding the King at 6.67 HP/round) is not a case where the flee makes
+things worse; it is a case where the flee tries, moves the King two to four
+tiles, and cannot get clear because a RAT_KING is size 3.
+
+### Recorded with the Iteration 84 caveat
+
+Iteration 84 measured the emergency override "inert" at 48.1% and I later
+found it load-bearing -- removing it cost ten games once BUILD_WINDOW_ROUNDS
+changed. **Inert means inert given the rest of the configuration, not inert
+absolutely.** The King's flee is kept on the same basis: neutral to remove
+today, and not to be assumed harmless if the King's mobility or the cat
+response ever changes.
+
+That closes the King's behaviour set. Every King action is now either measured
+optimal (trap ratio, cat-trap trigger, reserve, override, attack ordering) or
+measured dormant (flee).
