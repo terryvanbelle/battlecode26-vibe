@@ -9763,3 +9763,53 @@ resolution for it — the highest-yield shape available per
 `ablate-accepted-features-on-the-mirror`, except that here it must run on
 benchmarks rather than the mirror, per `resolution-is-not-representativeness`.
 Iteration 144.
+
+## Iteration 144 — ablate the Iteration 12 enemy chase — VOID on premise, REJECTED as ablation
+
+Two separate results here, and they must not be conflated.
+
+### 1. The pre-registered hypothesis is FALSIFIED
+
+The claim was that our chase supplies the adjacencies their grabs need — a rat
+that walks from d^2 8 into bite range at d^2 2 spends several turns inside grab
+range to land one 10-damage bite. Pre-registered: *their grabs-of-us and
+throws-of-us must FALL; if neither falls, VOID.*
+
+    their grabs of us     37 (g_iter23 baseline)  ->  42
+    their throws of us    37                      ->  38
+
+Neither fell. Both rose slightly. **They create the adjacency themselves.**
+Denying them our approach does not deny them the grab, because their rats hunt
+ours — which is consistent with the Iteration 143 finding that they close from
+outside our 90-degree cone, i.e. they were never relying on us to come to them.
+
+This kills the whole "stop feeding them adjacencies" family of ideas, not just
+this one. Any future throw-defence has to survive the fact that the opponent
+supplies its own engagement.
+
+### 2. Reframed as a plain ablation, the chase is one of our most valuable features
+
+Since the change was already built and the premise was dead, I ran it against the
+narrower question — *does the Iteration 12 chase earn its keep at all?*
+
+    benchmarks         8/162  ->  3/162     (-5, about 2 sigma)
+    close-spawn wins    4/42  ->   0/42
+    early wipes                 13/159 = 8%
+
+**REJECT, emphatically.** The chase is worth roughly five benchmark wins and is
+the entire source of our close-spawn wins. On knifefight/tiny/thunderdome an
+un-chased enemy rat simply walks to our King, exactly the risk the guard was
+written for.
+
+Worth stating plainly because I had the sign wrong going in: I expected the peer
+Gauntlet to *fall* and benchmarks to *rise*, on the theory that Iteration 12 was
+accepted on an instrument blind to throwing. The instrument-blindness claim is
+still true — every peer archetype throws zero on every map — but it did not
+matter, because the chase's value was never about the throw exchange at all. **A
+feature validated on a blind instrument is not thereby wrong; it may simply be
+valuable for a reason that instrument happens to capture correctly.**
+
+That is the honest correction to how I framed Iterations 142-144: I found a real
+and large opponent capability (throwing), and then spent three iterations
+assuming our losses must route through it. The throw damage is real; the
+inference that our own combat policy was mis-tuned around it was not.
