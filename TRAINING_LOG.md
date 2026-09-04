@@ -10307,3 +10307,63 @@ losses.** Iterations 147 and 151 sit on opposite sides of exactly that line.
 
 `stepTo` is reverted with the rest, but the measurement stands and the tooling to
 repeat it is committed: `replay-dump.sh --turns <team>` plus the strafe analysis.
+
+## Iteration 152 — rotation sweep on blocked turns — VOID, and it closes the facing direction
+
+The other exit from the facing trap: we cannot turn toward a threat we cannot
+sense, so sweep the cone instead. Rotate one step whenever the rat is going to
+stand still anyway.
+
+**The design was genuinely free, and reachable.** Cooldowns are three separate
+counters, so `!isMovementReady()` means the rat cannot move this turn whatever it
+decides — the turn spent rotating had no other use and cannot make a later step
+more expensive. Measured before building, per the pre-registration:
+
+    rat-turns                     11730
+    movement blocked next turn     3177   27.1%
+    turning available             11730  100.0%
+
+**Mechanism check — VOID.** Pre-registered: *their grabs-of-us on rift must fall
+from 168.*
+
+    their grabs of us   168 -> 169
+    their throws of us  158 -> 161
+
+Neither fell. No Gauntlet run spent.
+
+### Why, and this closes the direction rather than just this attempt
+
+`canGrab` has two clauses — the target cannot sense the grabber, **or** the
+grabber has more HP. The new `--turns` dump carries per-robot facing and health,
+so each grab can be attributed to the clause that actually enabled it:
+
+    grabs of our rats analysed   169
+      FACING-AWAY only             0    0.0%
+      WEAKER-HP only              58   34.3%
+      BOTH (blind and weaker)     62   36.7%
+      unresolved (stale state)    49   29.0%
+
+**Not one grab was enabled by facing alone.** Every blind victim was also the
+weaker rat, so the facing clause is never load-bearing and no amount of turning,
+sweeping or scanning can prevent a single grab in this game. The sweep did
+exactly what it was designed to do and could not have helped.
+
+(The 29% unresolved are grabs where the most recent recorded turn predates the
+grab within the round, mostly because HP changes mid-round. They do not affect
+the conclusion, which rests on the zero.)
+
+**So the facing trap is really the HP trap.** A damaged rat is grabbable however
+it faces, and rats do not heal. Both exits are now closed by measurement:
+
+    withdraw the damaged rat   Iterations 149/150 -- the clause that makes
+                               retreat safe is the clause that makes it worthless
+    let it see the attacker    Iteration 152 -- facing is never the sole enabler
+
+What remains is upstream: stop rats becoming damaged in the first place. Note the
+causal chain that implies, because it runs against an accepted feature — our rats
+deliberately engage cats (worth +11 games when added), a cat scratch is 20
+damage, and a scratched rat is thereafter permanently grabbable and worth 42
+damage plus a stun to the opponent. Iteration 124 tested engaging cats *less* and
+lost 4/162, but that was measured before any of this was understood, and
+`ablate-accepted-features-on-the-mirror` says the headline number at acceptance
+predicts little.
