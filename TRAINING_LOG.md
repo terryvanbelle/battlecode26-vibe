@@ -9217,3 +9217,43 @@ draw from.
 
 **Closed for good.** Only the King may place cat traps, because the King's are
 the ones the cap should be spent on.
+
+## Iteration 136 — let a collapsed army rebuild when rich — REJECTED (inert, and that is the finding)
+
+                          g_iter22        iter136
+    benchmark wins        8/162           8/162
+    early wipes           12/154 = 8%     12/154 = 8%
+    close-spawn wins      4/42            4/42
+    win set                               IDENTICAL, 0 flipped outcomes
+
+**The mechanism fired well.** On `bench_spaark__hatefullattice__botB`, the game
+that motivated it:
+
+    window        baseline spawns   iter136 spawns
+    0-199              25                28     (cap bypassed 3x)
+    200-399             0                 9     (the collapsed-army rebuild)
+    400-599            15                25
+
+Nine rats rebuilt in a window that previously produced zero while the King sat
+on 2000+ cheese with two rats alive. Exactly what the task asked for.
+
+**And nothing changed.** 135 of 162 games byte-identical, no outcome flipped,
+round-delta slightly negative (11 improved, 16 worsened). The game that
+motivated it still lost, at round 666 against 674.
+
+### Why this null matters
+
+This was the population lever tested in its most favourable possible form:
+spending cheese that was provably idle (2200 sitting unused), at the cheapest
+point on the cost curve (10 per rat at 2 alive, against 70 at 25), only when the
+army had actually collapsed, with no effect on the opening. If buying population
+were going to help anywhere, it would help here.
+
+It does not. Combined with Iteration 125 (raise the cap when rich -- rejected,
+mirror-overfit profile) and the root-cause finding that the cost curve prices
+population against a treasury only income refills, **the population line is now
+closed from three directions**: raising the ceiling, bypassing the cumulative
+cap, and rebuilding a collapsed army for free.
+
+The rats are not what we are short of. We rebuilt nine of them into a game we
+lost by exactly as much as before.
