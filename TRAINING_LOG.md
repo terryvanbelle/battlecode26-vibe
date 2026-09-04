@@ -8002,3 +8002,50 @@ code being written or a number already in this log.
 Iteration 118 fixes the target: place on the tile behind the rat -- where a
 pursuer walks -- falling back to any legal adjacent tile, the same
 scan-don't-assume pattern the King has always used.
+
+## Iteration 118 — Baby Rat field traps, working at last — REJECTED on price
+
+                          g_iter21        iter118
+    benchmark wins        7/162           1/162
+    early wipes           12/155 = 8%     15/161 = 9%
+    close-spawn wins      4/42            1/42
+
+**The mechanism finally fired, and it did exactly what it was designed to do:**
+
+    our PlaceTrap        18 (all RAT_KING)  ->  18 RAT_KING + 22 RAT
+    their TriggerTrap    13                 ->  22          (+9 caught)
+
+Third time was the charm on reachability, and the idea is still wrong.
+
+**My pre-registered risk was the wrong one.** I guarded against field traps
+cannibalising the King's ring through the shared 25-trap cap; the ring is
+untouched at 18. The actual cost is cheese: 22 traps at 20 each is **440
+cheese**, taken from a treasury that runs 1098 at round 100 down to 553 at
+round 400. That is most of our mid-game cash, and at a rat cost of 40-60 it is
+seven to eleven rats not built.
+
+So the trade is 440 cheese for 9 extra enemy trap triggers. Each trigger is 42
+damage and a 30-round stun on one enemy rat -- nowhere near the value of ten
+rats. Losing six benchmark wins for that is entirely consistent.
+
+**Priced as a dose, a smaller version does not look promising either.** Scaling
+the per-rat cooldown from 100 to 400 rounds would give roughly a quarter of the
+traps: ~110 cheese for ~2 extra triggers. That is a better ratio only if the
+non-linearity runs the right way, and nothing here suggests it does. Not
+queued.
+
+### What this closes
+
+The trap asymmetry that the Iteration 115 census exposed -- they place 36 to
+our 18, we are stunned 39 times to their 0 -- is real and is **not**
+addressable from our side. Avoidance is impossible because `getMapInfo` only
+reports our own team's traps, so enemy traps cannot be sensed at any cost;
+Iterations 69 and 100 failed for that reason. Symmetric retaliation is
+affordable only by giving up the economy we were trying to protect. The
+opponent can run a dense trap field because their economy supports it (94
+pickups to our 11); ours does not.
+
+That inverts the causal story I started with. I read the traps as the cause of
+our weak economy. The pricing says the economy is what lets a team afford
+traps, and we cannot buy our way out of an income deficit with the income we
+do not have.
