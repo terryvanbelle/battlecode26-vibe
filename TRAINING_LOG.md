@@ -7555,3 +7555,47 @@ Four runs, two void, two genuine negatives, no accepts. The audit was still
 worth doing -- it produced the only structurally new hypotheses of the session
 after the mechanical seams were exhausted -- but the honest scoreline is that
 none of the three unused capabilities paid off in its most obvious form.
+
+## Analysis note — the far-map collapse is a TRAJECTORY, and it revives Iteration 103
+
+Measured on `bench_finalist__corridorofdoomanddespair__botA` from the g_iter21
+benchmark run (we are team1), taken as the baseline for Iteration 110:
+
+    round   our cheese  our rats  their rats   our transferred  their transferred
+    100        1098        20         16            120              220
+    200         958        13         29            180              540
+    300         773         7         23            200             1000
+    400         553         6         18            200             1480
+    500         123         7         14            300             1780
+
+**Our cheese delivery is flat and theirs is linear.** Ours goes 120, 180, 200,
+200, 300 across five hundred rounds -- *zero cheese delivered between rounds
+300 and 400* -- while theirs climbs by roughly 4-5 per round throughout. By
+round 400 they have delivered 1480 to our 200, a factor of seven.
+
+**And the population crossover lands inside the blackout window.** At round
+100 we lead 20 to 16. By round 200 we are at 13 and they are at 29. The
+crossing happens between rounds 100 and 200 -- inside the rounds-100-to-399
+window where `king_census` showed we build **zero** rats, because `builtCount`
+is cumulative against `MAX_POPULATION` and the budget does not refresh until
+`BUILD_WINDOW_ROUNDS = 400`.
+
+### This overturns my withdrawal of Iteration 103
+
+I withdrew Iteration 103 (shorten `BUILD_WINDOW_ROUNDS` 400 -> 150) on the
+grounds that "on `peaceinourtime` we hold MORE rats than the opponent and lose
+anyway", concluding population was not the far-map deficit. That was read off
+a **single round-100 snapshot**. The trajectory says the opposite: round 100
+is precisely the last moment we are ahead, and the deficit opens immediately
+afterwards, in the window where we are structurally unable to replace a single
+loss while the opponent nearly doubles its army.
+
+A snapshot at the crossover point cannot distinguish "we are fine" from "we
+are about to collapse". The same normalisation discipline already recorded for
+replay totals -- compare rates over time, not endpoints -- applies to
+population and income too, and I did not apply it.
+
+Iteration 103's mechanism argument and its pre-flight arithmetic (~3 rats per
+refresh at a round-150 window, against the unchanged 1000 reserve) stand
+unchanged in the git history and should be re-run as **Iteration 111**, after
+Iteration 110 resolves. Its withdrawal note is superseded by this entry.
