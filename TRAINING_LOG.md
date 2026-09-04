@@ -7966,3 +7966,39 @@ under a minute.
 Not reverted: the code is inert as written, and the mechanism is still
 untested. Iteration 117 lowers the gate to 400 -- comfortably under the
 mid-game treasury while still refusing to trade the last of it for traps.
+
+## Iteration 117 — field traps, gate lowered to 400 — VOID AGAIN (wrong target tile)
+
+Byte-identical to `g_iter21` a second time. The cheese gate was fixed and a
+different precondition was blocking it:
+
+    assertCanPlaceTrap (RobotControllerImpl:339)
+        if (gameWorld.getRobot(loc) != null)
+            throw "Can't place trap on an occupied tile!"
+
+I placed at `rc.getLocation()`. A rat occupies the tile it stands on, so
+`canPlaceRatTrap(rc.getLocation())` can **never** return true. The call was
+dead on arrival in both Iteration 116 and 117.
+
+The same assertion also shows non-kings get `BUILD_DISTANCE_SQUARED = 2`, so
+only *adjacent* tiles are legal targets at all -- our own King's
+`findTrapLocation` has always scanned candidate locations for exactly this
+reason, and I wrote a fresh call site instead of following it.
+
+### Four voids, one root cause
+
+    Iteration 106  becomeRatKing   no rat king may be in the 3x3
+    Iteration 108  carryRat        90-degree cone + adjacency + near our King
+    Iteration 116  placeRatTrap    cheese gate above our own measured treasury
+    Iteration 117  placeRatTrap    target tile occupied by the placing rat
+
+Every one is a precondition sitting in plain sight in the engine source or in
+this log's own measurements, and every one cost a full 162-game run to
+discover. The mechanism check catches them *after* the fact; what is missing
+is the same check *before*. Concretely, before running any new engine call:
+read its `assertCanX`, list every clause, and confirm each one against the
+code being written or a number already in this log.
+
+Iteration 118 fixes the target: place on the tile behind the rat -- where a
+pursuer walks -- falling back to any legal adjacent tile, the same
+scan-don't-assume pattern the King has always used.
