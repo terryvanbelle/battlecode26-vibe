@@ -85,8 +85,19 @@ echo "gauntlet $RUN_ID   bot=$BOT   opponents=[$OPPONENTS]   maps=$(echo "$MAPS"
 # When re-syncing, copy src/bot/ and then RE-APPLY the policy edits; do not
 # simply overwrite. pure_cooperator needs `desperate = false` and no rat traps.
 BOT_LINES=$(wc -l < "$REPO/src/bot/RobotPlayer.java" 2>/dev/null || echo 0)
+#
+# EXTERNAL opponents are exempt. bench_* are other teams' bots and
+# examplefuncsplayer ships with the engine; none of them derives from src/bot/,
+# so "stale" is meaningless for them and "re-sync it to src/bot/" is actively
+# wrong advice. Before this exemption a benchmark Gauntlet printed six warnings
+# telling me to re-sync bench_finalist/spaark/stroke, which is noise that trains
+# you to skip past the ONE warning that matters -- the peers, which have now
+# drifted three separate times.
 for _opp in $OPPONENTS; do
-  case "$_opp" in g_iter*) continue ;; esac   # frozen snapshots; drift is the point
+  case "$_opp" in
+    g_iter*) continue ;;                      # frozen snapshots; drift is the point
+    bench_*|examplefuncsplayer*) continue ;;  # external bots; not derived from src/bot
+  esac
   _f="$REPO/src/$_opp/RobotPlayer.java"
   [ -f "$_f" ] || continue
   _lines=$(wc -l < "$_f")
