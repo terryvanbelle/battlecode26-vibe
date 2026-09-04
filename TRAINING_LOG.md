@@ -9944,3 +9944,105 @@ the only trace is a server-log line the Gauntlet was discarding — 162-game run
 were going by with nobody looking. `gauntlet.sh` now counts them per game and
 prints the total **above** the loss list, because a nonzero count means the win
 rate is measuring a bug rather than the change.
+
+## Iteration 147 — lift the population cap from surplus — **ACCEPTED** (g_iter24)
+
+The first accept since g_iter23, and it came from decomposing losses rather than
+from a new mechanism.
+
+### How this was found: three dead ends that each narrowed the target
+
+Iteration 146's follow-up was supposed to be "re-gate the second King to where
+`bench_finalist` sets it". Two things killed that **without spending a run**:
+
+1. I predicted we would never reach their surplus state (16+ rats, 1500+ cheese,
+   after round 700). Measured over the 8 longest baseline losses, we reach it in
+   **five** — on `rift` we hold 43-53 rats and 3000-7700 cheese and still lose.
+   The premise was wrong.
+2. Computing the actual scoring formula on each game's final stats, a second King
+   is worth **+10.0 to +16.7 points** against margins of **-33 to -64**. Not one
+   of the eight flips. Even three extra Kings would not close it.
+
+I also had the kings term backwards: a -16.7 margin at weight 0.5 means our share
+is **1/3, not 1/2** — *they* already field two Kings, and one game's -33.3 means
+five. A second King would be catching up, not pulling ahead.
+
+Decomposing those eight points-losses by scored term:
+
+    catDamage   -25.4 pts    (the largest)
+    kings       -17.9
+    cheese       -7.3
+
+So I tried cat-seeking again, gated on surplus (Iteration 142 had been rejected
+unconditionally). Same map, opponent and side as the baseline:
+
+                     catDamage       our rats
+    g_iter23        1920 / 22080        14
+    surplus-gated   2784 / 21216         3     (+45%)
+
+The gate worked and the mechanism fired — and it was still hopeless, because
++864 damage is **+2.2 points** against a -25.4 gap. Closing an 8x share gap needs
+a 10x increase, not 1.45x. **A large relative gain on a term you hold 12% of is a
+small absolute gain.**
+
+### What the control actually showed
+
+That comparison required a same-map control, and the control read
+`aliveBabies=[3,106]`. Tracing the whole game:
+
+    round      our rats / cheese      their rats / cheese
+      125        21 / 1359               16 / 1945
+      525        29 / 1231               33 / 1940
+     1125        12 / 2790               67 / 1908
+     1925        14 / 1598               81 /  478
+
+**They compound; we do not.** Their cheese sits flat near 1900 because they spend
+everything they earn. Ours oscillates 1000-2800 *permanently unspent* while our
+army never passes ~29. At round 1125 we held 2790 cheese and twelve rats and
+would not convert. We were not starving in these games — we were refusing to
+spend, and the constraint was our own:
+
+    final int MAX_POPULATION = 25;      // builtCount < MAX_POPULATION
+
+`builtCount` is cumulative-ever-built and resets each 400-round window, so a flat
+25 caps us at 25 builds per window however deep the treasury is.
+
+### The change
+
+    final int MAX_POPULATION = rc.getGlobalCheese() > 1500 ? 60 : 25;
+
+`REPLACEMENT_RESERVE` deliberately untouched — at 25 live rats
+`getCurrentRatCost()` is 70, so `2790 - 70 >= 1000` passes easily and the reserve
+is not what binds. Changing both would have left it unknown which mattered.
+
+**Why this is not a seventh repeat.** Iterations 111/112/113/114/120/125 all
+pushed population and were rejected, root-caused to the cost curve plus King
+starvation. That root cause is real, and this respects it: every one of those
+raised the cap *unconditionally*, so it also fired in the 128 short King-kill
+games where cheese genuinely is scarce. Gating on held cheese lifts the cap only
+when the treasury is provably deep. **The dose is on WHEN, not on how much.**
+
+**Mechanism check — FIRED**, both pre-registered conditions:
+
+                    peak rats     cheese band
+    g_iter23            29        1000-2800 (banked)
+    iteration 147       42          210-1485 (spent)
+
+### Result — ACCEPT
+
+    benchmarks              8/162  ->   8/162    (flat)
+    close-spawn wins         4/42  ->    4/42    (guard held)
+    early wipes              12/154 = 8%         (guard held, same maps)
+    g_iter23 head-to-head   32/54 = 59.3%        (+5 games over even)
+
+Flat on the lopsided instrument, clearly positive on the even one, guards intact,
+mechanism confirmed. This is the case `peers-and-benchmarks-play-different-games`
+and `even-matchups-have-resolution` describe: benchmarks win rate ~5% cannot
+resolve a change that does not flip a whole game, while a true mirror sits at 50%
+by construction and can. **The surplus gate is the part that works** — it is the
+first population change that did not break the close-spawn guard, and it broke
+none of it.
+
+Honest limits: this did not flip a single benchmark game, and the eight
+points-losses remain 33-64 points adrift. It compounds our economy without
+closing the gap that decides those games.
