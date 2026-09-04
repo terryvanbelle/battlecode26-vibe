@@ -8049,3 +8049,52 @@ That inverts the causal story I started with. I read the traps as the cause of
 our weak economy. The pricing says the economy is what lets a team afford
 traps, and we cannot buy our way out of an income deficit with the income we
 do not have.
+
+## Iteration 119 — camp the cheese mines — REJECTED (mechanism worked, price too high)
+
+                          g_iter21        iter119
+    benchmark wins        7/162           1/162
+    early wipes           12/155 = 8%     13/161 = 8%
+    close-spawn wins      4/42            1/42
+
+**The mechanism fired and did exactly what it was supposed to do:**
+
+    our CheesePickup        10  ->  16
+    our CheeseTransfer      10  ->  15
+    our cheeseTransferred   120/180/200/200  ->  200/300/300/300
+    their CheesePickup      66  ->  55
+
+A real ~50% economy improvement, with the opponent's collection pushed down as
+we contested the mine. And six benchmark wins gone.
+
+Our population went 21/12/5/4 against the baseline's 20/13/7/6, so the rats
+camping the mine were rats not defending, and close-spawn wins fell 4 -> 1 --
+exactly the guard the task pre-registered.
+
+### The pattern across the last three iterations is the finding
+
+    Iteration 115  batch deliveries   mechanism fired weakly   7 -> 3
+    Iteration 118  field traps        mechanism fired fully    7 -> 1
+    Iteration 119  camp mines         mechanism fired fully    7 -> 1
+
+Three consecutive changes that did precisely what they were designed to do,
+each verified in the replay, and all three lost badly. Iteration 118 caught 9
+more enemy rats for 440 cheese; Iteration 119 raised income 50% and lost the
+army; Iteration 115 batched hauling and slowed the field.
+
+**`g_iter21`'s allocation of Baby Rat turns is on a narrow peak.** Every one
+of these reallocates rat time -- to carrying, to trapping, to loitering on a
+mine -- and every one costs more than it returns. That is a much stronger
+statement than any single rejection, and it is consistent with the earlier
+finding that the tuned constants (cat threshold, squeak steering, override
+threshold) all measured already-optimal in both directions.
+
+It also reframes the economy gap. Our rats collect an eighth of what the
+opponent's do, and this iteration proves that is *not* because they fail to
+camp productive ground -- camping works, and still loses. The deficit is
+upstream of collection policy: they simply have more rats alive doing it (24
+against our 5 by round 300), which is the population collapse traced in the
+blackout work, on a treasury we cannot grow because we have no income.
+
+That circularity is the actual problem, and none of income, traps, batching or
+camping breaks it from inside the rat loop.
