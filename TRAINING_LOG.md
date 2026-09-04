@@ -8136,3 +8136,59 @@ Re-testing them on the current instrument set is the remaining lead. It is
 also the one most likely to fail the same way, since we are poor precisely
 because we have no income, and building more rats we cannot pay for is how
 Iteration 111 bankrupted the treasury.
+
+## Iteration 120 — REPLACEMENT_RESERVE 1000 -> 500 — REJECTED at the gate
+
+    benchmark wins          7/162 -> 8/162
+    early wipes             8% -> 8%
+    close-spawn wins        4/42 -> 4/42        (guard held, unlike Iteration 112)
+    vs_old_bots subset      99/108 = 91.7%  ->  90/108 = 83.3%     -9 games
+
+Benchmarks up one, vs_old_bots down nine. Identical shape to Iteration 112, and
+the gate caught it identically. Reverted from the `g_iter21` snapshot with the
+strip-diff verified empty before staging.
+
+**The mechanism also failed as pre-registered.** Spawns in the rounds 100-399
+windows are still 0/0/0 -- the reserve was never the only blocker, because
+`builtCount` remains capped at `MAX_POPULATION` until the window refreshes at
+400. What the lower reserve actually changed was post-refresh spending: 10
+spawns in window 400-499 against the baseline's 7, with cheese falling to 168
+where the baseline held 553. So the +1 benchmark win came from a different
+effect than the hypothesis, and the treasury was heading toward Iteration
+111's bankruptcy.
+
+### The reserve is at its optimum, and this is now the fifth confirmation
+
+    reserve setting                        instrument
+    0        (Iteration 87 ablation)       mirror 25.9%  -- validated, large
+    500      (Iteration 120)               vs_old_bots 83.3%
+    1000     (g_iter21)                    vs_old_bots 91.7%
+
+Every relaxation of the treasury guard costs long games, and this is now the
+fifth iteration to establish it from a different direction: Iteration 111
+(shorter window, bankruptcy), 112 (window + override off, -10), 113 (override
+off alone, mirror 37%), 114 (override fired earlier, -23), and now 120 (lower
+reserve, -9).
+
+**Stated plainly: the King's spending policy is fully converged.** Five
+independent perturbations, all negative, on three different constants. The
+economy is not losing because the King mismanages cash; it is losing because
+income never arrives, and the reserve is what stops a starved treasury from
+being spent into nothing.
+
+### Where that leaves the session
+
+Everything reachable from inside the bot's own decision loop has now been
+tested. Rat-turn allocation is on a narrow peak (Iterations 115, 118, 119 all
+did exactly what they were designed to do and each lost six wins). King
+spending is converged (five perturbations). Collection policy is not the
+constraint (camping raised income 50% and still lost). Survival is not the
+constraint (they lose 29 rats to our 20). The tuned constants measure optimal
+in both directions (cat threshold, squeak steering, override threshold,
+reserve).
+
+The one thing that remains true and unexplained is the raw income ratio: 94
+pickups to our 11, from two mines producing ~2000 cheese, of which they take
+~1880. They achieve that with more rats alive, funded by that income. Nothing
+inside the rat loop or the King's spending rules breaks the circle, and I have
+not found the entry point.
