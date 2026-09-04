@@ -7698,3 +7698,43 @@ Two facts now point the same way -- far-map wins actually rose 3 -> 4, and the
 blackout is genuinely fixed -- so the idea is not refuted. The untested
 version is the window shortened *and* the override disabled, so the reserve
 actually holds. That is Iteration 112.
+
+## Iteration 112 — window 150 + emergency override disabled — HELD pending factor isolation
+
+                          g_iter21        iter112
+    benchmark wins        7/162           8/162    best of the session
+    far-map wins          3/120           5/120
+    close-spawn wins      4/42            3/42
+    early wipes           12/155 = 8%     12/154 = 8%
+    g_iter21 mirror       --              28/54 = 51.9%
+    round-400 cheese      553             598
+
+Every instrument is neutral or slightly positive except close-spawn wins.
+The treasury problem from Iteration 111 is fixed outright -- round-400 cheese
+went 68 -> 598, above even the baseline's 553, and the late bankruptcy is gone.
+
+**Not accepted yet, because the mechanism check contradicts the hypothesis.**
+`king_census` on the same `corridorofdoomanddespair` game:
+
+    window        iter111 spawns    iter112 spawns    g_iter21 spawns
+    100-199             4                 1                 0
+    200-299             6                 0                 0
+    300-399             1                 0                 0
+
+With the reserve genuinely enforced at 1000, mid-game cheese hovers *below*
+it (958 at round 199), so the extra refreshes buy almost nothing -- exactly
+the risk the task pre-registered. **The blackout this iteration existed to
+fix is still there.** One extra spawn cannot be what turned 7/162 into 8/162.
+
+So the gain, if real, comes from the *other* factor: removing the emergency
+override, which stops the treasury being drained late. Accepting the pair
+would be banking a result while believing a story the measurement already
+contradicts.
+
+**Iteration 113 isolates it**: `BUILD_WINDOW_ROUNDS` back to 400, override
+still disabled. If that alone reaches 8/162 the change is simpler and the
+window is irrelevant; if it drops to 7 then the two genuinely interact and
+Iteration 112 is the right form. Either way the +1 is at the resolution floor
+of a ~4% instrument, so this also serves as a second look at a result I would
+otherwise be accepting on one game -- the mistake Iteration 108 was rejected
+for.
