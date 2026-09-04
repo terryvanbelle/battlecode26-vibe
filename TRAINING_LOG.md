@@ -7829,3 +7829,48 @@ override stays. Its Iteration 84 measurement (48.1%, "inert") remains the best
 single-number description of it on the mirror, but the honest summary is now:
 inert on the mirror, mildly positive on benchmarks to remove, and clearly
 load-bearing against weaker opponents in long games.
+
+## Iteration 114 — widen the override trigger to <3 visible allies — REJECTED at the gate
+
+    vs_old_bots comparable subset (g_iter1 + g_iter11)
+        g_iter21    99/108 = 91.7%
+        iter114     76/108 = 70.4%      -23 games
+
+Failed the pre-accept gate outright, so benchmarks were not run. Reverted.
+
+**The dose curve now peaks exactly at the current value:**
+
+    override fires when...            vs_old_bots
+    never                (Iter 113)   89/108 = 82.4%
+    0 allies visible     (g_iter21)   99/108 = 91.7%
+    fewer than 3 visible (Iter 114)   76/108 = 70.4%
+
+Both directions are worse, and the wrong direction is much worse than the
+missing one. `compare_gauntlets.py` shows why: wins that used to grind to the
+round limit now end early -- `jail` r2000 -> r820, `uneruesansfin` r1840 ->
+r925, `minimaze` r2000 -> r1074, `dirtpassageway` r2000 -> r770. That is
+starvation, the Iteration 111 bankruptcy in a more severe form.
+
+The mechanism is clear in hindsight. Rats are deliberately dispersed to hunt
+cheese, so a King almost never has three of them inside its radius-5 vision.
+"Fewer than 3 visible" is therefore true nearly always, `buildReserve`
+collapses to 150 permanently, and the King builds until the treasury is gone.
+
+**The override's value comes precisely from being RARE.** It is a last-resort
+valve, and Iteration 40's "no allied Baby Rat visible at all" is not a
+carelessly-picked magnitude but the correct one -- the condition has to be
+near-impossible for the reserve to mean anything the rest of the time.
+
+### The "constants nobody chose" heuristic gave a false positive here
+
+Iterations 102, 105 and 110 supported a rule: values that fell out of an
+implementation are worth testing, values with reasoned comments are already
+optimal. This threshold looked like the former -- Iteration 40 described a
+mechanism ("when no allied Baby Rat is visible at all") without ever arguing
+a magnitude -- and it is nonetheless optimal, by a wide margin in both
+directions.
+
+So the heuristic identifies *candidates worth a run*, not *values that will
+move*. Its record is now one hit (the trap ratio, +2 benchmark wins) and one
+expensive miss. That is still a reasonable hit rate for hypothesis generation,
+but it should not be stated as though an unchosen constant is probably wrong.
