@@ -8969,3 +8969,48 @@ Two habits from this: check that a dump is non-empty before drawing anything
 from it, and do not reuse a filename across runs -- a game that flips to a win
 silently vanishes from `losses/`. The 0-byte file was visible in `wc -c` the
 whole time.
+
+## Iteration 131 — raise the trap cheese gate 250 -> 600 — REJECTED (and it rules out traps as the cause of starvation)
+
+                          g_iter22        iter131
+    benchmark wins        8/162           7/162
+    early wipes           12/154 = 8%     12/155 = 8%
+    close-spawn wins      4/42            3/42
+
+**The mechanism did not fire for the case it was aimed at.**
+`bench_finalist__streetsofnewyork__botB` -- one of the two starvation losses
+that motivated this -- is byte-identical to baseline:
+
+    window 0-199    25 spawns, 16 traps, cheese 70    CAP-LIMITED
+    window 200-399   0 spawns,  0 traps, cheese  1    cheese-limited
+
+Same 16 traps, same collapse to 1. The gate binds only when cheese is already
+low, and by then the King had long since stopped trapping anyway -- its traps
+were all laid early, while the treasury was still above either threshold.
+
+### What this rules out, which is the useful part
+
+My hypothesis was that the trap ring drains the treasury because traps were
+gated at 250 while builds stop at 1000. The arithmetic says otherwise for the
+games that actually starve. On `streetsofnewyork`: 25 rats at a cost curve of
+10 + 10*(live/4) is roughly 900 cheese, 16 traps is 320, and King upkeep over
+199 rounds is ~400. That is ~1620 of a 2500 start, and the treasury still
+arrives at 70 -- so what is missing is not restraint in spending, it is
+**income**. Traps are a minority of the outflow and capping them changes
+nothing.
+
+So **starvation is an income failure, not a spending failure**, which puts it
+back behind the same wall as everything else: 
+[[the root-cause entry]] already established that population cannot be bought
+because the cost curve prices it against a treasury only income refills, and
+this says the same thing about solvency itself.
+
+The -1 win is 0.4 sigma and not separately meaningful; the informative result is
+the mechanism check.
+
+### Housekeeping note
+
+`bench_stroke__dirtpassageway__botA` is recorded as a loss in `results.csv` but
+its replay is absent from `losses/`. Worth knowing that the losses directory is
+not guaranteed complete -- check `results.csv` for ground truth on outcomes and
+treat a missing replay as missing data rather than as a changed outcome.
