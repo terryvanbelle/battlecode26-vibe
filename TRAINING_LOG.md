@@ -8251,3 +8251,51 @@ Recorded as the honest state of the search rather than a to-do: I do not have
 a tested route to more combat strength, and four consecutive
 mechanism-verified improvements losing six wins each is strong evidence that
 the remaining gap is not reachable by making the existing rats do more.
+
+## Iteration 122 — trap dose 2 -> 3 — REJECTED; the trap curve is closed at its peak
+
+                          g_iter21        iter122
+    benchmark wins        7/162           3/162
+    early wipes           12/155 = 8%     14/159 = 9%
+    close-spawn wins      4/42            1/42
+
+**The full curve, now complete on both sides:**
+
+    King trap density                    wins     early wipes
+    1 trap per 2 builds  (Iter 101)      5/162    18%
+    1:1                  (g_iter20)      5/162    14%
+    2:1                  (Iter 102)      7/162     8%    <- accepted, peak
+    3:1                  (Iter 122)      3/162     9%
+
+Four points, a clean interior maximum at the accepted value. Iteration 102 was
+not just an improvement, it was the optimum, and pushing the one direction
+that ever worked confirms there is nothing further along it.
+
+### Every tunable in this bot is now at its measured optimum
+
+    parameter                  peak at            established by
+    King trap ratio            2 traps per build  Iterations 101, 102, 122
+    cat disengage threshold    30 HP              Iterations 103, 104, 105
+    squeak steering            none at all        Iterations 109, 110
+    emergency override gate    0 visible allies   Iterations 113, 114
+    REPLACEMENT_RESERVE        1000               Iterations 87, 120
+    BUILD_WINDOW_ROUNDS        400 (given the above) Iterations 111, 112, 113
+
+Six parameters, each tested in both directions where a direction existed, each
+peaking where it already sat. Combined with the structural results -- rat-turn
+reallocation on a narrow peak (115, 118, 119, 121), the capability audit's four
+runs with two voids and two negatives (106-109), and the contested-ground
+diagnosis -- `g_iter21` is a genuine local optimum of this bot's design.
+
+### Honest position
+
+Twenty-one iterations since `g_iter21` was accepted, one accept and twenty
+rejections, and the rejections are informative rather than noisy: nearly all
+had their mechanism verified in the replay and lost anyway. The remaining gap
+to these opponents is not reachable by tuning what exists or by making the
+existing rats do more of anything.
+
+What would be required is a different bot -- one that can hold contested
+ground -- and that is a rewrite of the combat model, not an iteration on it.
+I am recording that rather than continuing to spend 162-game runs
+re-confirming a converged surface.
