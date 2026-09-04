@@ -9131,3 +9131,45 @@ That closes trap-ring maintenance, and with it the whole trap line: density is
 peaked (Iterations 101/102/122), the cheese gate is not the starvation cause
 (131), rat-placed cat traps cost the opening (130), and ring decay is harmless
 (132/133).
+
+## Iteration 134 — rat cat-traps on a tight trigger — REJECTED; the line is closed
+
+                          g_iter22        iter130 (d^2 20)   iter134 (d^2 8)
+    benchmark wins        8/162           5/162              4/162
+    close-spawn wins      4/42            1/42               1/42
+
+**The tightening worked and the result got worse.** Rat-placed cat traps in
+rounds 0-99 fell from Iteration 130's 12 to **2**, exactly as intended, and the
+score dropped a further game. So the opening placements were never the cause of
+Iteration 130's loss.
+
+### Why -- and it inverts the reasoning I built this on
+
+I justified the tighter trigger with the Iteration 128 lesson: fire only where
+the alternative action is worth less. At d^2 <= 8 a cat is effectively on the
+rat, so I argued its action was nearly worthless.
+
+That is backwards. **At d^2 <= 8 the rat's best action is to FLEE**, and fleeing
+is worth a great deal -- it is the difference between a live collector and a
+20-damage scratch followed by death. Spending that action on a trap keeps the
+rat next to the cat. The tighter the trigger, the more certainly it fires at the
+exact moment fleeing matters most, which is why d^2 8 beats d^2 20 in the wrong
+direction.
+
+**The asymmetry I had missed:** Iteration 128 works because a RAT KING cannot
+flee. It is size 3 and cannot path through its own army (Iteration 127), so when
+a cat arrives its options are trap it or be ground down -- trapping really is
+free. A Baby Rat can flee, so for a rat the same action is never free.
+
+That is a sharper statement of the rule than "fire when the alternative is worth
+less": **the alternative has to be worth less for THAT UNIT**, and unit mobility
+is what decides it. The King's immobility, which has cost us everywhere else
+(Iterations 127, 128's death mode), is exactly what makes its cat trap pay.
+
+### Closed
+
+Rat-side cat traps are closed at both triggers, d^2 20 and d^2 8, with
+close-spawn wins collapsing to 1/42 in both. Combined with the trap-line closure
+from Iterations 130-133, every trap variant this session has now been tested:
+density, ratio, cheese gate, ring maintenance, rat-placed rat traps, and
+rat-placed cat traps. Only the King's reactive cat trap survives.
