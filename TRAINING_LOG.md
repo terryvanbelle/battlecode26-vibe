@@ -9295,3 +9295,50 @@ response ever changes.
 That closes the King's behaviour set. Every King action is now either measured
 optimal (trap ratio, cat-trap trigger, reserve, override, attack ordering) or
 measured dormant (flee).
+
+## Iteration 138 — ablate the desperation raid — ACCEPTED (g_iter23)
+
+                              g_iter22          g_iter23
+    g_iter22 mirror           --                28/54 = 51.9%
+    benchmark wins            8/162             8/162
+    benchmark round-delta     --                +1525  (38 improved, 8 worsened)
+    vs_old_bots subset        98/108 = 90.7%    100/108 = 92.6%
+    vs g_iter21               --                29/54 = 54%
+    early wipes               12/154 = 8%       identical
+    close-spawn wins          4/42              identical
+
+**The justification is a measured defect, not a story.** Iteration 12 has the
+King broadcast a GUESSED enemy-King location (shared-array slots 3/4) assuming
+180-degree rotational symmetry, and desperate rats march to it instead of
+collecting. Checking that guess against every benchmark map from the replay
+headers:
+
+    correct on 11 maps, WRONG on 16
+
+    hatefullattice  symmetry=1  guess(38, 2)  actual(11, 2)   -- 27 tiles off
+    jail            symmetry=1  guess(33,37)  actual(26,37)
+    dirtfulcat      symmetry=2  guess( 7,17)  actual( 7,12)
+    keepout         symmetry=2  guess(44,26)  actual(44,23)
+
+The code's comment calls rotation "the single most common case". It is not:
+symmetry 0 (rotation) holds on 11 of 27 maps, reflections on 16.
+
+Worse, `desperate` requires `economyStruggling && cheese < RESERVE 150`, so it
+fires when we are nearly bankrupt -- and starvation is roughly half of mid-game
+losses. The behaviour switched on exactly when we were most fragile and, on 16
+maps in 27, marched the surviving rats to an empty patch of map.
+
+### On accepting with flat benchmark wins
+
+Wins are 8/162 either way and no outcome flipped. What moved is everything
+else: the mirror by a game, `vs_old_bots` by two on the comparable subset, and
+the benchmark round-delta by +1525 with **38 games improved against 8
+worsened** -- a skew I have not seen before this session. `compare_gauntlets`
+documents round-delta as a tracked metric that does not gate decisions, so it
+is corroboration rather than the case; the case is that a demonstrably
+wrong-targeted behaviour was removed and every instrument came back
+neutral-or-better.
+
+Only the `desperate` RAID MOVEMENT was gated. The `desperate` flag itself is
+untouched, so rats are still willing to fight enemy rats pre-backstab, and this
+isolates the guessed-location march.
