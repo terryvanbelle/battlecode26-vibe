@@ -9058,3 +9058,36 @@ about one placement per game by that iteration's own distribution.
 
 So Iteration 128 is a real but map-limited gain, and the cat-trap line is
 closed in every direction that has been tried.
+
+## Iteration 132 — maintain the trap ring — REJECTED (my gate did not do what I said)
+
+                          g_iter22        iter132
+    benchmark wins        8/162           7/162
+    early wipes           12/154 = 8%     12/155 = 8%
+    close-spawn wins      4/42            2/42
+
+**The defect it targeted is real.** Adding `teamRatTrapCount` to the dump shows
+our live ring decaying 16 / 12 / 7 / 7 across rounds 100-400 against a maxCount
+of 25, because `trapsSinceBuild` resets only on a successful build -- once
+`builtCount` hits MAX_POPULATION the King stops building and the trap branch is
+dead until the round-400 window refresh.
+
+**And the fix worked, mechanically:** ring now 16 / 16 / 16 / 12, cheese
+1097 / 885 / 645 / 425 against a baseline 1098 / 958 / 773 / 553.
+
+**But the gate does not do what the task claimed.** I wrote that it "only acts
+once building has stopped". The condition was
+
+    (trapsSinceBuild < TRAPS_PER_BUILD || rc.getNumberRatTraps() < RING_TARGET)
+
+and the ring *starts* below RING_TARGET, so the second clause is true from
+`builtCount >= 5` onward. The King therefore traps almost every turn through
+the opening rather than at 2:1 -- which is precisely Iteration 122's failure
+(density 2:1 -> 3:1, four wins lost), and close-spawn wins fell 4 -> 2 exactly
+as that iteration's did.
+
+So this run measured "trap continuously from round ~25", not "maintain the ring
+after the cap". The idea is untested; the implementation was wrong.
+
+Iteration 133 gates the maintenance clause on `builtCount >= MAX_POPULATION`,
+so it genuinely cannot fire until building has stopped.
