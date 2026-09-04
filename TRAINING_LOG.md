@@ -8345,3 +8345,57 @@ This was the session's one genuine combat-model change rather than an economy
 or tuning change, and it does not overturn the plateau diagnosis: our rats are
 not dying to enemy rats they could have fought, they are dying to cats and
 traps.
+
+## Iteration 124 — cat-approach ablation re-measured on BENCHMARKS — REJECTED; cat question closed
+
+                          g_iter21        iter124
+    benchmark wins        7/162           4/162
+    early wipes           12/155 = 8%     14/158 = 9%
+    close-spawn wins      4/42            1/42
+
+The pre-registered PRIMARY was "benchmark wins > 7/162". It fell to 4, so the
+argument collapses exactly as that task's RISK line said it would, and the
+pre-commitment I made to override the vs_old_bots gate for this change class
+was never needed -- benchmarks rejected it on their own.
+
+**Iteration 63's result does not reproduce at this baseline.** That iteration
+measured benchmarks 5/162 -> 7/162 for essentially this change, which was the
+entire reason to revisit a decision Iteration 103 had already made on the
+mirror. At `g_iter21` the same idea is worth -3, not +2.
+
+**And the mechanism worked, strictly, on everything it aimed at:**
+
+    our RatAttack        61  ->  34      (fell, as the bar required)
+    cat deaths            7  ->   2
+    total rat deaths     20  ->  18
+    our catDamage @400  156  -> 214      (rose -- Iteration 83's free bite is
+                                          kept, and surviving rats use it more)
+
+Fewer rats die, fewer die to cats specifically, and we end up with MORE cat
+damage than when we were charging them. Every intermediate quantity moved the
+right way and the bot lost three games anyway.
+
+### The cat question is now closed on four measurements
+
+    Iteration 103  ablate approach       mirror 21/54 = 38.9%
+    Iteration 104  disengage at 60 HP    mirror 26/54 = 48.1%
+    Iteration 105  disengage at 10 HP    mirror 27/54 = 50.0%
+    Iteration 124  ablate approach       benchmarks 4/162 vs 7/162
+
+Both directions of the threshold, on both instrument families. The inherited
+policy is optimal and the Iteration 63 exception was baseline-specific.
+
+### What this adds to the plateau picture
+
+This is the cleanest example yet of the pattern that now defines this bot: a
+change that improves survival, improves the score term it was supposed to
+trade away, and still loses. It is the seventh consecutive
+mechanism-verified change to do so (115, 118, 119, 121, 122, 123, 124).
+
+I no longer think the remaining gap is described by any single quantity I can
+name and move. Every local quantity I have measured -- deaths, cat damage,
+cheese income, pickups, trap exchanges, population, treasury -- has been
+improved in isolation by some iteration, and every one of those iterations lost
+games. That is the signature of a bot whose behaviours are jointly tuned and
+individually non-decomposable, which is a coherent thing for a converged local
+optimum to be.
