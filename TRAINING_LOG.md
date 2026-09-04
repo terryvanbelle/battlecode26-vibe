@@ -7874,3 +7874,65 @@ So the heuristic identifies *candidates worth a run*, not *values that will
 move*. Its record is now one hit (the trap ratio, +2 benchmark wins) and one
 expensive miss. That is still a reasonable hit rate for hypothesis generation,
 but it should not be stated as though an unchosen constant is probably wrong.
+
+## Iteration 115 — batch cheese deliveries — REJECTED, and it found the real bottleneck
+
+                          g_iter21        iter115
+    benchmark wins        7/162           3/162
+    early wipes           12/155 = 8%     15/159 = 9%
+    close-spawn wins      4/42            1/42
+
+**Mechanism fired, but weakly, and that is the informative part:**
+
+    corridorofdoomanddespair rounds 1-400   baseline   iter115
+        our CheesePickup                       10        11
+        our CheeseTransfer                     10         8
+        our transfer amounts                 10x20     6x20, 1x40, 1x60
+
+Batching did happen -- a 40 and a 60 appeared where before every single
+transfer was exactly 20. But **pickups did not move: 10 to 11, against the
+opponent's 65.** Hauling was never the constraint. We do not collect little
+because we deliver inefficiently; we deliver little because we barely collect.
+
+So the throughput arithmetic in the task was correct and irrelevant. Batching
+optimises the wrong half of the loop, and it costs real games by leaving
+slower, more valuable rats in the field.
+
+### What the rats are actually doing -- full action census, rounds 1-400
+
+    action           us    them
+    CheesePickup     11      94
+    StunAction       39       0
+    TriggerTrap      26      13
+    DieAction        20       5
+    RatAttack        61      78
+    RatSqueak         0     600
+    ThrowRat          0      39
+    PlaceTrap        18      36
+
+**We are stunned thirty-nine times and they are stunned zero times.**
+`RAT_TRAP` stuns for 30 rounds (RULES.md), so that is on the order of 1170
+rat-rounds frozen out of roughly 8000 available -- before counting the 42
+damage per trigger, and the 20 deaths against their 5.
+
+Our rats do not find cheese because they spend the mid-game stunned, damaged
+and dead in the opponent's trap field. That is upstream of every economic
+hypothesis this session has tested: squeak convergence (Iteration 109),
+squeak dispersion (Iteration 110), and now batching (115) all tried to make a
+collection loop more efficient that is being physically interrupted.
+
+Two other columns worth recording: they squeak 600 times to our 0, and they
+throw rats 39 times to our 0 -- both capabilities this session tested in their
+most obvious form and rejected. Whatever they use them for, it is not what I
+tried.
+
+### Standing caution before the obvious next move
+
+The obvious response is trap avoidance, and my record on it is 0 for 2 --
+Iteration 69 (learned danger zones, 16% wipes vs 16% control) and Iteration
+100 (geometric threat-direction steering, 14% vs 14%). Both were aimed at the
+EARLY RUSH on close-spawn maps. This measurement is a different regime: far
+maps, rounds 1-400, a trap field between us and the cheese. That is a genuine
+difference and not an excuse, but a third attempt needs to be judged on the
+counter measured here -- our StunAction and TriggerTrap counts -- not on the
+early-wipe rate, and it should be rejected outright if those do not move.
