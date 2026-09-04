@@ -48,7 +48,6 @@ public class RobotPlayer {
     static int bugClosestDistSq = Integer.MAX_VALUE;
     static boolean bugRotateLeft = false;
     static int bugRoundsFollowing = 0;
-    static int lastFieldTrapRound = -999; // Iteration 116, see runBabyRat
 
     public static void run(RobotController rc) throws GameActionException {
         rng = new Random(rc.getID());
@@ -700,72 +699,6 @@ public class RobotPlayer {
                 if (gx != 0 && gy != 0) {
                     if (moveToward(rc, new MapLocation(gx - 1, gy - 1), true)) return;
                 }
-            }
-        }
-
-        // Iteration 116 (TRAINING_LOG.md): lay traps in the FIELD, answering
-        // the opponent's trap advantage symmetrically instead of trying to
-        // dodge it.
-        //
-        // Census on `corridorofdoomanddespair` rounds 1-400: they place 36
-        // traps to our 18, we trigger 26 of theirs to their 13 of ours, and we
-        // are stunned 39 times against their 0. RAT_TRAP stuns for 30 rounds,
-        // so that is on the order of 1170 rat-rounds frozen out of ~8000 -- the
-        // reason our rats manage 11 cheese pickups to their 94.
-        //
-        // Avoidance is ruled out by the engine, which is also why Iterations 69
-        // and 100 both failed: `getMapInfo` calls `gw.getTrap(loc, getTeam())`,
-        // so `MapInfo.getTrap()` reports ONLY OUR OWN traps. Enemy traps cannot
-        // be sensed, so any avoidance is guesswork. Placing our own needs no
-        // sensing at all, and Iteration 102 already showed this bot
-        // systematically under-uses traps.
-        //
-        // Every one of our 18 traps comes from the King's ring; no Baby Rat has
-        // ever placed one. Gated to keep this field denial rather than a second
-        // ring: far from home so it does not compete with the validated ring
-        // for the shared 25-trap cap, only while genuinely rich since a trap is
-        // 20 cheese, and staggered per rat so a handful appear instead of the
-        // army stopping to dig.
-        final int FIELD_TRAP_MIN_DIST_SQ = 64;   // 8 tiles from our King
-        // Iteration 117: 1000 -> 400. At 1000 this gate never opened once --
-        // our treasury is 1098 at round 100 and 958 by round 200, so the
-        // condition was false for essentially the whole game and Iteration 116
-        // measured byte-identical to baseline. 400 sits under the mid-game
-        // trajectory (1098/958/773/553) while still refusing to spend the last
-        // of the treasury on traps.
-        final int FIELD_TRAP_MIN_CHEESE = 400;
-        final int FIELD_TRAP_COOLDOWN = 100;
-        if (kingLoc != null
-                && rc.getRoundNum() - lastFieldTrapRound >= FIELD_TRAP_COOLDOWN
-                && rc.getGlobalCheese() > FIELD_TRAP_MIN_CHEESE
-                && rc.getLocation().distanceSquaredTo(kingLoc) >= FIELD_TRAP_MIN_DIST_SQ
-                ) {
-            // Iteration 118: place BEHIND us on an adjacent tile, never on our
-            // own. `assertCanPlaceTrap` rejects an occupied tile and a rat
-            // occupies the one it stands on, so `canPlaceRatTrap(getLocation())`
-            // is always false -- that is exactly why Iteration 117 was void.
-            // Non-kings also get BUILD_DISTANCE_SQUARED = 2, so only adjacent
-            // tiles are legal at all.
-            //
-            // Behind first because that is the tile a pursuer walks through,
-            // then any other adjacent tile, mirroring how the King's
-            // findTrapLocation scans candidates rather than assuming one.
-            Direction back = rc.getDirection().opposite();
-            MapLocation trapSpot = null;
-            if (rc.canPlaceRatTrap(rc.getLocation().add(back))) {
-                trapSpot = rc.getLocation().add(back);
-            } else {
-                for (Direction d : ALL_DIRECTIONS) {
-                    if (rc.canPlaceRatTrap(rc.getLocation().add(d))) {
-                        trapSpot = rc.getLocation().add(d);
-                        break;
-                    }
-                }
-            }
-            if (trapSpot != null) {
-                rc.placeRatTrap(trapSpot);
-                lastFieldTrapRound = rc.getRoundNum();
-                return;
             }
         }
 
