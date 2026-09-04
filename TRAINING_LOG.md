@@ -8098,3 +8098,41 @@ blackout work, on a treasury we cannot grow because we have no income.
 
 That circularity is the actual problem, and none of income, traps, batching or
 camping breaks it from inside the rat loop.
+
+### Correction — "DieAction us 20, them 5" was counted wrong
+
+The Iteration 115 census reported `DieAction us 20, them 5` and concluded "we
+lose 4x more units". That counted by **actor**, and the actor of a kill is
+usually the CAT (`team0`), not the victim's team. Recounted by **target** on
+the same baseline replay, rounds 1-400:
+
+    our rats die     12 to traps (actor == victim, the self-attributed form)
+                      7 to cats
+                      1 to their King            = 20 total
+    their rats die   24 to cats
+                      5 to traps                 = 29 total
+
+**They lose MORE rats than we do, not fewer** -- 29 against our 20 -- and they
+still hold 24 alive at round 300 against our 5. Survival is not our problem.
+
+The gap is production: they spawn **41** rats in those 400 rounds, we spawn
+**25** and stop, because `builtCount` is cumulative against
+`MAX_POPULATION = 25` and the window does not refresh until round 400. They
+fund that with 1360 cheese of income against our 300.
+
+So the entry point into the income/population circle is the BUILD CONSTRAINT,
+not survival and not collection policy. Iteration 119 already proved
+collection policy is not it -- camping raised income 50% and still lost -- and
+this correction removes survival as a candidate too.
+
+What that leaves is the pair `MAX_POPULATION` / `REPLACEMENT_RESERVE`, and the
+honest position is that both have been tested and reverted (Iterations 88/90
+raised the cap, 92 decayed the reserve) -- but all three were judged before
+this session had the close-spawn split, the early-wipe counter, or the
+vs_old_bots pre-accept gate. Iteration 112 also showed the window alone cannot
+help while the reserve holds at 1000 and mid-game cheese sits at 958 below it.
+
+Re-testing them on the current instrument set is the remaining lead. It is
+also the one most likely to fail the same way, since we are poor precisely
+because we have no income, and building more rats we cannot pay for is how
+Iteration 111 bankrupted the treasury.
