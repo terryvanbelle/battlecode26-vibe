@@ -268,6 +268,24 @@ public class ReplayDump {
                     System.out.println("round " + round + " " + who + " RatSqueak");
                     break;
                 }
+                // The economy. Omitted from this dump until 2026-09-04, which
+                // left the far-map income collapse (our cheeseTransferred flat
+                // at 200 while the opponent reached 1480) impossible to
+                // diagnose -- the round-header totals show THAT it happens,
+                // these show which robot did what.
+                case Action.CheesePickup: {
+                    CheesePickup d = new CheesePickup();
+                    d.__init(pos, bb);
+                    System.out.println("round " + round + " " + who + " CheesePickup loc=" + loc(d.loc()));
+                    break;
+                }
+                case Action.CheeseTransfer: {
+                    CheeseTransfer d = new CheeseTransfer();
+                    d.__init(pos, bb);
+                    System.out.println("round " + round + " " + who + " CheeseTransfer to=" + label(d.id())
+                            + " amount=" + d.amount());
+                    break;
+                }
                 case Action.ThrowRat: {
                     System.out.println("round " + round + " " + who + " ThrowRat");
                     break;
