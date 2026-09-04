@@ -580,6 +580,29 @@ tools/.venv/bin/python3 tools/plot_alt_metrics.py       # peer spread + benchmar
 `plot_progress.py` was being skipped for most of 2026-09-03 and the chart sat
 stale through two accepts. All four run every time.
 
+### Also: archive one interesting game in `replays/`
+
+Every accept, save one representative game to `replays/` using the existing
+convention `iter<N>_<opponent>_<map>_bot<Side>.bc26`. This lapsed after
+`iter12` and roughly ninety iterations went by without a single sample.
+
+Prefer a **win**, and prefer the most informative one -- a first win against
+an opponent, or the game that best shows whatever the iteration changed. The
+Gauntlet archives only *losses* under `gauntlet/<run-id>/losses/`, so a win
+has to be reproduced. The engine is deterministic, so re-running the same
+pairing reproduces the identical game:
+
+```bash
+TEAM_A=bot TEAM_B=<opponent> tools/vm-match.sh <map>
+cp matches/bot-vs-<opponent>-on-<map>.bc26 \
+   replays/iter<N>_<opponent>_<map>_bot<Side>.bc26
+```
+
+Check the reported winner and round against that pairing's row in the
+Gauntlet `results.csv` before copying. If they disagree, the working tree is
+not the snapshot that produced the result and the sample would be
+mislabelled.
+
 **Then commit -- this is the step that makes the other four durable.** Later
 the same day an accept was made, `src/bot` edited and `src/g_iter19/` created
 without any commit; it surfaced only because `plot_progress.py` reported
