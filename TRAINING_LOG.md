@@ -8399,3 +8399,66 @@ improved in isolation by some iteration, and every one of those iterations lost
 games. That is the signature of a bot whose behaviours are jointly tuned and
 individually non-decomposable, which is a coherent thing for a converged local
 optimum to be.
+
+## Instrument maintenance — archetype staleness slipped the guard a THIRD time
+
+Checked after Iteration 124, prompted by the standing note that synthetic peers
+go stale silently. Both are behind:
+
+    src/bot               1231 lines   modified 09-04 06:46
+    pure_cooperator        950 lines   modified 09-02 23:54   gap 22%
+    immediate_defector     961 lines   modified 09-02 23:54   gap 21%
+
+They were last synced before Iterations 99 and 102 were accepted, so they are
+missing two accepted changes. **The line-count guard did not fire because the
+gap is 21-22% and its threshold is 25%.**
+
+**Line count is structurally the wrong test**, which is why this keeps
+happening. An archetype legitimately *deletes* code: `pure_cooperator` must not
+place rat traps at all, because `GameWorld.triggerTrap` calls
+`backstab(robot.getTeam().opponent())` -- the TRAP'S OWNER initiates the
+backstab when an enemy steps on it -- so a trap-laying bot is not a pure
+cooperator. Those legitimate deletions sit in the same number as genuine drift
+and mask it.
+
+Added a second, date-based check to `tools/gauntlet.sh`: warn if an archetype
+is older than the newest `src/g_iterN/`. A snapshot only appears when an
+iteration is accepted, so an older archetype is missing at least one accepted
+change no matter how the line counts land. Verified firing:
+
+    !! WARNING: pure_cooperator is older than g_iter21 --
+    !! it is missing at least one accepted iteration.
+
+**No measurement this session was corrupted** -- every run specified
+`OPPONENTS` explicitly and none used the peer default -- but the next peer run
+would have been inflated.
+
+**Not re-syncing them right now, deliberately.** A correct re-sync is copy
+`src/bot/` and then re-apply the policy edits, and getting that wrong
+corrupts the instrument silently, which is worse than a flagged-stale one. The
+deltas, now identified for whoever does it:
+
+    pure_cooperator      `desperate = false`; no King trap block
+    immediate_defector   `LEASH_RADIUS_SQUARED = 100` (turtles near its King);
+                         no King trap block
+
+## Method note — a single 3-game benchmark move is 1.2 sigma, not a verdict
+
+    binomial sd at p = 7/162, n = 162:  2.59 games
+    a 3-game drop:                      1.2 sigma
+
+The Gauntlet is deterministic, so this is not sampling noise; it is the scale
+on which a behaviour change reshuffles which near-threshold games fall which
+way. Either way, **I have been reporting individual 3-game drops as though
+they settled something, and they do not.**
+
+What does settle it is the consistency. Wins after each of the seven
+mechanism-verified changes: 3, 1, 1, 2, 3, 5, 4 -- every one below the
+baseline 7. If a neutral change reshuffled symmetrically, seven of seven in
+one direction has p = 0.008.
+
+So the conclusion that `g_iter21` is a local optimum is well supported, and it
+is supported by the *pattern*, not by any single run. Individual rejections in
+this session should be read as weak evidence that happens to point the same
+way, which also means any one of them could be revisited cheaply if a reason
+appeared.

@@ -64,11 +64,26 @@ echo "gauntlet $RUN_ID   bot=$BOT   opponents=[$OPPONENTS]   maps=$(echo "$MAPS"
 # because it only fires if someone remembers to run it, so the check lives
 # here instead, where it runs automatically on every Gauntlet.
 #
-# Heuristic, deliberately cheap: compare each archetype's line count to
-# src/bot/'s. They legitimately differ by a few dozen lines of policy, so
-# only a large gap is flagged. This is a warning, not a hard failure -- a
+# Two checks, because the line-count one alone has now failed a THIRD time.
+# On 2026-09-04 both archetypes sat 21-22% below src/bot -- just under the 25%
+# threshold -- while missing two accepted iterations (99 and 102).
+#
+# Line count is structurally the wrong test: an archetype legitimately DELETES
+# code. `pure_cooperator` must not place rat traps at all, because
+# GameWorld.triggerTrap calls backstab(robot.getTeam().opponent()), i.e. the
+# TRAP'S OWNER initiates the backstab when an enemy steps on it -- so a bot
+# that places traps is not a pure cooperator. Those legitimate deletions mask
+# genuine drift in the same number.
+#
+# So also compare MODIFICATION TIME against the newest frozen snapshot. A
+# snapshot only appears when an iteration is accepted, so an archetype older
+# than the newest g_iterN is missing at least one accepted change, regardless
+# of how the line counts happen to land. Warning, not a hard failure -- a
 # stale-peer run is still worth having, it just must not be mistaken for a
 # clean baseline.
+#
+# When re-syncing, copy src/bot/ and then RE-APPLY the policy edits; do not
+# simply overwrite. pure_cooperator needs `desperate = false` and no rat traps.
 BOT_LINES=$(wc -l < "$REPO/src/bot/RobotPlayer.java" 2>/dev/null || echo 0)
 for _opp in $OPPONENTS; do
   case "$_opp" in g_iter*) continue ;; esac   # frozen snapshots; drift is the point
@@ -78,6 +93,13 @@ for _opp in $OPPONENTS; do
   if [ "$BOT_LINES" -gt 0 ] && [ "$(( (BOT_LINES - _lines) * 100 / BOT_LINES ))" -gt 25 ]; then
     echo "  !! WARNING: $_opp is $_lines lines vs bot's $BOT_LINES -- likely stale."
     echo "  !! Re-sync it to src/bot/ before trusting this run's win rate."
+  fi
+  # Date check: older than the newest accepted snapshot means it is missing at
+  # least one accepted iteration, whatever the line counts say.
+  _newest_snap=$(ls -1dt "$REPO"/src/g_iter*/RobotPlayer.java 2>/dev/null | head -1)
+  if [ -n "$_newest_snap" ] && [ "$_f" -ot "$_newest_snap" ]; then
+    echo "  !! WARNING: $_opp is older than $(basename "$(dirname "$_newest_snap")") --"
+    echo "  !! it is missing at least one accepted iteration. Re-sync before trusting win rates."
     echo "  !! (See TRAINING_LOG.md's archetype-staleness entries.)"
   fi
 done
