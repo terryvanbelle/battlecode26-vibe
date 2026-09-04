@@ -9582,3 +9582,113 @@ Iteration 96, on a counter the mirror cannot see, and the trade has since paid
 the trade working as intended, not a warning. The lines worth watching for
 regression are `g_iter1`, `g_iter6` and `g_iter11`, which are trapped builds and
 sit at 91%, 83% and 94%.
+
+## Iteration 142 — seek cats when idle — REJECTED
+
+Traced `whereisthecheese`, a map we lose 0/6 on benchmarks and lose *both sides*
+of to the ancient trapless `g_iter6`. Against `bench_stroke` (we are team1):
+
+    their RatAttack   438        ours   72      -- 6x
+    their catDamage  4200        ours  950
+    at round 100, with 12 rats EACH:  1710 vs 120
+
+The gap is not army size: at round 100 both sides field twelve rats and they have
+already banked fourteen times our cat damage. Nor is it trapping — they placed 11
+cat traps to our 10, so about 1100 of their 4200 is traps and the rest is teeth.
+
+**Hypothesis.** `nearestCat` comes from `senseNearbyRobots()`, and a Baby Rat's
+vision is a 90-degree cone — so we engage only cats that happen to lie in the
+wedge we are already facing, and a cat that leaves the cone stops existing.
+Nothing in this bot had ever *travelled* toward a cat. Note what the cat
+dose-curve did and did not test: Iterations 103/104/105 varied when to STOP
+fighting (abstain 38.9%, break off at 60 HP 48.1%, current 50.0%, break off at 10
+HP 50.0%) and Iteration 124 tested engaging *less* (4/162). Every one moved the
+disengage threshold. None moved a rat toward a cat it wasn't already beside.
+
+**Change.** Per-rat `knownCat` memory, consulted after `collectCheese` fails and
+before `explore`, gated on health > 30, cleared on arrival.
+
+**Mechanism check — FIRED.** Not a void; this is a real negative.
+
+    whereisthecheese      baseline   iter142
+    our RatAttack               72        84   (+17%)
+    our catDamage @100         120       240   (2x)
+    our catDamage final        950      1050
+    our aliveBabies @100        12        15
+    our aliveBabies @300         1         0
+
+**Result — REJECT.**
+
+    benchmarks        8/162  ->  6/162      (bar was >8)
+    close-spawn wins   4/42  ->   2/42      (guard breached)
+    peer archetypes            22/40 (55%)
+    early wipes                13/156 = 8%
+
+The mechanism worked and the outcome got worse, which is the informative kind of
+failure. Seeking cats buys bites at well under the rate it spends rats, and it
+spends them worst on close-spawn maps where the guard broke. The +12 bites cost
+two benchmark wins. **The cat dose-curve's flat top (48–50% across three very
+different disengage rules) is better read as "cat engagement is already at its
+ceiling" than as "we have not pushed hard enough."**
+
+### The far more important finding, from the same trace
+
+While checking the mechanism I found what actually kills us on this map, and it
+is not cats. **They grab our rats and throw them.**
+
+    grabs BY them OF us    37   ->  all 37 thrown
+    grabs BY them OF own   43   ->  only 2 thrown, rest dropped (mobility)
+    grabs BY us             0       throws BY us  0
+
+`THROW_DAMAGE 10 + THROW_DAMAGE_PER_TILE 4` makes the observed `dmg=42` an
+8-tile throw, plus `THROW_DURATION 4` rounds stunned. 37 throws is ~1550 damage
+onto 100-HP rats — roughly fifteen dead rats, and it is why our army goes 15 -> 0
+between rounds 100 and 300 while theirs holds at 12. This also resolves the
+"18 self-attributed deaths" I had guessed were rat traps in the earlier baseline
+trace: a thrown rat's landing damage is attributed to *itself*, so the killer
+column reads `team1,RAT` for a `team1` victim.
+
+**Scope, swept over all 12 archived replays** (opponent behaviour does not depend
+on our build, so old samples are valid evidence):
+
+    bench_finalist   jail              71 throws
+    bench_stroke     whereisthecheese  39
+    bench_spaark     popthecork        25
+    ALL peer archetypes                 0    (every map)
+
+**Only the real benchmark bots throw. Every peer archetype throws zero.** So the
+mirror and the peer Gauntlet are structurally blind to a throw *counter* — see
+`resolution-is-not-representativeness`. Benchmarks are the only instrument with
+resolution for the defensive half.
+
+**Their sequencing is deliberate, and worth studying.** `grabRobot` on an enemy
+calls `backstab(this.getTeam())`, so the grabber becomes the backstabber — which
+under `catTrapsAllowed` bars them from cat traps forever. So they place all 11
+cat traps in rounds 25–50 *while still cooperating*, and only then grab at round
+55, three rounds after the break. They bank the cooperative-only resource first
+and pay the backstab price once it is already spent.
+
+**This also retracts the Iteration 108 conclusion.** I logged `carryRat` VOID on
+the grounds the capability "barely fired" (enemy RatNap 9 -> 8). That was a fact
+about my implementation, not the mechanic — `bench_finalist` fires it 71 times in
+a single game. The engine's bar is low: `HEALTH_GRAB_THRESHOLD = 0`, so an enemy
+may be grabbed if it is *facing away* (its own 90-degree cone excludes you) or if
+you simply have more HP. What blocked us is that our enemy-rat block sits behind
+`!rc.isCooperation() || desperate`, so our rats never approach an enemy during
+cooperation at all. Theirs do. Iteration 143.
+
+### Tooling fix this exposed
+
+`ReplayDump` printed only `who` (= `turn.robotId()`, the actor) for `RatNap` and
+`ThrowRat`, discarding the payload id. But the schema is not self-consistent:
+`RatAttack` carries the *biter* (actor) while `RatNap` carries the *captive* and
+`ThrowRat` the *thrown rat* (both victims). So "team2 RatNap" read equally well
+as "a team2 rat grabbed someone" or "a team2 rat got grabbed" — opposite
+conclusions about who is winning. It bit immediately: my first count of
+"team1 RatNap = 30" looked like thirty grabs by us, when we grab zero times and
+those lines were the action echoed into the victim's own turn.
+
+Both ends are now printed, and `test_grab_throw_name_both_ends` fails if either
+action ever loses its target again. Same family as the Iteration 108 retraction
+and `read-the-team-from-the-replay-header`: an id in a replay means nothing until
+you know which end of the action it names.
