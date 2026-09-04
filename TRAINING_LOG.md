@@ -7415,3 +7415,46 @@ found, this was the one I ran first and it is the most expensive of the three
 per use. `carryRat` costs one action and removes an entire attacker from an
 assault; `squeak` costs no action at all. Cheaper mechanics should have gone
 first, and that ordering error cost two Gauntlet runs.
+
+## Iteration 108 — defensive grab-and-throw near our King — REJECTED
+
+                          g_iter21        iter108
+    benchmark wins        7/162           7/162
+    early wipes           12/155 = 8%     11/155 = 7%
+    close-spawn wins      4/42            3/42
+    close-spawn wipes     12/38 = 32%     11/39 = 28%
+
+On the letter of the pre-registration this passes -- early wipes fell below
+12 and total wins held at 7. **Rejecting anyway**, because one game on a ~4%
+instrument is the resolution floor, and it bought that one wipe by giving
+back one close-spawn win. Accepting this would be exactly the mistake
+Iteration 63 made: taking a +-2 game move on a lopsided Gauntlet as signal.
+The pre-registered bar was too loose, and the honest response is to say so
+rather than bank the noise.
+
+### Two real findings, both about measurement
+
+**1. `carryRat` is INVISIBLE in replays.** The schema's `Action` union has no
+grab or carry member -- `CatFeed, RatAttack, RatNap, RatCollision, PlaceDirt,
+BreakDirt, CheesePickup, CheeseSpawn, CheeseTransfer, CatScratch, CatPounce,
+PlaceTrap, RemoveTrap, TriggerTrap, ThrowRat, UpgradeToRatKing, RatSqueak,
+DamageAction, StunAction, SpawnAction, DieAction`, and the indicators. Only
+`ThrowRat` is recorded. So a grab can only ever be inferred from the throw
+that follows it, and a grab that never leads to a throw leaves no trace at
+all. Any future iteration using carry must be measured indirectly.
+
+**2. Our rats almost certainly grabbed and then got stuck.** In
+`bench_spaark__knifefight__botB` we performed **zero** throws while
+`bench_spaark` performed six. Yet the results did change -- the fastest-loss
+list moved from 19,20,21,21,27 to 19,20,25,27,31 -- so behaviour clearly
+differed. The likely mechanism is that `assertCanThrowRat` requires the tile
+directly ahead to be on-map, passable AND empty, which in the middle of a
+melee around our King it usually is not. A rat that grabs and cannot throw
+keeps carrying, and carrying multiplies its cooldowns, so it is neutralised
+along with its captive -- the one-for-one trade the design was specifically
+meant to avoid.
+
+That is a fixable defect rather than a refutation: the design needs a
+`dropRat` fallback, or should only grab when a throw is already legal. But it
+means this run did not test the intended mechanism, so the numbers above
+describe grab-and-stall, not grab-and-throw.
