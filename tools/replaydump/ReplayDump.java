@@ -251,7 +251,7 @@ public class ReplayDump {
                     IndicatorStringAction d = new IndicatorStringAction();
                     d.__init(pos, bb);
                     String v = d.value();
-                    if (v != null && v.contains("OVERRAN")) {
+                    if (v != null && (v.contains("OVERRAN") || v.contains("near-limit"))) {
                         System.out.println("round " + round + " " + who + " indicator: " + v);
                     }
                     break;

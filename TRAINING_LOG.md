@@ -8793,3 +8793,46 @@ Not pursuing it: even with perfect transmission the King moves two tiles, so
 the ceiling on this idea is the ~80% income gain already measured, and that gain
 came with -2 wins. This is the ninth mechanism-verified change to improve its
 target quantity and lose games.
+
+## Measurement — the bytecode explanation is FALSE, and we use 4% of the budget
+
+Invoked twice in this log as the likely cause of unexplained outcome shifts --
+in the Iteration 108 retraction ("added per-turn bytecode truncating turns") and
+again in Iteration 127 ("the likely cost is bytecode"). Both were speculation.
+Measured properly by relaxing ReplayDump's indicator filter and reading the
+numbers our own `reportBytecodeBudget` has been emitting all along:
+
+    370 Baby Rat turns sampled, limit 17500
+        min 374      median 739      max 2546
+        median = 4.2% of the limit, peak = 14.5%
+
+**Zero `OVERRAN` in any replay checked.** No turn has ever been truncated. The
+bytecode explanation is retracted in both places it appears.
+
+That leaves the two outcome shifts it was invented to explain -- Iteration 108's
+and Iteration 127's -- genuinely unexplained. The honest reading of both is that
+a small behaviour change reshuffles near-threshold games, which is exactly what
+the 1.2-sigma note says a 3-game move means. I reached for a mechanism where
+noise was the sufficient answer.
+
+### The positive half: we have ~15,000 unused bytecode per rat per turn
+
+A Baby Rat is allotted 17500 and spends a median of 739. Roughly **25x
+headroom**, entirely unused, on every rat on every turn. Nothing this bot does
+is constrained by computation:
+
+  - `moveToward` is a single-step greedy choice with a Bug2 fallback; a real
+    BFS over the visible region would cost a few hundred bytecodes.
+  - `collectCheese` picks the nearest visible cheese tile with no consideration
+    of contested-ness, travel time, or what other rats are already doing.
+  - target selection nowhere evaluates more than one candidate.
+
+Every failed iteration this session changed a *policy constant* or added a
+*single reflex*. None of them spent the available computation on making a
+better decision. That is the one dimension of this bot that has never been
+pushed, and it is 25x under-used.
+
+Recorded as the honest state of the search. It does not name a specific change,
+and I am not going to invent one to fill the gap -- but it does say the
+remaining headroom is in decision quality per turn, not in the number of things
+a rat does.
