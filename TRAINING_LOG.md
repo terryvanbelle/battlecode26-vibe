@@ -10067,3 +10067,36 @@ benchmarks were flat (8/162 both) and the benchmark wins are identical to
 baseline, so none of them is attributable to this change. It ends
 `catDamage=[2918,948]`, a 3x advantage over `g_iter23` on the term we are most
 behind on against real opponents: more rats, more bites.
+
+## Iteration 148 — dose-response on the population cap — VOID (the cap never binds)
+
+Resolved **without a Gauntlet run**, by two single matches.
+
+I first moved both knobs at once — cap 60 -> 100 and gate 1500 -> 1000 — which
+was sloppy, and the mechanism check caught it: peak rats on rift went *down*,
+42 -> 37, and `cheeseTransferred` fell 12745 -> 9733. Isolating the cap knob
+alone settled it:
+
+    cap  25, flat        peak rats 29
+    cap  60, gate 1500   peak rats 42     <- g_iter24, accepted
+    cap 100, gate 1500   peak rats 42     <- IDENTICAL GAME
+    cap 100, gate 1000   peak rats 37     <- worse
+
+The `cap 100 / gate 1500` game is byte-identical to g_iter24's — same final
+`cheese=210`, same `aliveBabies=[7,104]`, same `catDamage=[1970,22030]`, same
+`cheeseTransferred=12745`. **`MAX_POPULATION = 60` is never reached, so raising
+it is a no-op**: two arms that never differed, which is exactly
+`a-dose-must-change-the-evaluated-condition`. VOID.
+
+**What actually binds is the cheese gate**, because it sets an equilibrium: we
+build until cheese falls through the gate, the cap reverts to 25, and building
+stops until the 400-round window resets `builtCount`. Lowering the gate lowers
+that equilibrium and, measured, costs both rats and delivered cheese. So
+g_iter24 sits at the optimum of both knobs and this direction is closed.
+
+**The remaining ceiling is not build permission — it is rat survival.** Even
+building freely we end rift with 7 rats against 117. We are converting cheese
+into rats that die faster than they accumulate, while the opponent's army
+compounds monotonically (16/33/67/81/117) on a flat treasury. That is the next
+question, and it is a different one: not "may we build?" but "why does nothing we
+build survive?"
