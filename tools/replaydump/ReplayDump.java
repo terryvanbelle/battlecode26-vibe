@@ -138,7 +138,10 @@ public class ReplayDump {
                     System.out.println("round " + round + " " + status + "aliveBabies="
                             + vec(r::teamAliveBabyRats, r.teamAliveBabyRatsLength())
                             + " catDamage=" + vec(r::teamCatDamage, r.teamCatDamageLength())
-                            + " cheeseTransferred=" + vec(r::teamCheeseTransferred, r.teamCheeseTransferredLength()));
+                            + " cheeseTransferred=" + vec(r::teamCheeseTransferred, r.teamCheeseTransferredLength())
+                            + " dirt=" + vec(r::teamDirtAmounts, r.teamDirtAmountsLength())
+                            + " ratTraps=" + vec(r::teamRatTrapCount, r.teamRatTrapCountLength())
+                            + " catTraps=" + vec(r::teamCatTrapCount, r.teamCatTrapCountLength()));
                 }
                 for (int k = 0; k < r.diedIdsLength(); k++) {
                     System.out.println("round " + round + " DIED id=" + label(r.diedIds(k)));
