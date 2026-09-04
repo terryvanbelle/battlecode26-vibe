@@ -8723,3 +8723,34 @@ because its cap is higher.
 So the ordering is fixed and unavoidable: **income first, then population.**
 Every attempt this session to take them in the other order has failed, and now
 there is a mechanism that says they always will.
+
+## Iteration 126 — relocate the King onto a cheese mine — VOID (squeak never reached it)
+
+                          g_iter21        iter126
+    benchmark wins        7/162           7/162
+    early wipes           12/155 = 8%     11/155 = 7%
+    close-spawn wins      4/42            4/42
+
+No regression anywhere -- the round-300 gate did its job -- but the mechanism
+never fired:
+
+    our King, rounds 280-364:  (9,4) throughout, moveCD=0 the whole time
+    cheeseTransferred:         200/200/300/300, identical to baseline
+
+**Why: SQUEAK_RADIUS_SQUARED is 16, i.e. radius 4, and the mine is 11 tiles from
+our King.** A rat only squeaked while the mine was in view, which means it
+squeaked *at* the mine, where no King could hear it. Messages do not relay and
+expire after MESSAGE_ROUND_DURATION 5 rounds, so the King never learned a
+location and never had anywhere to walk.
+
+**Fifth void of this session, and the same partial-precondition error.** I did
+check that an allied King receives squeaks -- `GameWorld.squeak` has no type
+filter -- and recorded that as the pre-flight. I never checked whether any
+squeak would ever be *in range* of it. "Can a King receive?" and "will one be
+within radius 4 of a speaker?" are different questions and I only asked the
+first.
+
+The fix is small and its own pre-flight is concrete: `deliverCheese` closes to
+`CHEESE_TRANSFER_RADIUS_SQUARED = 9` (3 tiles) to hand over cheese, which is
+inside squeak radius 4. So a rat that *remembers* the mine and broadcasts it
+every turn carries the news home for free. That is Iteration 127.
