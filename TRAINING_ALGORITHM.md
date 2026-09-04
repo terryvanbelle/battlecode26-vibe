@@ -564,6 +564,96 @@ incremental ideas run out.
       a different losing game.
    9. Otherwise, back to Step 6.1.
 
+## Before writing a hypothesis: is the branch REACHABLE?
+
+Three iterations on 2026-09-04 (137, 139, 141) were built on chains of
+reasoning that were entirely correct and predicted nothing, because the code
+they reasoned about almost never runs. This is distinct from a VOID, where a
+precondition fails at the moment of use — here the code is correct and the
+branch is simply not taken.
+
+| iteration | the case, all premises true | result |
+|---|---|---|
+| 137 | the King's flee abandons its own trap ring | 48.1% — the King never moves; no cat comes within d² 20 |
+| 141 | desperation is inert *and* hands away our cat traps | **exactly 50.0%** — needs `cheese < 150`, true only in already-lost games |
+| 139 | early cat traps beat the backstab lockout | void — the clause was nested inside `nearestCat != null` |
+
+**A correct chain of reasoning about a dormant branch predicts nothing.**
+
+The check costs a minute and uses numbers already in `TRAINING_LOG.md`:
+
+- **Cheese gates.** The treasury runs roughly 1098 / 958 / 773 / 553 across
+  rounds 100-400. Any gate at `> 1000` is dead after ~round 150; any gate at
+  `< 150` is dead outside starvation games. This has bitten four times —
+  Iteration 116's field-trap gate, `REPLACEMENT_RESERVE`, the bite boost, and
+  the desperation flag.
+- **Vision gates.** A Rat King sees radius² 25 (~5 tiles), a Baby Rat a
+  90-degree cone of radius ~4.5. Cheese mines sit 11+ tiles from the King, so
+  `nearestCat != null` or `hasCheeseMine()` guards are dead wherever the thing
+  is further than that.
+- **Counter gates.** `builtCount < MAX_POPULATION` is false from round ~25-99
+  onward, so anything nested under it stops with the opening burst.
+
+### And check the guard you are nesting inside
+
+Iterations 132 and 139 both failed because the new condition was added as an
+extra disjunct inside a branch whose *outer* test already excluded the case
+being targeted:
+
+```java
+if (nearestCat != null && (dist <= 20 || (isCooperation() && catTraps < 3)))
+```
+
+The early-placement clause exists precisely for maps where no cat is near yet —
+and it can never fire, because the outer `nearestCat != null` is false there.
+When adding a condition to an existing branch, read the guard, not just the
+condition.
+
+## Measure the shared pool before changing who spends it
+
+Three iterations (130, 134, 135) tried letting rats place cat traps under three
+different triggers — cat within d² 20, cat within d² 8, and only-while-stunned.
+All three collapsed close-spawn wins from 4/42 to 1/42, and I explained each
+failure differently and wrongly.
+
+The actual cause was a capped team resource. `CAT_TRAP.maxCount` is **10 for the
+whole team**, and the King spends it reactively; every field trap a rat laid was
+a slot the King could not refill:
+
+    g_iter22   King 52 placements, rats  0
+    iter135    King 24 placements, rats 13
+
+My `> 8 tiles from the King` guard, present in all three, prevented *spatial*
+competition and did nothing about the *global* cap. `teamCatTrapCount` was in
+the `Round` table the whole time; I only added it to the dump while chasing
+something else.
+
+**If a change alters who draws on `maxCount`, team cheese, King actions or the
+shared array, instrument the pool in the first iteration and read it beside the
+outcome.** `ReplayDump` now prints `dirt=`, `ratTraps=` and `catTraps=` on the
+round line for exactly this.
+
+## The alternative must be worth less FOR THAT UNIT
+
+Iteration 128 (the King lays a cat trap when a cat closes) is the session's one
+mechanism accept. I first generalised it as "cheap, defensive, uses an idle
+resource" and that produced three failures.
+
+The rule that actually holds is narrower: **fire only where the alternative
+action is worth less _for that specific unit_, and mobility decides it.**
+
+- A `RAT_KING` is size 3 and cannot path through its own army. When a cat
+  arrives its options are trap it or be ground down, so trapping is free.
+- A Baby Rat *can* flee, so the same action costs it its life. Rat-placed cat
+  traps lost at d² 20 and lost *harder* at d² 8, because the tighter trigger
+  fires exactly when fleeing matters most.
+- After the build cap the King's action is **not** idle — it is attacking, which
+  Iteration 99 established is worth having. Timer-based trap maintenance
+  (Iterations 132/133) therefore lost two wins.
+
+The King's immobility, which costs us everywhere else, is the single thing that
+makes its cat trap pay.
+
 ## vs_old_bots is a PRE-accept gate when the margin is thin
 
 Run `vs_old_bots` **before** accepting, not only after, whenever the benchmark
