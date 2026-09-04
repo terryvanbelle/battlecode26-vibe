@@ -7936,3 +7936,33 @@ maps, rounds 1-400, a trap field between us and the cheese. That is a genuine
 difference and not an excuse, but a third attempt needs to be judged on the
 counter measured here -- our StunAction and TriggerTrap counts -- not on the
 early-wipe rate, and it should be rejected outright if those do not move.
+
+## Iteration 116 — Baby Rat field traps — VOID (gate never opened)
+
+Byte-identical to `g_iter21` on every counter: 7/162 wins, 12/155 wipes,
+4/42 close-spawn wins, the same fastest-loss list and the same wipes-by-map.
+Mechanism check:
+
+    corridorofdoomanddespair rounds 1-400
+        our PlaceTrap:  18, ALL of them RAT_KING -- Baby Rats placed zero
+        our cheese:     1098 @100,  958 @200,  773 @300,  553 @400
+
+The gate required `getGlobalCheese() > 1000`. Our treasury is below 1000 from
+round ~150 onward, so the condition was false for essentially the whole game,
+and it additionally had to coincide with a rat being 8+ tiles from the King.
+
+**I had this trajectory in front of me.** It is recorded in this same log as
+the Iteration 110 baseline -- "1098, 958, 773, 553, 123" -- and I set a
+threshold above it anyway. The pre-flight I do for *doses* (does the arm
+change the evaluated condition?) I did not do for a *gate*: check the gate
+against measurements already in the log before running.
+
+That is the third void of the session from the same root -- Iteration 106
+(no rat king may be in the 3x3, a precondition I had read), Iteration 108
+(the 90-degree cone plus adjacency plus proximity to our King), and now this.
+Every one was a condition I could have evaluated against existing data in
+under a minute.
+
+Not reverted: the code is inert as written, and the mechanism is still
+untested. Iteration 117 lowers the gate to 400 -- comfortably under the
+mid-game treasury while still refusing to trade the last of it for traps.
