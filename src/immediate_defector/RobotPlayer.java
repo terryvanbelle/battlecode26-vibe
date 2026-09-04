@@ -303,7 +303,44 @@ public class RobotPlayer {
         // ACCEPTED on the mirror (+7.4) and peers (+7.4). Measured against the
         // benchmark set they cost a game, so they are reverted -- see the
         // "four accepts, all reverted" entry in TRAINING_LOG.md.
-        final int MAX_POPULATION = 25;
+        // Iteration 147 (TRAINING_LOG.md): LIFT THE CAP WHEN CHEESE IS DEEP.
+        //
+        // Traced on rift (bench_stroke, botA), our own long-game trajectory
+        // against theirs:
+        //
+        //     round      our rats / cheese      their rats / cheese
+        //       125        21 / 1359               16 / 1945
+        //       525        29 / 1231               33 / 1940
+        //      1125        12 / 2790               67 / 1908
+        //      1925        14 / 1598               81 /  478
+        //
+        // They compound; we do not. Their cheese sits flat near 1900 because
+        // they spend everything they earn. Ours oscillates 1000-2800
+        // PERMANENTLY UNSPENT while our army never passes ~29. At round 1125 we
+        // held 2790 cheese and twelve rats and would not convert. We are not
+        // starving in these games -- we are refusing to spend.
+        //
+        // `builtCount` is cumulative-ever-built and resets each 400-round
+        // window, so a flat cap of 25 limits us to 25 builds per window no
+        // matter how deep the treasury is. Population is upstream of all three
+        // scored terms (catDamage, cheeseTransferred, kings), which is why it
+        // outweighs anything the cat work could buy: seeking cats harder moved
+        // the cat margin by +2.2 points against a -25.4 gap.
+        //
+        // WHY THIS IS NOT A SEVENTH REPEAT. Iterations 111/112/113/114/120/125
+        // all pushed population and were rejected, root-caused to the cost
+        // curve plus King starvation. That root cause is real and this respects
+        // it: every one of those raised the cap UNCONDITIONALLY, so it also
+        // fired in the 128 short King-kill games where cheese genuinely is
+        // scarce and the King starves at 2/round. Gating on held cheese lifts
+        // the cap only when the treasury is provably deep. The dose is on WHEN,
+        // not on how much.
+        //
+        // REPLACEMENT_RESERVE is deliberately untouched: at 25 live rats
+        // getCurrentRatCost() is 70, so 2790 - 70 >= 1000 passes easily and the
+        // reserve is not what binds here. Changing both at once would leave it
+        // unknown which one mattered.
+        final int MAX_POPULATION = rc.getGlobalCheese() > 1500 ? 60 : 25;
         final int BUILD_WINDOW_ROUNDS = 400;
         // Iteration 92 (TRAINING_LOG.md): let the replacement reserve DECAY
         // late, when a survival buffer is worth less than the rats it buys.
@@ -1064,10 +1101,7 @@ public class RobotPlayer {
         Direction d = toTarget;
         for (int i = 0; i < 8; i++) {
             d = bugRotateLeft ? d.rotateLeft() : d.rotateRight();
-            if (rc.canMove(d)) {
-                rc.move(d);
-                return true;
-            }
+            if (stepTo(rc, d)) return true;
         }
 
         // Fully enclosed, or wall-following has run long enough to suspect a
@@ -1087,18 +1121,27 @@ public class RobotPlayer {
     /** Turn-and-move strictly along `want`, no sidestep. */
     static boolean tryMoveDirect(RobotController rc, Direction want) throws GameActionException {
         if (want == Direction.CENTER) return false;
-        if (rc.getDirection() != want && rc.canTurn(want)) {
-            rc.turn(want);
+        return stepTo(rc, want);
+    }
+
+    /**
+     * Iteration 151 (TRAINING_LOG.md): step one tile in `d`, TURNING TO FACE IT
+     * FIRST so the step costs `movementCooldown` 10 instead of
+     * `MOVE_STRAFE_COOLDOWN` 18. Falls back to the raw strafe when we cannot
+     * turn: a slow step beats none. Checks canMove BEFORE turning, so it never
+     * burns the round's single turn on a direction it will not take.
+     */
+    static boolean stepTo(RobotController rc, Direction d) throws GameActionException {
+        if (!rc.canMove(d)) return false;
+        if (rc.getDirection() != d && rc.canTurn(d)) {
+            rc.turn(d);
         }
-        if (rc.getDirection() == want && rc.canMoveForward()) {
+        if (rc.getDirection() == d && rc.canMoveForward()) {
             rc.moveForward();
             return true;
         }
-        if (rc.canMove(want)) {
-            rc.move(want);
-            return true;
-        }
-        return false;
+        rc.move(d);
+        return true;
     }
 
     /**
@@ -1126,17 +1169,7 @@ public class RobotPlayer {
      */
     static boolean tryMove(RobotController rc, Direction want, boolean allowStuckEscape) throws GameActionException {
         if (want == Direction.CENTER) return false;
-        if (rc.getDirection() != want && rc.canTurn(want)) {
-            rc.turn(want);
-        }
-        if (rc.getDirection() == want && rc.canMoveForward()) {
-            rc.moveForward();
-            return true;
-        }
-        if (rc.canMove(want)) {
-            rc.move(want);
-            return true;
-        }
+        if (stepTo(rc, want)) return true;
         if (allowStuckEscape && stuckCycles >= 2) {
             // Same class of problem the engine's own cat AI hits and fixes
             // the same way (InternalRobot.java: EXPLORE mode randomizes
@@ -1153,10 +1186,7 @@ public class RobotPlayer {
                 shuffled[j] = tmp;
             }
             for (Direction d : shuffled) {
-                if (rc.canMove(d)) {
-                    rc.move(d);
-                    return true;
-                }
+                if (stepTo(rc, d)) return true;
             }
             return false;
         }
@@ -1165,10 +1195,7 @@ public class RobotPlayer {
         Direction first = (rc.getID() % 2 == 0) ? left : right;
         Direction second = (first == left) ? right : left;
         for (Direction d : new Direction[]{first, second}) {
-            if (rc.canMove(d)) {
-                rc.move(d);
-                return true;
-            }
+            if (stepTo(rc, d)) return true;
         }
         return false;
     }
