@@ -564,6 +564,32 @@ incremental ideas run out.
       a different losing game.
    9. Otherwise, back to Step 6.1.
 
+## vs_old_bots is a PRE-accept gate when the margin is thin
+
+Run `vs_old_bots` **before** accepting, not only after, whenever the benchmark
+and mirror moves are each within one game. It is listed below as a post-accept
+step -- something you run to record progress once you have decided -- and on
+2026-09-04 that nearly shipped a regression.
+
+Iteration 112 measured benchmarks 7/162 -> 8/162 (+1) and the g_iter21 mirror
+at 51.9% (+1 game). Both are at the resolution floor, and both were the
+metrics I had pre-registered, so they read as a verdict. `vs_old_bots`, which
+I had not yet run, disagreed by ten games:
+
+    vs g_iter1    49/54 -> 45/54
+    vs g_iter11   50/54 -> 44/54
+    combined      99/108 = 91.7% -> 89/108 = 82.4%
+
+It caught the bad accept only because the snapshot happened before the run
+finished. Two single-game moves are not evidence that outweighs a ten-game
+move on a third instrument.
+
+The general form: **do not let the set of metrics you pre-registered decide a
+result when a cheap instrument you have not run yet could reverse it.** Thin
+margins are exactly when the unrun instrument matters most, because a real
+effect large enough to accept on would usually show up in more than one game
+somewhere.
+
 ## Post-accept routine
 
 Four commands, in this order. `plot_progress.py` reads the `src/g_iterN/`
