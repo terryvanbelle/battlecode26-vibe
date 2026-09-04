@@ -5,12 +5,11 @@ completed Gauntlet run's results.csv. See tools/plot_vs_old_bots.py for
 the full picture (what this data is for, how to regenerate the chart).
 Ported from battlecode22-vibe's tools/track_vs_old_bots.py.
 
-The roster is **every 10th accepted snapshot** (g_iter1, g_iter11,
-g_iter21, ...), matching battlecode22-vibe's policy -- a fixed set of
-historical reference points that grows as the project does, so the chart
-shows progress against genuinely old bots rather than only the single
-oldest one. Add the next one each time a g_iterN with N ending in 1
-(11, 21, 31, ...) is accepted; never replace earlier entries.
+The roster is **every 5th accepted snapshot** (g_iter1, g_iter6, g_iter11,
+g_iter16, g_iter21, ...) -- a fixed set of historical reference points that
+grows as the project does, so the chart shows progress against genuinely old
+bots rather than only the single oldest one. Add the next one each time a
+g_iterN with N ending in 1 or 6 is accepted; never replace earlier entries.
 
 Usage (keep this list current -- see roster_opponents() below, which
 derives it automatically):
@@ -41,8 +40,14 @@ def current_snapshot():
 
 
 def roster_opponents():
-    """Every 10th accepted snapshot (g_iter1, g_iter11, g_iter21, ...) that
-    actually exists, excluding the current one (a bot doesn't play itself).
+    """Every 5th accepted snapshot (g_iter1, g_iter6, g_iter11, g_iter16,
+    g_iter21, ...) that actually exists, excluding the current one (a bot
+    doesn't play itself).
+
+    Changed from every 10th to every 5th on user request, 2026-09-04: with
+    23 snapshots the decade spacing gave only two usable reference points,
+    and the newest of them (g_iter21) sits one accept behind the current bot
+    so it reads near 50%. Five-spacing fills in the middle of the curve.
 
     Derived rather than hardcoded specifically so this can't silently go
     stale: the original port hardcoded "g_iter1" as the usage example
@@ -54,7 +59,7 @@ def roster_opponents():
                 if p.is_dir() and re.fullmatch(r"g_iter\d+", p.name)}
     current = current_snapshot()
     newest = int(current[len("g_iter"):])
-    return [n for n in (f"g_iter{i}" for i in range(1, newest + 1, 10))
+    return [n for n in (f"g_iter{i}" for i in range(1, newest + 1, 5))
             if n in existing and n != current]
 
 
