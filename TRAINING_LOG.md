@@ -9879,3 +9879,68 @@ playing them against each other.
 
 **The 22/40 peer figure recorded earlier today was measured against the stale
 pair and should not be compared against anything after this point.**
+
+## Iteration 146 — muster 8 rats to build a SECOND Rat King — REJECTED
+
+The first structural change in many iterations, aimed at the dominant loss mode:
+the win condition is "destroyed all of the enemy team's rat king**s**", and 128
+of our 154 benchmark losses are exactly that, between rounds 100 and 1999. Only
+14 reach points. A second King doubles what an opponent must kill and moves the
+scored kings share from 1/2 to 2/3.
+
+Not speculative: `bench_finalist` reaches `2:kings=2` on jail.
+
+**Why Iteration 106's void did not apply.** `assertCanBecomeRatKing` forbids any
+non-baby-rat in the 3x3, our only cluster is around our own King, and the King is
+SIZE 3 — so every rat beside it is disqualified by the King itself. A muster
+point placed away from home dissolves that.
+
+**Two real bugs, both caught by the mechanism check, both instructive.**
+
+1. `findMusterLocation` scanned tiles at d^2 <= 25 (the King's vision) and then
+   read the 3x3 *around* each candidate, so neighbours of the outermost tiles lay
+   outside vision and `sensePassability` threw. `run()`'s per-turn handler
+   swallowed it, so **the King's entire turn aborted from round 200 onward** — it
+   stopped building rats and the army fell 14 -> 3. I read that as "the muster is
+   eating the army": a coherent, plausible, completely wrong story about a
+   strategy, caused by a missing `canSenseLocation`. The tell was that the
+   exceptions began at *exactly* the gate round. The baseline replay shows the
+   same 14 -> 3 collapse, so the muster never caused it.
+2. ID-parity gating, added to protect the economy, made the upgrade
+   **unreachable by construction**: it needs 7 adjacent rats plus the one
+   upgrading — eight bodies — and half of 12-15 is seven.
+
+**Mechanism check — FIRED, on benchmarks.** Not a void. `1:kings=2` appears in at
+least 7 of the 14 longest losses (rift both sides against all three opponents,
+minimaze, pipes).
+
+**Result — REJECT.**
+
+    benchmarks         8/162  ->  5/162
+    close-spawn wins    4/42  ->   4/42   (guard held)
+    early wipes                 12/157 = 8%   (guard held)
+
+**Why it loses, and it is not that the idea is wrong.** Look at when
+`bench_finalist` does it: round ~826, holding 1912 cheese and 16-20 rats, from an
+already-winning position — we were down to 3 rats at the time. It converts
+*surplus* into a second King. Our gate (round 200, 600 cheese, 12 live rats)
+fires far earlier and much poorer, and spends 8 of ~13 rats — most of the army —
+which accelerates exactly the economic collapse that was already killing us.
+
+**A second King is a win-more move, not a comeback move.** That is the finding,
+and it is testable rather than a story: the gate should sit where the reference
+bot's does. Iteration 147.
+
+**Useful by-product: population is readable exactly, for free.** The engine sets
+`getCurrentRatCost() = 10 + 10 * (live babyRats / 4)`, so
+`4 * ((getCurrentRatCost() - 10) / 10)` is a lower bound on our live rats with no
+counting and no sensing. Nothing in the bot had ever read our own population.
+
+### Tooling: the Gauntlet now reports thrown exceptions
+
+Bug 1 above was found by accident. `run()` catches `GameActionException` per
+turn, so a throw silently abandons the rest of that robot's turn, every turn, and
+the only trace is a server-log line the Gauntlet was discarding — 162-game runs
+were going by with nobody looking. `gauntlet.sh` now counts them per game and
+prints the total **above** the loss list, because a nonzero count means the win
+rate is measuring a bug rather than the change.
