@@ -159,6 +159,14 @@ game () {  # <opp> <map> <side>
   RE=\$(printf '%s\n' "\$LOG" | sed -n 's/.*Reason: //p' | tail -1)
   printf 'RESULT %s %s %s %s %s\n' "\$OPP" "\$MAP" "\$SIDE" "\${W:-?}" "\${R:-?}" >> gauntlet/results.txt
   printf 'REASON %s %s %s %s\n'    "\$OPP" "\$MAP" "\$SIDE" "\${RE:-?}"           >> gauntlet/results.txt
+  # Count OUR robots' thrown exceptions. RobotPlayer.run() catches
+  # GameActionException per turn, so a throw silently abandons the rest of that
+  # robot's turn -- every turn -- and the only trace is this line. A muster bug
+  # once aborted the King's entire turn from round 200 on, which read as a
+  # failed strategy rather than a missing canSenseLocation guard. 162 games were
+  # being run with nobody looking at it.
+  EX=\$(printf '%s\n' "\$LOG" | grep -c "^\[\$SIDE:.*Exception" || true)
+  printf 'EXC %s %s %s %s\n'       "\$OPP" "\$MAP" "\$SIDE" "\${EX:-0}"           >> gauntlet/results.txt
 }
 
 for OPP in $OPPONENTS; do
@@ -220,6 +228,19 @@ done
     w=$(grep -c "^$OPP,.*,win$" "$OUT/results.csv" || true)
     awk -v o="$OPP" -v w="$w" -v t="$t" 'BEGIN{printf "  vs %-20s %d/%d (%.0f%%)\n", o, w, t, (t>0)?100*w/t:0}'
   done
+  # Surface thrown exceptions ABOVE the loss list, because a nonzero count means
+  # some of these games were played by a bot that was silently skipping the rest
+  # of a turn -- the win rate is then measuring a bug, not the change.
+  grep '^EXC ' "$OUT/results.txt" | awk '{s+=$5; if($5>0) n++} END{
+      if (s>0) {
+        printf "\n  !! %d thrown exceptions across %d of the games.\n", s, n
+        printf "  !! run()'"'"'s per-turn catch means each one abandoned the rest of that\n"
+        printf "  !! robot'"'"'s turn. Fix before trusting this win rate.\n"
+        printf "  !! worst offenders:\n"
+      }
+    }'
+  grep '^EXC ' "$OUT/results.txt" | awk '$5>0{printf "  !!   %-16s %-20s bot=%s  %s exceptions\n",$2,$3,$4,$5}' \
+      | sort -k5 -rn | head -5
   echo
   echo "losses:"
   awk -F, 'NR>1 && $6=="loss"{printf "  %-20s %-16s bot=%s  r%s\n",$2,$1,$3,$5}' "$OUT/results.csv"
