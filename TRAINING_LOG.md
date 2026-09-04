@@ -9014,3 +9014,47 @@ the mechanism check.
 its replay is absent from `losses/`. Worth knowing that the losses directory is
 not guaranteed complete -- check `results.csv` for ground truth on outcomes and
 treat a missing replay as missing data rather than as a changed outcome.
+
+## g_iter22 confirmed on peers, and its scope measured
+
+**Peers corroborate the accept.** Against the freshly re-synced archetypes:
+
+    instrument     g_iter21          g_iter22
+    benchmarks     7/162             8/162
+    peers          60/108 = 55.6%    62/108 = 57.4%   (24->25, 36->37)
+    g_iter21 mirror  --              28/54 = 51.9%
+    vs_old_bots    99/108 = 91.7%    98/108 = 90.7%
+
+Three independent instruments up, one down by a single game. Peers are the
+right corroboration for this change: both sides face cats, their games run long
+enough for catDamage to be scored, and the improvement appears against *both*
+archetypes rather than one. That is a better basis than the benchmark +1 I
+actually accepted on.
+
+**And the scope is narrow, which is worth knowing.** Sampling eight losses from
+the g_iter22 benchmark run for any King-placed cat trap:
+
+    closeup A/B, corridorofdoomanddespair A/B, dirtfulcat A,
+    dirtpassageway A/B, evileye A          ->  cat traps placed: 0 in all eight
+
+The mechanism fires only where a cat actually comes within d^2 20 of our King,
+which is a property of the map, not something the bot controls. It fired
+heavily on `peaceinourtime` (52 placements) -- which is exactly where the new
+win came from -- and not at all on these eight. `minimaze` under g_iter22 still
+reads `catDamage=[1764,3460]`, byte-identical to g_iter21.
+
+That also settles a question cheaply: the point-game arithmetic is unchanged
+(32 vs 66 on `minimaze`), so the late-second-King idea rejected by pre-flight
+earlier stays rejected. Cat traps did not move that needle because they never
+fire there.
+
+**Why widening it is closed.** The trigger radius was dosed 20 -> 36 in
+Iteration 129 and produced the identical win set, so distance is not the
+binding constraint -- cats simply do not approach the King on most maps. Moving
+the King to the cats is impossible (size 3, Iteration 127). Having rats place
+them instead is Iteration 130, rejected: 12 of its 20 placements landed in
+rounds 0-99 and cost three wins, and gating those to round 300+ would leave
+about one placement per game by that iteration's own distribution.
+
+So Iteration 128 is a real but map-limited gain, and the cat-trap line is
+closed in every direction that has been tried.
