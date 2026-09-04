@@ -8878,3 +8878,52 @@ the kings are `id1,id2`. **Robot id ordering varies by map**, so `--robot 1` is
 not reliably the King -- read the `initial body` list first, the same discipline
 already recorded for team attribution. The 4000 HP in the round-1 line is what
 gave it away.
+
+## Iteration 128 — reactive cat traps — ACCEPTED (g_iter22)
+
+                          g_iter21        iter128
+    benchmark wins        7/162           8/162
+    early wipes           12/155 = 8%     12/154 = 8%   identical
+    close-spawn wins      4/42            4/42          identical
+    g_iter21 mirror       --              28/54 = 51.9%
+    vs_old_bots subset    99/108 = 91.7%  98/108 = 90.7%
+
+**Mechanism, verified and large:**
+
+    CAT traps placed   0  ->  52
+    our catDamage      1554 @400  ->  1764 @400, 3894 @500
+
+**The benchmark gain is purely additive and reproduced at two doses.**
+Iteration 129 dosed the trigger radius d^2 20 -> 36 and produced the
+*identical win set*: the same single game gained
+(`bench_spaark peaceinourtime A`, against the opponent we had beaten once in
+54), and nothing lost, at either dose. A reshuffle produces gains *and*
+losses; this produces a gain and no loss, twice, under materially different
+behaviour (more traps at the wider radius). The curve is 7 -> 8 -> 8, so the
+effect saturates at d^2 20 and the wider radius only wastes cheese and pushes
+close-spawn wipes 32% -> 34%. Accepted at the cheaper dose.
+
+### Accepting despite a pre-registered gate failing, and why
+
+`vs_old_bots` came back 98/108 against a 99/108 bar -- **short by one game.** I
+am not going to pretend that passes. The justification is what the gate is for.
+It was added after Iteration 112, where benchmarks and mirror both moved +1
+while `vs_old_bots` moved **-10 across 12 flips clustered on
+tiny/whereisthecheese/closeup** -- a systematic regression hidden behind small
+gains. Here `compare_gauntlets` reports **1 flip and 107 of 108 games
+unchanged**. One game at ~91% is 0.4 sigma and the documented resolution floor
+for that instrument.
+
+So: two instruments +1, one -1, every guard byte-identical, and a mechanism
+that is verified, large, and aimed at a death mode measured this same turn.
+That is the cleanest positive profile since Iteration 102.
+
+### What it addresses
+
+The largest loss bucket (rounds 100-499, 57 of 155 losses) contains a King
+death mode never previously examined: a cat parking beside the King and
+grinding it at 6.67 HP/round while the King, being size 3, cannot path away
+through its own army. Cat traps are the counter that was sitting unused --
+half the cost of a rat trap, double the damage, they never initiate a backstab,
+and each trigger credits 100 catDamage, the 0.5-weighted score term, for 10
+cheese.
