@@ -8927,3 +8927,45 @@ through its own army. Cat traps are the counter that was sitting unused --
 half the cost of a rat trap, double the damage, they never initiate a backstab,
 and each trigger credits 100 catDamage, the 0.5-weighted score term, for 10
 cheese.
+
+## Iteration 130 — rats lay cat traps early — REJECTED
+
+                          g_iter22        iter130
+    benchmark wins        8/162           5/162
+    early wipes           12/154 = 8%     15/157 = 10%
+    close-spawn wins      4/42            1/42
+
+**Mechanism fired exactly as designed.** On a valid loss
+(`bench_finalist__rift__botB`, we are team2): 20 rat-placed cat traps, 17
+triggered by cats, and the placements land where the idle budget was --
+
+    rounds   0-99   12 placements
+           100-199   4
+           200-299   3
+           400+      1
+
+So the reasoning was right that the CAT_TRAP cap sits unused before round 300,
+and wrong that this made it free. **Twelve of the twenty placements fall in
+rounds 0-99** -- the opening burst, when a rat's action is worth more than
+anything a trap returns, and when the close-spawn games are decided. Wins fell
+three and close-spawn wins fell from four to one.
+
+The budget is idle early because rat actions are scarce early, not because
+nobody thought to use it.
+
+Also of note: `bench_finalist` placed 17 cat traps of its own in that game, so
+this is a mechanic strong opponents use -- just evidently not in the opening.
+
+### A measurement error I nearly published
+
+I first dumped `losses/bench_finalist__peaceinourtime__botA.bc26` from this run
+and reported **zero** cat traps placed by anyone, including the King's 52 --
+which looked like I had broken the accepted Iteration 128 code. Both parts were
+wrong. That game is a **win** in this run (round 548), so it is not in
+`losses/` at all; `replay-dump.sh` failed, I had suppressed stderr with
+`2>/dev/null`, and I read the resulting **0-byte file** as a measurement.
+
+Two habits from this: check that a dump is non-empty before drawing anything
+from it, and do not reuse a filename across runs -- a game that flips to a win
+silently vanishes from `losses/`. The 0-byte file was visible in `wc -c` the
+whole time.
