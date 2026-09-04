@@ -8836,3 +8836,45 @@ Recorded as the honest state of the search. It does not name a specific change,
 and I am not going to invent one to fill the gap -- but it does say the
 remaining headroom is in decision quality per turn, not in the number of things
 a rat does.
+
+## Analysis note — the largest loss bucket was never examined, and it is CATS
+
+Loss distribution across the 155 benchmark losses at `g_iter21`:
+
+    <100 (early wipe)    12    <- most of this session went here
+    100-499              57    <- largest bucket, unexamined until now
+    500-999              52
+    1000-1999            20
+    2000 (points)        14
+
+**109 of 155 losses (70%) fall in rounds 100-999**, and the session had
+concentrated on the 12 early wipes and the 14 point games -- 17% of the total.
+
+Tracing a representative loss from the biggest bucket
+(`bench_finalist__peaceinourtime__botA`, death at 488):
+
+    our King id3:  hp 540 -> 40 across rounds 400-484 = 6.67 HP/round
+    treasury:      961 then 911 -- healthy, NOT starvation
+    position:      (8,48) -> (10,47) -> (12,47), then frozen from round 436
+
+6.67 per round is exactly `CAT_SCRATCH_DAMAGE` 20 every 3 rounds. **A cat parks
+beside the King and grinds it down over ~90 rounds**, and the King cannot leave
+because a `RAT_KING` is size 3 and cannot path through its own army -- the
+constraint Iteration 127 established for a different reason.
+
+So there are at least three distinct King-death modes, not one:
+
+    early rush        <100      addressed by the trap ring (Iteration 102)
+    cat grind         100-999   never addressed; the subject of Iteration 128
+    starvation        varies    `streetsofnewyork` shows treasury = 1 from round
+                                225 and death at 267
+
+### A tracking error worth recording
+
+I first read this game with `--robot 1` and reported a King at 3018 HP losing
+30/round. That was a **cat**: on this map the initial bodies are
+`id1,id2 = CAT` and `id3,id4 = RAT_KING`, whereas on `corridorofdoomanddespair`
+the kings are `id1,id2`. **Robot id ordering varies by map**, so `--robot 1` is
+not reliably the King -- read the `initial body` list first, the same discipline
+already recorded for team attribution. The 4000 HP in the round-1 line is what
+gave it away.
