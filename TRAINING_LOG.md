@@ -8754,3 +8754,42 @@ The fix is small and its own pre-flight is concrete: `deliverCheese` closes to
 `CHEESE_TRANSFER_RADIUS_SQUARED = 9` (3 tiles) to hand over cheese, which is
 inside squeak radius 4. So a rat that *remembers* the mine and broadcasts it
 every turn carries the news home for free. That is Iteration 127.
+
+## Iteration 127 — King relocation with the squeak actually delivered — REJECTED
+
+                          g_iter21        iter127
+    benchmark wins        7/162           5/162
+    early wipes           12/155 = 8%     12/157 = 8%
+    close-spawn wins      4/42            3/42
+
+**The transmission fix worked and the King moved -- two tiles, then stalled:**
+
+    King  (9,4) through round 340  ->  (8,6) at round 360  ->  still (8,6) at 420+
+          moveCD = 0 throughout the stall, so it was able to move and did not
+    cheeseTransferred  200/200/400/540   against baseline 200/200/300/300
+
+So the squeak reached home, the King started walking, and income rose ~80% from
+two tiles of movement. It then stopped for good.
+
+**Why it stalled: `RAT_KING(600, 3, 25, 360, 10, 40, 20000)` -- the `3` is
+SIZE.** The King occupies a 3x3 footprint and needs a three-wide clear corridor
+to move through. On a 20-wide map, ringed by its own rats and its own trap
+field, that path essentially never exists. The King is not a unit that can
+relocate across a map; it can shuffle a tile or two when the immediate
+neighbourhood happens to be clear.
+
+That is a property of the piece, not a tuning problem, and it makes
+"march the King to the mine" unavailable as a strategy regardless of how the
+location is communicated.
+
+**And the two lost wins are probably not even from the relocation.** The
+round-300 gate makes the King-side change provably unable to affect an early
+wipe, yet close-spawn wins fell 4 -> 3. The rat-side broadcast is NOT gated --
+every rat squeaks every turn from round 1 -- so the likely cost is bytecode on
+every Baby Rat turn, the same mechanism the Iteration 108 retraction identified.
+A cheaper version would gate the broadcast on round >= 250 too.
+
+Not pursuing it: even with perfect transmission the King moves two tiles, so
+the ceiling on this idea is the ~80% income gain already measured, and that gain
+came with -2 wins. This is the ninth mechanism-verified change to improve its
+target quantity and lose games.
