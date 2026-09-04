@@ -7738,3 +7738,42 @@ Iteration 112 is the right form. Either way the +1 is at the resolution floor
 of a ~4% instrument, so this also serves as a second look at a result I would
 otherwise be accepting on one game -- the mistake Iteration 108 was rejected
 for.
+
+## Iteration 113 — override disabled ALONE — REJECTED, and it rescues Iteration 112
+
+                          window 400 + override off   window 150 + override off
+    benchmark wins             8/162                       8/162
+    early wipes                12/154 = 8%                 12/154 = 8%
+    close-spawn wins           3/42                        3/42
+    fastest losses             19,20,21,21,27              19,20,21,21,27
+    **g_iter21 mirror**        **20/54 = 37.0%**           **28/54 = 51.9%**
+
+**Byte-identical on every benchmark counter and fifteen mirror points apart.**
+That is the whole result, and it reverses the conclusion I was about to draw.
+
+I ran this isolation because Iteration 112's mechanism check showed only one
+extra spawn, so I believed the window was inert and the override removal was
+doing all the work. On benchmarks that is exactly right -- the two arms cannot
+be told apart. On the mirror they are not close.
+
+**Why benchmarks cannot see it.** 91% of benchmark losses are King destruction
+and every close-spawn loss is over before round 500, so a build window that
+governs *replacement after round 150* rarely gets to matter. Mirror games run
+long -- most reach round 2000 -- and there replacement capability is decisive.
+This is the representativeness limit again, but pointing the other way than
+usual: normally the mirror is the instrument that cannot see the effect
+(0% early wipes); here it is the only instrument that can.
+
+**What the pair actually does.** The emergency override was a crude
+replacement valve: when the King saw no allied rats it dropped the reserve to
+150 and rebuilt. Removing it alone deletes all late rebuilding, which the
+mirror punishes at 37%. Shortening the window restores rebuilding properly --
+on a reserve that genuinely holds at 1000, so the treasury survives (round-400
+cheese 598 against Iteration 111's 68). The two constants are not separable
+and the pair is the correct form.
+
+So Iteration 112 is ACCEPTED as `g_iter22`, and this isolation run is what
+justifies it. Had I accepted Iteration 112 without it, I would have banked the
+right change for a reason the evidence contradicted; had I accepted the
+simpler Iteration 113 on the identical benchmark score -- which was my stated
+intention -- I would have shipped a 37% regression.
