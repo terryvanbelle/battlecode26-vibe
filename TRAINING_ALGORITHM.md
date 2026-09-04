@@ -584,6 +584,16 @@ It caught the bad accept only because the snapshot happened before the run
 finished. Two single-game moves are not evidence that outweighs a ten-game
 move on a third instrument.
 
+Use `tools/compare_gauntlets.py <baseline> <candidate>` to read it. It
+compares only `(opponent, map, side)` keys present in **both** runs, so it
+handles the comparable-subset problem automatically when the roster grows --
+`g_iter21`'s run had two opponents and `g_iter22`'s had three, and the tool
+still lined up the 108 shared games and reported 12 outcome flips, 11 of them
+losses. It also shows *which* games flipped, which the summary line cannot:
+those eleven clustered on `tiny`, `whereisthecheese` and `closeup`, both sides
+of each -- long games against weak opponents, exactly where an army has time
+to collapse and a replacement valve earns its keep.
+
 The general form: **do not let the set of metrics you pre-registered decide a
 result when a cheap instrument you have not run yet could reverse it.** Thin
 margins are exactly when the unrun instrument matters most, because a real
