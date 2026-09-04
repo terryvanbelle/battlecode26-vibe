@@ -10524,3 +10524,21 @@ The mechanism, unchanged from the rejected entry: `stepTo()` turns to face a
 direction before stepping, so a step costs `movementCooldown` 10 rather than
 `MOVE_STRAFE_COOLDOWN` 18. Verified in a single shared game — 0.0% strafes against
 g_iter24's 50.6%, and 26% more moves.
+
+**vs_old_bots after g_iter25** (270 games, roster = every 5th snapshot):
+
+    overall     232/270 (85.9%)     -- was 212/270 (78.5%) at g_iter24
+    g_iter1      51/54 (94%)   was 91%
+    g_iter6      50/54 (93%)   was 83%
+    g_iter11     50/54 (93%)   was 94%
+    g_iter16     38/54 (70%)   was 61%
+    g_iter21     43/54 (80%)   was 63%
+
+Every line improves except `g_iter11`, which moves one game. `g_iter21` gaining
+17 points and `g_iter16` nine is a broad, independent confirmation of the peer
+result — these are frozen snapshots that cannot drift.
+
+Sample archived as `replays/iter151_bench_spaark_popthecork_botB.bc26`: one of
+the three **benchmark games this iteration turned from a loss into a win**
+(`bench_spaark popthecork botB`, loss at r164 -> win at r570). Reproduced and
+verified against that pairing's `results.csv` row before copying.
