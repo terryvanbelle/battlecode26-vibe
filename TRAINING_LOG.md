@@ -10367,3 +10367,43 @@ damage plus a stun to the opponent. Iteration 124 tested engaging cats *less* an
 lost 4/162, but that was measured before any of this was understood, and
 `ablate-accepted-features-on-the-mirror` says the headline number at acceptance
 predicts little.
+
+### CORRECTION to the Iteration 152 clause attribution
+
+The entry above claims *"not one grab was enabled by facing alone"*. **That is
+wrong, and it overstates a result in the direction that closes a research
+direction — the worst way to be wrong.**
+
+My first pass bucketed 29% of grabs as "unresolved (stale state)". Those are not
+noise: they are precisely the facing-enabled grabs. The check that exposed it is
+one line — a grabber cannot exceed 100 HP, so a victim recorded at full 100 HP
+cannot have been taken by the HP clause, and there are 32 of those. Redoing it
+directly on the HP comparison rather than my cone geometry:
+
+    grabs of our rats                       169
+      HP clause sufficient (victim weaker)  119   70.4%
+      HP clause NOT sufficient               50   29.6%   <- facing enabled these
+
+Of the 32 full-HP victims, 21 were grabbed by a *strictly weaker* rat.
+
+**Corrected conclusion.** The HP clause dominates at 70%, but facing is
+load-bearing for roughly 30% of grabs. The facing direction is therefore **not**
+closed by engine rule, as I wrote — it is closed only for the *sweep*, and
+empirically: grabs went 168 -> 169.
+
+**Why the sweep failed anyway, now that the reason is not "impossible".** A blind
+rotation faces a random direction, not the attacker's. Sweeping raises the chance
+of seeing *something* over eight turns, but a grab needs the victim facing the
+grabber at that instant, and the sweep is uncorrelated with where the grabber
+actually is. It also fires only on movement-blocked turns, which are not
+especially when grabs happen. So the mechanism was free and reachable and simply
+does not aim.
+
+That leaves a real, still-open target worth about 30% of grabs: a *directed*
+turn toward a known threat, rather than a blind sweep. It needs detection to come
+from somewhere other than the rat's own cone — the King sees 360 degrees and
+already writes the shared array, which is the obvious untried channel.
+
+The rest of the Iteration 152 entry stands: the mechanism check was a clean VOID,
+no Gauntlet run was spent, and Iterations 149/150 independently closed
+withdrawing the damaged rat.
