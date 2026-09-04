@@ -10189,3 +10189,52 @@ had both a cheese gate *and* `round >= 300`, and I dropped the round clause here
 without noticing it was doing separate work. Close-spawn games are decided long
 before round 300 — the fastest losses are rounds 19-40 and every wipe is before
 round 100 — so a round gate excludes exactly the games this broke.
+
+## Iteration 150 — retreat with the round gate Iteration 149 was missing — REJECTED
+
+One clause added: `rc.getRoundNum() >= 300`.
+
+**The guard prediction was exactly right, which is the useful part.**
+
+    metric               g_iter24   iter149 (no round gate)   iter150
+    benchmarks             8/162           8/162               8/162
+    close-spawn wins        4/42            2/42                4/42
+    early wipes               8%              9%                  8%
+    wipe maps            kf5 t4 th2 dc1   +evileye +toomuch   kf5 t4 th2 dc1
+
+Close-spawn wins and the wipe profile return **exactly** to g_iter24's. So
+Iteration 149's damage really was the opening-rush retreat, caused by gating on a
+quantity that is large at spawn (~2488 cheese on every map), and the round clause
+is the right fix for it.
+
+**But fixing the guard did not make the change good.**
+
+    g_iter24 head-to-head    25/54 = 46.3%
+
+Below even. Benchmarks flat, guards intact, and the mirror — the instrument with
+the most resolution — says slightly worse than the build it replaces. **REJECT.**
+
+Worth stating plainly against Iteration 147, which had an identical benchmark
+reading and was accepted:
+
+    iteration    benchmarks    guards    mirror       verdict
+    147            8/162       intact    59.3%        ACCEPT
+    150            8/162       intact    46.3%        REJECT
+
+Same lopsided-instrument result, opposite decisions, and the mirror is the only
+thing that separates them. That is the rule from `even-matchups-have-resolution`
+doing real work in both directions rather than only when convenient.
+
+**Why retreat fails even when free.** The dose curve had shown the surplus-gated
+version strictly better than g_iter24 on the rift control — fewer throws, fewer
+deaths, more cheese delivered. Adding the round gate kept the guard but weakened
+that: `cheeseTransferred` fell to 11425, below both iter149's 13380 and
+g_iter24's 12745. The retreat benefit lives in the early-and-middle game where
+damaged rats are numerous, which is precisely the window the round gate removes
+to protect close-spawn. **The clause that makes retreat safe is the clause that
+makes it worthless** — the two effects are not separable by this gate, so the
+direction is closed rather than merely untuned.
+
+The facing-trap finding itself stands: 52% of our rat deaths are throws, and a
+damaged rat is undefendable by engine rule. What is now ruled out is *withdrawing*
+the damaged rat as the answer.
