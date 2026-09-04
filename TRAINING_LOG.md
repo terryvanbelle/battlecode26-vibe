@@ -10100,3 +10100,45 @@ into rats that die faster than they accumulate, while the opponent's army
 compounds monotonically (16/33/67/81/117) on a flat treasury. That is the next
 question, and it is a different one: not "may we build?" but "why does nothing we
 build survive?"
+
+### Why nothing we build survives: the facing trap
+
+Following Iteration 148's closing question — not "may we build?" but "why does
+nothing we build survive?" — the death attribution on rift (g_iter24):
+
+    our 147 rat deaths
+      self-attributed   76  (52%)   -- landing damage from being thrown
+      by cats           40  (27%)
+      by enemy rats     31  (21%)
+
+    their grabs of our rats    168
+    their throws of our rats   158
+
+**Throwing kills more of our rats than cats and enemy bites combined.** 158
+throws at ~42 damage is ~6600 damage, or sixty-six rats' worth at 100 HP. The
+population ceiling is not economic at all.
+
+The engine's grab rule is where this becomes structural. `canGrab` is satisfied
+if **either** the target cannot sense the grabber (it is facing away) **or** the
+grabber has more HP (`HEALTH_GRAB_THRESHOLD = 0`). So a full-HP rat that can see
+its attacker is *ungrabbable* — facing is a necessary condition. Two more engine
+facts complete the trap:
+
+    move() never calls setDirection -- only turn() changes facing
+    addMovementCooldownTurns(d): BABY_RAT moving off-facing pays
+        MOVE_STRAFE_COOLDOWN 18 instead of movementCooldown 10
+
+Our `tryMove`/`tryMoveDirect` already turn to face the direction of travel, which
+is *correct* — otherwise every step would cost 1.8x. But the consequence is that
+**a travelling or fleeing rat always has its back to whatever is chasing it**, and
+is therefore always grabbable. Fleeing is what makes us grabbable.
+
+That is also why Iterations 143 and 144 hit a wall from the other side: we cannot
+grab the rats grabbing us, because being grabbable and being blind are the same
+condition, and we cannot turn to face a threat we cannot sense inside a
+90-degree cone.
+
+So the trade is now explicit and quantified rather than hand-waved: face your
+pursuer and become ungrabbable at full HP, but move at 10/18 = 0.55x speed; or
+flee at full speed and stay grabbable. No previous iteration knew this trade
+existed, and `MOVE_STRAFE_COOLDOWN` had never been read.
