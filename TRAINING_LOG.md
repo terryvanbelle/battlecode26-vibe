@@ -9422,3 +9422,42 @@ inside `if (nearestCat != null && ...)`, whose outer test already excluded the
 case I was targeting. Iteration 132 failed the same way. **When adding a
 condition to an existing branch, check the guard I am nesting inside, not just
 the condition I am writing.**
+
+## Iteration 141 — ablate the desperation flag — REJECTED (exactly inert)
+
+    g_iter23 mirror, desperation OFF, playing the build that has it:
+        27/54 = 50.0%
+
+Exactly even. The pre-registered PRIMARY was mirror > 50%, so this fails on the
+letter and I am not going to rationalise a tie into a pass. Benchmarks were not
+run, since the bar made them conditional on the primary.
+
+**Why it is inert: the trigger is nearly unreachable.** `desperate` needs
+`economyStruggling && cheese < RESERVE 150`, and the treasury trajectories show
+that second condition only holds in the starvation games -- `streetsofnewyork`
+70 -> 1, `dirtpassageway` 125 -> 1 -- and only near the end, in games already
+lost. Elsewhere cheese sits at 550-2200 and the flag never fires. Same shape as
+the King's flee (Iteration 137, also 48-50%): dormant rather than balanced.
+
+### What the reasoning got right, and what it does not license
+
+The three observations behind this were all correct and all still stand:
+
+  - the surviving effect is the willingness to bite enemy rats pre-backstab,
+    which the code's own comment records Iteration 11 as having rejected as
+    inert;
+  - a desperate bite calls `backstab(this.team)`, which bars cat-trap placement
+    for the rest of the game via `catTrapsAllowed`;
+  - `economyStruggling` is a permanent latch on a trend that demonstrably
+    reverses (`hatefullattice` 1555 -> 2041 -> 2233).
+
+None of that adds up to a measurable effect, because the code path is almost
+never taken. **A correct chain of reasoning about a dormant branch predicts
+nothing.** That is the third time this session I have built a case from sound
+premises about code that turns out not to execute -- Iterations 137 and 139
+being the others.
+
+Kept, with the Iteration 84 caveat: inert means inert given the current
+configuration. If the reserve, the cap, or the economy ever change enough that
+cheese sits below 150 for meaningful stretches, this flag wakes up and will
+start handing the opponent our cat traps.
