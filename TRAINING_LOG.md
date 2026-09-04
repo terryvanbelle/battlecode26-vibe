@@ -10455,3 +10455,72 @@ Two false starts, both caught before they became findings: I first attributed
 a -10/round signature as starvation when `RAT_BITE_DAMAGE` is also 10 and three
 of the six had 780-1030 cheese at death. The treasury partition is what separates
 them.
+
+## Iteration 151, REOPENED — turn before stepping — **ACCEPTED** (g_iter25)
+
+**This reverses the rejection recorded above.** The user's rule: *if benchmark and
+mirror contradict, break the tie with a full peer evaluation* — and the peers say
+the change is strongly good.
+
+    instrument                     g_iter24      iteration 151
+    benchmarks                       8/162            6/162
+    g_iter24 head-to-head              --             75.9%   (+3.8 sigma)
+    peers, full mapset, 108 games   69/108 (63.9%)   87/108 (80.6%)   +18 games
+      vs pure_cooperator            23/54  (43%)     35/54  (65%)
+      vs immediate_defector         46/54  (85%)     52/54  (96%)
+
+Peers were re-synced from g_iter24 first — stale for a fourth time, missing
+Iteration 147 — and the control was run on the same rebuilt archetypes and the
+same map set, so only the delta is being read.
+
+**+18 of 108 on a paired set is roughly 3.5 sigma.** Note especially
+`pure_cooperator` moving 43% -> 65%: the control was *below* 50% against its own
+near-mirror, which is the definition of a policy disadvantage, and this removes
+it.
+
+### The benchmark -2 was noise, and I can now show it rather than assert it
+
+The user's second point — *a modification that lets us move more freely should be
+a good thing, so if it looks bad in benchmarks that is worth investigating* — was
+the right instinct. Diffing the two 162-game runs game by game:
+
+    8 games changed result: 3 gained, 5 lost
+
+    bench_finalist  peaceinourtime   A   loss -> WIN
+    bench_spaark    popthecork       B   loss -> WIN
+    bench_stroke    popthecork       A   loss -> WIN
+    bench_finalist  dirtfulcat       B   WIN  -> loss
+    bench_finalist  peaceinourtime   B   WIN  -> loss
+    bench_spaark    popthecork       A   WIN  -> loss
+    bench_stroke    uneruesansfin    A   WIN  -> loss
+    bench_stroke    whatsthecatdoin  A   WIN  -> loss
+
+**`popthecork` and `peaceinourtime` each flip in BOTH directions depending on
+side.** That is churn in games sitting on a knife edge, not systematic harm, and
+a net -2 at an 8/162 base rate is 0.8 sigma. My "monotone 8 -> 7 -> 6 dose curve"
+was three noisy points, each of which churned around eight games in both
+directions; reading monotonicity into it was the error.
+
+**And my stated mechanism for the harm was wrong too.** I hypothesised that
+re-aiming the vision cone along travel would reduce what our rats see. Traced on
+knifefight (the worst wipe map) against `bench_stroke`, same opponent both arms:
+
+    g_iter24   lost round  73   our RatAttack 13   rat traps laid  7
+    iter151    lost round 100   our RatAttack 19   rat traps laid 10
+
+We survive *longer* and attack *more*. The sensing story had it backwards.
+
+### What this corrects about method
+
+`mirror-wins-cannot-buy-benchmark-losses` was written off this very iteration and
+was too strong. The defensible version is: **a mirror win cannot buy benchmark
+losses that are real.** Establishing that a benchmark delta is real means looking
+at which games moved — 8 flips both ways is not the same evidence as 2 games
+moving one way, even though both print as "-2". Iteration 82/96 remains a genuine
+representativeness failure because early wipes *doubled*, a directional guard
+breaking, not a reshuffle.
+
+The mechanism, unchanged from the rejected entry: `stepTo()` turns to face a
+direction before stepping, so a step costs `movementCooldown` 10 rather than
+`MOVE_STRAFE_COOLDOWN` 18. Verified in a single shared game — 0.0% strafes against
+g_iter24's 50.6%, and 26% more moves.
