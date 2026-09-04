@@ -7599,3 +7599,43 @@ Iteration 103's mechanism argument and its pre-flight arithmetic (~3 rats per
 refresh at a round-150 window, against the unchanged 1000 reserve) stand
 unchanged in the git history and should be re-run as **Iteration 111**, after
 Iteration 110 resolves. Its withdrawal note is superseded by this entry.
+
+## Iteration 110 — squeak-based dispersion — REJECTED; squeak steering CLOSED
+
+                          g_iter21        iter110
+    benchmark wins        7/162           5/162
+    early wipes           12/155 = 8%     15/157 = 10%
+    close-spawn wins      4/42            3/42
+    close-spawn wipes     12/38 = 32%     15/39 = 38%
+
+Behaviour clearly changed -- the fastest-loss list moved from
+19,20,21,21,27 to 18,20,20,20,24 -- and Iteration 109 already established that
+squeaks fire in bulk, so this is a real negative rather than a void. Reverted.
+
+The pre-registered risk is exactly what happened: "dispersion could scatter
+rats away from the King on close-spawn maps, which is where Iteration 102's
+hard-won 8% wipe rate lives." Close-spawn wipes went 32% -> 38%.
+
+**Both directions of the dose are worse than doing nothing:**
+
+    squeak use in explore()        wins      early wipes
+    converge on cheese (Iter 109)  4/162     9%
+    none               (g_iter21)  7/162     8%
+    disperse           (Iter 110)  5/162     10%
+
+A peak at the current behaviour, so squeak-driven steering of `explore()` is
+**closed in both directions** -- the same shape as the cat-engagement
+threshold, where 60/30/10 gave 48.1/50/50 and the inherited value was already
+optimal.
+
+That is now twice in this session that a knob turned out to be at its optimum
+already. It is worth stating the corollary plainly: the bot's *existing*
+constants are not obviously mistuned, and the remaining wins are unlikely to
+come from turning dials on behaviour that already exists. The one dial that
+did move -- the trap ratio, Iteration 102 -- was one nobody had ever chosen,
+inherited from a boolean rather than a decision. That is the signature worth
+hunting: not "is this value optimal" but "was this value ever chosen at all".
+
+`BUILD_WINDOW_ROUNDS = 400` has exactly that signature, and the trajectory
+measurement above shows the deficit opening inside the window it controls.
+That is Iteration 111.
