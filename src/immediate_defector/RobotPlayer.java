@@ -29,8 +29,7 @@ import java.util.Random;
 public class RobotPlayer {
 
     /** ARCHETYPE DIFFERENCE (immediate_defector): stays within this
-     *  radius of its own King -- a turtle/defender policy, distinct from
-     *  src/bot/'s free-ranging exploration. */
+     *  squared radius of its own Rat King. */
     static final int LEASH_RADIUS_SQUARED = 100;
 
     static Random rng;
@@ -440,11 +439,80 @@ public class RobotPlayer {
         // free to remove on an instrument that never poses the threat it
         // defends against. RESOLUTION AND REPRESENTATIVENESS ARE DIFFERENT
         // PROPERTIES, and the mirror has only the first.
-        // ARCHETYPE DIFFERENCE: no King trap ring. This is REQUIRED, not
-        // drift: GameWorld.triggerTrap calls backstab(robot.getTeam().opponent()),
-        // so the TRAP'S OWNER initiates the backstab when an enemy steps on one.
-        // A trap-laying bot is not a pure cooperator, and the defector turtles
-        // rather than mining the map.
+        // Iteration 128 (TRAINING_LOG.md): REACTIVE CAT TRAPS.
+        //
+        // Found by examining the largest loss bucket, rounds 100-499 (57 of 155
+        // losses), which the session had never studied. On
+        // `bench_finalist__peaceinourtime__botA` our King goes hp 540 -> 40
+        // across rounds 400-484 -- a steady 6.67/round, exactly
+        // CAT_SCRATCH_DAMAGE 20 every 3 rounds -- with a healthy 961 treasury,
+        // so it is not starvation. A cat parks beside the King and grinds it
+        // down, and the King cannot leave: a RAT_KING is size 3 and cannot path
+        // through its own army (Iteration 127).
+        //
+        // Cat traps are strictly the better trap and we have never placed one:
+        //     RAT_TRAP(cost 20, damage  50, stun 30, max 25)
+        //     CAT_TRAP(cost 10, damage 100, stun 20, max 10)
+        // Half the price, double the damage, and triggerTrap credits
+        // addDamageToCats(ourTeam, 100) -- the 0.5-weighted score term -- where
+        // a bite yields 10 and costs a rat's action and often its life.
+        // Cat traps also never initiate a backstab: triggerTrap only calls
+        // backstab() for non-CAT_TRAP types.
+        //
+        // REACTIVE rather than a second ring, because King actions are the
+        // scarce resource -- Iteration 122 took the rat-trap ratio from 2:1 to
+        // 3:1 and lost four wins. A cat trap is laid only when a cat is
+        // actually closing on the King, so an action is never spent otherwise.
+        // Trigger radius dosed in Iteration 129: d^2 20 against d^2 36 gave the
+        // IDENTICAL win set (8/162, same game gained, none lost) while the wider
+        // radius laid more traps and pushed close-spawn wipes 32% -> 34%. The
+        // curve is 7 -> 8 -> 8, so the effect saturates at 20 and the extra
+        // traps are wasted cheese. Keeping the cheaper dose.
+        final int CAT_TRAP_TRIGGER_DSQ = 20;
+        if (nearestCat != null
+                && nearestCat.getLocation().distanceSquaredTo(rc.getLocation()) <= CAT_TRAP_TRIGGER_DSQ) {
+            for (MapLocation loc : rc.getAllLocationsWithinRadiusSquared(rc.getLocation(),
+                    GameConstants.RAT_KING_BUILD_DISTANCE_SQUARED)) {
+                if (rc.canPlaceCatTrap(loc)) {
+                    rc.placeCatTrap(loc);
+                    rc.setIndicatorString("cat trap laid at " + loc);
+                    return;
+                }
+            }
+        }
+
+        final boolean KING_TRAPS_ENABLED = true;
+        boolean placedTrap = false;
+        // Iteration 102 (TRAINING_LOG.md): is the ring UNDERweight? Iteration
+        // 101 varied this same ratio toward FEWER traps (one trap per two
+        // builds) and early wipes rose 14% -> 18%, close-spawn wipes 56% ->
+        // 68% -- independently reconfirming Iteration 96's ON/OFF result
+        // through a second, unrelated knob. Two manipulations now agree the
+        // ring is worth more than the rats it displaces. Neither tested the
+        // other direction.
+        //
+        // Exact mirror of the rejected dose, so the two are comparable:
+        //   TRAPS_PER_BUILD = 1  reproduces the old 1:1 alternation exactly
+        //                        (after a build 0 < 1 -> trap; after a trap
+        //                        1 !< 1 -> build)
+        //   TRAPS_PER_BUILD = 2  trap, trap, build, trap, trap, build ...
+        //
+        // Self-limiting: RAT_TRAP maxCount is 25 and findTrapLocation returns
+        // null once the ring is full, in which case we fall through and build.
+        final int TRAPS_PER_BUILD = 2;
+        if (KING_TRAPS_ENABLED && builtCount >= 5 && trapsSinceBuild < TRAPS_PER_BUILD
+                && rc.getGlobalCheese() > RESERVE + 100) {
+            MapLocation trapSpot = findTrapLocation(rc);
+            if (trapSpot != null && rc.canPlaceRatTrap(trapSpot)) {
+                rc.placeRatTrap(trapSpot);
+                placedTrap = true;
+                trapsSinceBuild++;
+            }
+        }
+        if (placedTrap) {
+            rc.setIndicatorString("king trap laid; traps=" + rc.getNumberRatTraps());
+            return;
+        }
         MapLocation buildLoc = findBuildLocation(rc);
         if (buildLoc != null && rc.canBuildRat(buildLoc)
                 && rc.getGlobalCheese() - rc.getCurrentRatCost() >= buildReserve
@@ -641,10 +709,8 @@ public class RobotPlayer {
         // a sighted enemy even while still nominally cooperating: certain
         // starvation is worse than betting on a combat edge we've already
         // demonstrated (see the King-side comment for the full reasoning).
-        // ARCHETYPE DIFFERENCE: hostile to enemy rats from turn 1, regardless
-        // of cooperation state -- it does not wait to be backstabbed.
-        boolean desperate = true;
-        if (true) {
+        boolean desperate = true;  // ARCHETYPE: immediate defector
+        if (true) {  // ARCHETYPE: immediate defector always fights
             // Replay evidence (TRAINING_LOG.md, `closeup` vs. `immediate_defector`):
             // this only ever attacked an enemy rat already in bite range,
             // never closed distance on one it could see but not yet reach --
@@ -674,23 +740,41 @@ public class RobotPlayer {
             // behavior. This deliberately forces a crossing instead of
             // waiting for one.
             if (enemy == null && desperate) {
+                // Iteration 138 (TRAINING_LOG.md): ABLATION of the desperation
+                // raid. The King broadcasts a GUESSED enemy-King location into
+                // slots 3/4 assuming 180-degree rotational symmetry. Checked
+                // against every benchmark map from the replay headers, that
+                // guess is correct on 11 maps and WRONG on 16 --
+                // `hatefullattice` guesses (38,2) against an actual (11,2), 27
+                // tiles away. The comment above calls rotation "the single most
+                // common case"; symmetry 0 holds on 11 of 27 while reflections
+                // hold on 16.
+                //
+                // It also fires exactly when we are most fragile: `desperate`
+                // needs economyStruggling AND cheese < RESERVE 150, i.e.
+                // near-bankruptcy, and starvation is roughly half of mid-game
+                // losses. On 16 maps in 27 it marches the surviving rats to an
+                // empty patch instead of collecting.
+                //
+                // Only the RAID MOVEMENT is gated; the `desperate` flag itself
+                // is untouched, so the combat side is unchanged.
+                final boolean DESPERATE_RAID = false;
                 int gx = rc.readSharedArray(3);
                 int gy = rc.readSharedArray(4);
-                if (gx != 0 && gy != 0) {
+                if (gx != 0 && gy != 0) {  // ARCHETYPE: raid is the whole point
                     if (moveToward(rc, new MapLocation(gx - 1, gy - 1), true)) return;
                 }
             }
         }
 
-        if (collectCheese(rc)) return;
-
-        // ARCHETYPE DIFFERENCE (immediate_defector): a turtle. Rather than
-        // ranging freely like src/bot/, it stays near its own King and heads
-        // home whenever it drifts beyond the leash.
+        // ARCHETYPE (immediate_defector): stay within LEASH_RADIUS_SQUARED
+        // of our own King rather than ranging like the main bot.
         if (kingLoc != null
                 && rc.getLocation().distanceSquaredTo(kingLoc) > LEASH_RADIUS_SQUARED) {
             if (moveToward(rc, kingLoc, true)) return;
         }
+
+        if (collectCheese(rc)) return;
 
         explore(rc);
     }

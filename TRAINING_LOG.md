@@ -9813,3 +9813,69 @@ That is the honest correction to how I framed Iterations 142-144: I found a real
 and large opponent capability (throwing), and then spent three iterations
 assuming our losses must route through it. The throw damage is real; the
 inference that our own combat policy was mis-tuned around it was not.
+
+## Iteration 145 — widen the enemy chase to full vision — REJECTED (and it completes a dose curve)
+
+Iteration 144's ablation measured a steep slope, so the disciplined follow-up was
+to push the other way on a constant Iteration 12 set and never dose-tested. d^2 8
+is ~2.8 tiles; a Baby Rat's vision radius^2 IS 20, so 20 means "chase anything
+you can actually see" and is the natural ceiling rather than an arbitrary bump.
+
+**Mechanism check — FIRED.** Arm-to-arm identity confirmed before spending 162
+games, per `a-dose-must-change-the-evaluated-condition`:
+
+    our RatAttack on whereisthecheese
+      g_iter23 baseline (d^2 8)     72
+      iteration 145     (d^2 20)   106     (+47%)
+
+**Result — REJECT, and the three points together are the finding:**
+
+    chase radius        benchmarks    close-spawn wins
+      0 (Iteration 144)    3/162          0/42
+      8 (Iteration 12)     8/162          4/42
+     20 (Iteration 145)    6/162          1/42
+
+A clean **interior optimum at 8**. Iteration 12's constant — set once, by
+argument, four months of iterations ago and never measured — is sitting on the
+peak. Both directions are now closed, which is worth more than either single
+result: this is the same three-point concave shape that rescued the cheese-boosted
+bite in Iteration 83, run deliberately this time instead of by accident.
+
+**Why wider loses, given that removing it entirely loses much more.** The chase's
+value is defensive — intercepting a rat that would otherwise walk to our King —
+and that value is concentrated in the last two tiles. Extending to 4.5 tiles buys
+almost no extra interception but pulls rats off cheese for the whole approach,
+which `rat-turn-mechanisms-are-priced-per-capita` predicts is expensive at 4-8
+rats. The +47% bites bought nothing; early wipes went 8% -> 9%.
+
+**Iterations 142-145 as a block.** Four rejections, no accepts, and the net gain
+is real anyway: the throw mechanic is now understood and documented, the
+"stop feeding them adjacencies" family is dead by measurement rather than by
+argument, the chase constant is validated at its optimum, and two instrument
+bugs are fixed. `g_iter23` remains the accepted build at 8/162.
+
+### Instrument maintenance done alongside
+
+**The staleness guard was crying wolf.** A benchmark Gauntlet printed six
+warnings telling me to "re-sync bench_finalist / bench_spaark / bench_stroke to
+src/bot/" — nonsense, since those are other teams' bots and derive from nothing
+of ours. That is noise that trains you to skip past the one warning that matters.
+`bench_*` and `examplefuncsplayer` are now exempt.
+
+**And the peers were genuinely stale — again, a fourth time.** Both sat at
+2026-09-02 against `g_iter23`, missing Iteration 102 (rat trap density) and
+Iteration 128 (reactive cat traps). Note which of those absences was legitimate:
+`pure_cooperator` must not lay **rat** traps, because `GameWorld.triggerTrap`
+calls `backstab(triggeringRobot.getTeam().opponent())` and so the trap's OWNER
+initiates the backstab. But `triggerTrap` skips that for `CAT_TRAP`, so a pure
+cooperator *should* lay cat traps, and their absence was drift. Distinguishing
+policy from drift by hand across 1300 lines is exactly what kept failing.
+
+So the edits are now data, not a procedure: `tools/resync_archetypes.py` rebuilds
+each archetype from the newest **accepted snapshot** — never from `src/bot/`,
+which routinely holds an experiment under test — and aborts if any policy edit
+fails to match exactly once. Both peers rebuilt (+84 lines each) and verified by
+playing them against each other.
+
+**The 22/40 peer figure recorded earlier today was measured against the stale
+pair and should not be compared against anything after this point.**
