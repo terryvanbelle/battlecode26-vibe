@@ -8192,3 +8192,62 @@ pickups to our 11, from two mines producing ~2000 cheese, of which they take
 ~1880. They achieve that with more rats alive, funded by that income. Nothing
 inside the rat loop or the King's spending rules breaks the circle, and I have
 not found the entry point.
+
+## Iteration 121 — steer explorers off the map edges — REJECTED, and it explains the whole plateau
+
+                          g_iter21        iter121
+    benchmark wins        7/162           2/162
+    early wipes           12/155 = 8%     15/160 = 9%
+    close-spawn wins      4/42            2/42
+
+**The mechanism worked better than anything else tried this session:**
+
+    our CheesePickup        10  ->  20        (doubled)
+    their CheesePickup      66  ->  56
+    our cheeseTransferred   120/180/200/200  ->  280/380/380/380   (+90%)
+
+and the tracked edge-walker `id10353`, which previously marched
+(19,12)(19,17)(19,23)...(19,50) along the boundary, now goes
+(10,2)(12,12)(13,18)(16,23) through the interior. Exactly as designed.
+
+**And the army is annihilated:**
+
+    alive     baseline 20/13/7/6     iter121  11/0/0/1
+    deaths    baseline 12 traps, 7 cats, 1 king = 20
+              iter121  19 traps, 6 cats = 25, with zero rats alive from round 200
+
+### What this reveals about the plateau
+
+The edge-walking was not merely wasted motion. It was **inadvertently keeping
+our rats out of the opponent's trap field.** `corridorofdoomanddespair` is a
+20-wide corridor with both mines at x=9; the traps are in that central column,
+because that is where cheese and traffic are. Rats hugging x=19 collected
+nothing and survived. Rats sent to the middle collect twice as much and are
+dead by round 200.
+
+That closes the loop this session has been circling:
+
+    we collect little            because our rats avoid the centre
+    our rats avoid the centre    by accident, via a navigation defect
+    fixing the defect            walks them into a trap field
+    the trap field is unsensable (getMapInfo is team-filtered)
+    it cannot be out-trapped     (Iteration 118: 440 cheese for 9 triggers)
+    it cannot be walked through  (this iteration: army gone by round 200)
+
+**The bot's 7/162 is achieved by passive avoidance, not by playing well.**
+Every iteration that made a rat more productive -- batching (115), field traps
+(118), mine camping (119), interior navigation (121) -- did precisely what it
+was designed to do, was verified in the replay, and lost five or six benchmark
+wins, because productive rats are rats in contested space and we lose contested
+space.
+
+So the binding constraint is not economy, navigation, collection policy,
+survival rules or King spending. It is that **we cannot hold ground against
+these opponents**, and every economic gain is priced in ground we cannot hold.
+That is a combat-strength problem, and it is upstream of everything measured
+since Iteration 102.
+
+Recorded as the honest state of the search rather than a to-do: I do not have
+a tested route to more combat strength, and four consecutive
+mechanism-verified improvements losing six wins each is strong evidence that
+the remaining gap is not reachable by making the existing rats do more.
