@@ -258,7 +258,14 @@ public class ReplayDump {
                     break;
                 }
                 case Action.RatNap: {
+                    // Also emitted by grabRobot() against the CAPTIVE's id, so
+                    // a RatNap on an enemy rat is how carryRat shows up. See the
+                    // Iteration 108 retraction in TRAINING_LOG.md.
                     System.out.println("round " + round + " " + who + " RatNap");
+                    break;
+                }
+                case Action.RatSqueak: {
+                    System.out.println("round " + round + " " + who + " RatSqueak");
                     break;
                 }
                 case Action.ThrowRat: {

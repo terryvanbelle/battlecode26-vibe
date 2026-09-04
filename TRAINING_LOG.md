@@ -7504,3 +7504,54 @@ counting the action that would have confirmed the mechanism fired. The
 counting took one grep against a dump already on disk. Verify the mechanism
 fired BEFORE explaining why it underperformed -- otherwise the explanation is
 unfalsifiable decoration on noise.
+
+## Iteration 109 — squeak cheese sightings to pool vision cones — REJECTED
+
+                          g_iter21        iter109
+    benchmark wins        7/162           4/162
+    early wipes           12/155 = 8%     15/158 = 9%
+    close-spawn wins      4/42            2/42
+    close-spawn wipes     12/38 = 32%     15/40 = 38%
+
+**Mechanism confirmed first**, per the Iteration 108 retraction:
+
+    bench_finalist__rift__botA   our RatSqueak 502,  bench_finalist 255
+
+502 squeaks is not a mechanism that failed to fire. This is a real negative
+and the third capability iteration to actually execute anything. Reverted.
+
+Incidental finding: **the opponents squeak too** (255 in the same game), so
+this is a channel serious bots use -- evidently not for what I used it for.
+
+### Why pooling the cones made things worse
+
+The premise was right and the consequence was not. Squeak radius 4 against a
+90-degree vision cone really does mean a neighbour's sighting is new
+information. But acting on it makes every rat within radius 4 head for the
+*same tile*, and only the first arrival gets the cheese; the rest have spent
+their turns walking to a tile that is now empty. Worse, the rats diverted are
+exactly the ones that had no cheese in view -- i.e. the ones who were about to
+`explore()` and find *new* cheese. So the change traded map coverage, which
+compounds, for redundant convergence on cheese already found.
+
+Note the fastest-loss list is byte-identical to baseline
+(19,20,21,21,27,34,35,35): the opening is untouched, as expected for an
+economic change, and the damage is all in the long games -- which is where the
+three lost wins were.
+
+That the shared array only Kings may write, and squeaks reaching only radius
+4, both push toward *local* coordination is worth remembering: the engine
+seems designed so that broadcasting a target to everyone nearby is a trap, and
+whatever the opponents are squeaking, it is presumably something that does not
+create a stampede.
+
+### Capability audit scorecard
+
+    becomeRatKing   Iter 106 VOID (unreachable)   Iter 107 real negative
+    carryRat        Iter 108 VOID (barely fired)
+    squeak          Iter 109 real negative
+
+Four runs, two void, two genuine negatives, no accepts. The audit was still
+worth doing -- it produced the only structurally new hypotheses of the session
+after the mechanical seams were exhausted -- but the honest scoreline is that
+none of the three unused capabilities paid off in its most obvious form.
