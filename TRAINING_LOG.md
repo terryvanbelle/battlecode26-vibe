@@ -11696,3 +11696,40 @@ feature is one of the more valuable things in the bot.
 audit has found no harmful feature, but it has found something arguably more
 useful: the log's confidence was misallocated, and in both cases the error came
 from trusting a single instrument that structurally could not see the effect.
+
+### Desperation flag (11/12/141) — peer audit: genuinely inert, Iteration 141 confirmed
+
+    peers, desperation ablated   76/108 (70.4%), sub-scores 23/54 and 53/54
+    games changed                0
+
+Not "small", not churn — **zero games differ**, on an instrument verified to be
+byte-reproducible. The flag never changes an outcome against peers. Iteration 141
+called it inert on the mirror and was right.
+
+**Kept anyway**, on the same principle as the bite boost: changing the accepted
+build needs a reason, and dead-but-harmless code is not one. What matters is that
+the log now records it as *measured* dead rather than *assumed* dead, so no future
+iteration reasons from it.
+
+## The peer audit, complete
+
+    feature                       peers            diff              verdict
+    reactive cat traps (128)      -3               3 flips, all lost  KEEP (was "dormant")
+    cheese-boosted bite (83)      +2               12 flips, 7/5      KEEP (neutral)
+    King trap ring (48/96/102)    +2               20 flips, 11/9     KEEP (benchmarks -4)
+    emergency override (40/84)    -15              19 flips, 2/17     KEEP (was "inert")
+    desperation flag (11/12/141)   0               0 flips            KEEP (truly inert)
+
+**No harmful feature exists in the accepted list.** The premise that started this
+audit — that benchmark-blindness may have admitted a regression — is refuted for
+every feature checked.
+
+**The more useful finding is about the log's own reliability.** Two of five
+features were recorded as worthless and are not, one of them worth fifteen peer
+games. Both errors came from the mirror, and both have the same cause: *an
+instrument that never poses the situation a feature answers will call that feature
+inert.* The mirror said "inert" about the emergency override (worth 15) and about
+the desperation flag (worth 0), **and nothing in the mirror result distinguishes
+the two cases.** That is the argument for the standing rule adopted this session:
+run the peers on every accept, and judge by the game-by-game diff rather than the
+total.
