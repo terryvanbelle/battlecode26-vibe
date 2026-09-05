@@ -852,6 +852,14 @@ peers. **Two of three failed, and both failures were worth their run** — each
 converted a weakly-founded rejection into a firmly-founded one. What is not
 legitimate is re-opening because a direction feels under-explored.
 
+**Damage does not convert, whatever its source.** This is the deepest regularity
+the run found. We kill 7 enemy rats per 8 games and lose 347 (0.02:1), and every
+attempt to raise damage output has failed *after passing its own mechanism check*:
+more bites (158, 179), more cat damage (142/147/179/180), more trap triggers (190
+doubled them, 11 -> 21, for nothing), more rats to do the damage (176). Before
+proposing anything whose value is "we deal more damage", note that five iterations
+have proved the mechanism and none moved a result.
+
 **What remains open:** nothing incremental that this session could find. The
 honest next step is a structural change with a mechanism nobody has tried, or
 accepting the current build as a local optimum and hardening it.
