@@ -10971,3 +10971,40 @@ King alive while the army is being destroyed** — Iteration 155 put 42.4% of Ki
 damage at treasury < 50, and every one of those games had already lost its army.
 The treasury band of 890-1490 is not a failure to spend. It is the equilibrium
 the bot needs.
+
+## Iteration 164 — prefer the enemy King as a target — VOID (inert), no Gauntlet spent
+
+Found by asking which losses are NEAR-MISSES rather than which are typical.
+Enemy King minimum HP (of 600) across six g_iter26 King-destruction losses:
+
+    whatsthecatdoin B  114 (19%)      pipes    A  560 (93%)
+    closeup         A  120 (20%)      closeup  A  600 (100%)
+    peaceinourtime  B  160 (27%)      jail     A  600 (100%)
+
+**Half of these losses got the enemy King to about a fifth of its health and
+failed to finish** — roughly twelve more bites. The other half never touched it,
+which is a reach problem, not a targeting one.
+
+`nearestEnemyRat()` skips CATs but *not* kings, so the enemy King was always an
+eligible target, chosen purely by proximity. Ranking it above baby rats **within
+bite range** (the correction Iteration 158 arm A needed) looked like free value.
+
+**Result — completely inert.** All three near-miss games reproduce byte-identical
+King HP floors:
+
+    whatsthecatdoin   114 -> 114
+    closeup           120 -> 120
+    peaceinourtime    160 -> 160
+
+and `whatsthecatdoin` ended on the same round (1088) with the same result. VOID
+by the pre-registered check, no 162-game run spent.
+
+**What it establishes:** when one of our rats is adjacent to the enemy King, the
+King is already the only enemy in range — so the preference never fires. The
+damage we deal to their King is already the maximum available given who reaches
+it. **The limit is how many rats arrive, not what they choose when they do.**
+
+Taken with Iteration 158 (focus fire on the weakest rat: no gain) that closes
+target selection as a direction from both ends. Every remaining path runs back
+through attack volume, and volume has now failed seven times because buying it
+means not collecting cheese.
