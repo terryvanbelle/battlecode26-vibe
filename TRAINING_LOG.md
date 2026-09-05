@@ -12196,3 +12196,38 @@ pacifist opponent and revokes our own cat traps, costing perhaps ten peer games 
 and it is still worth keeping, because Iteration 174 measured its removal at
 benchmarks -4 with close-spawn 4/42 -> 0/42 and wipes 14 -> ~42. We pay the peace
 to survive the openings.
+
+## Iteration 186 — verification pass on the local optimum
+
+After eleven consecutive rejections and a closed-directions review, a verification
+pass rather than another speculative run.
+
+**Housekeeping — all clean.**
+
+    archetypes      resync_archetypes.py --check: both up to date
+    build integrity git status clean; src/bot byte-identical to src/g_iter26
+    snapshots       26 present, matching plot_progress.py's count
+    vs_old_bots     history current at g_iter26 (232/270)
+    ReplayDump      full test suite passes, including the --turns additions
+
+**The substantive check: is the recent lineage real on the sensitive instrument?**
+g_iter25 vs g_iter26 had been measured, but g_iter24 was accepted before the peer
+gauntlet was trusted. Run against identical archetypes and maps:
+
+    build       peers            vs pure_cooperator
+    g_iter24    58/108 (53.7%)      10/54 (19%)
+    g_iter25    72/108 (66.7%)      20/54 (37%)
+    g_iter26    76/108 (70.4%)      23/54 (43%)
+
+**Monotone, and the steps are large.** No accepted step was a regression, so the
+lineage needs no revisiting — the outcome I was checking for did not occur.
+
+**The g_iter24 -> g_iter25 step is +14 peer games, and benchmarks scored it -2.**
+That was Iteration 151, the movement fix, which I rejected on the benchmark
+reading and which only the user's peer-tiebreak rule recovered. Had it stayed
+rejected the bot would still be at 58/108 rather than 76/108 — **the single
+largest improvement in this stretch was one I had thrown away.**
+
+That is the strongest available argument for the standing rule adopted since: run
+the peer gauntlet on every accept, and judge any small benchmark delta by the
+game-by-game diff rather than the total.
