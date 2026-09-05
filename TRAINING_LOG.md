@@ -11778,3 +11778,42 @@ it produces rats in bulk — bulk is what this iteration added, to no effect. It
 valuable because it produces *the first few* rats when we have none, restoring
 cheese income before the King starves. Fifteen peer games come from escaping zero,
 not from rebuilding to strength.
+
+## Iteration 177 — trigger the emergency override on an exact count — REJECTED
+
+Iteration 176 showed the override's fifteen peer games come from *escaping zero*,
+not from volume. So the next lever looked like latency: make the trigger a
+measurement rather than a proxy. `noVisibleArmy` scans the King's radius^2 25
+vision, whereas `getCurrentRatCost() = 10 + 10 * (live / 4)` inverts to an exact
+live count for free.
+
+**Mechanism fired:** spawns on the traced collapse went 27 -> 31 against the
+g_iter26 control.
+
+**Result — REJECT.**
+
+    instrument      g_iter26        iteration 177
+    peers         76/108 (70.4%)   70/108 (64.8%)   14 changed: 4 gained, 10 LOST
+      pure_coop     23/54 (43%)     19/54 (35%)
+
+**The proxy beats the measurement, and the reason inverts my framing.** I called
+line-of-sight a proxy for "the army is dead" and the cost-curve count the real
+thing. It is the other way round: the override's job is to decide *"should the
+King rebuild locally, right now"*, and what matters for that is **whether help is
+at hand**, not how many rats exist somewhere on the map.
+
+`noVisibleArmy` fires when rats are alive but far away — a state in which the King
+genuinely is alone, unfed and undefended, and should rebuild. The exact count
+suppresses the override in exactly that state ("you have eight rats, don't panic")
+while firing it when 1-3 survivors are huddled beside the King already feeding it.
+Both changes are wrong, and together they cost six peer games.
+
+**Generalisation worth keeping:** a "more accurate" input is only better if it
+measures the quantity the decision actually depends on. Vision-limited sensing is
+not always an approximation of global truth — sometimes it *is* the relevant
+truth, because locality is what the decision turns on.
+
+That closes the recovery-latency direction. The override is well-tuned as
+written, and this is the second consecutive iteration (176 volume, 177 latency)
+to find that the most valuable feature in the bot cannot be improved along the
+obvious axis.
