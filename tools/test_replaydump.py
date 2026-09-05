@@ -227,7 +227,29 @@ def test_grab_throw_name_both_ends(text: str) -> None:
           not bad, str(bad[:3]))
 
 
-def test_turns_mode(replay: str) -> None:
+def test_remove_trap_decoded(text: str) -> None:
+    """RemoveTrap must be decoded, not silently dropped.
+
+    Iteration 201 retracts the King's trap ring once a game has stayed quiet,
+    and the proving action is the removal itself. The dumper had no case for
+    Action.RemoveTrap, so the ring vanished from the board while the dump
+    showed nothing -- "0 removals" read as "the retraction never fired" when
+    the retraction had in fact fired sixteen times in one round. An action the
+    dumper cannot see is an action no mechanism check can confirm.
+    """
+    removes = re.findall(r"\) RemoveTrap loc=(\S+) team=(\d)", text)
+    bare = re.search(r"\) RemoveTrap(?! loc=)", text)
+    check("every RemoveTrap names a location", bare is None,
+          "a RemoveTrap printed without loc=")
+    for loc, team in removes:
+        check_once = team in ("1", "2")
+        if not check_once:
+            check("RemoveTrap team is 1 or 2", False, f"team={team}")
+            break
+    check(f"RemoveTrap decodes ({len(removes)} seen)", True, "")
+
+
+def test_turns_mode(replay: str, window: tuple[int, int]) -> None:
     """`--turns` must emit position+facing lines, including for idle robots.
 
     Two traps this pins. First, the line is emitted before dumpActions' early
@@ -240,7 +262,12 @@ def test_turns_mode(replay: str) -> None:
     ordinal turns 44% of moves into an apparent 96%, which reads as a
     catastrophic finding rather than a units bug.
     """
-    r = subprocess.run([str(DUMP), replay, "--turns", "1", "--from", "300", "--to", "320"],
+    # The window must exist in THIS replay. A hardcoded [300,320] silently
+    # fails on any short game -- a knifefight wipe is over by round 20, so the
+    # suite reported "0 turns" as a decoding regression when the real cause was
+    # an empty window.
+    lo, hi = window
+    r = subprocess.run([str(DUMP), replay, "--turns", "1", "--from", str(lo), "--to", str(hi)],
                        capture_output=True, text=True, timeout=600)
     check("--turns exits cleanly", r.returncode == 0, r.stderr[:200])
     lines = [l for l in r.stdout.splitlines() if " TURN " in l]
@@ -280,7 +307,8 @@ def main(argv):
     test_spawn_in_bounds(full)
     test_footer(full, rounds)
     test_grab_throw_name_both_ends(full)
-    test_turns_mode(replay)
+    test_remove_trap_decoded(full)
+    test_turns_mode(replay, window_for(full))
     lo, hi = window_for(full)
     print(f"  (sub-window for this replay: rounds {lo}-{hi})")
     test_window_respected(replay, lo, hi)

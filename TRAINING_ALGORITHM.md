@@ -780,6 +780,30 @@ every-10th accepted snapshot, track win % over time in a checked-in CSV +
 chart). Not urgent before there's a roster worth tracking — revisit this
 once the project has passed roughly its 10th accepted iteration.
 
+## When stuck for ideas, read RESEARCH.md
+
+`RESEARCH.md` synthesises the published Battlecode post-mortems from 2019–2025
+(every team write-up linked from `battlecode.org/past.html`), organised by what
+**recurs across years** rather than by game. It exists to be consulted at exactly
+the point the list below is reached — when the local search space is closed and
+the next idea has to come from outside it.
+
+The three findings there that bear hardest on the state recorded below:
+
+- **No single instrument is a verdict; triangulate.** Every team ranks live
+  scrimmages above frozen old bots — but they had both, and we have neither a
+  ladder nor any tournament to scrim in. What a ladder supplies is diversity
+  *calibrated to your own level*. Our benchmarks are diverse but far above us
+  (hence nearly blind to regressions); peers and `vs_old_bots` sit at our level
+  but descend from us. Each covers the other's blind spot, so do not use the
+  cross-year "live beats old bots" line to discount `vs_old_bots`.
+- **Map symmetry inference is "Battlecode 101" everywhere else and absent here.**
+  Teams infer which of three symmetries a map has and extrapolate the unseen half.
+  We closed "attack the enemy King" partly because we never know where it is.
+- **When the strategy has stopped moving, rewrite rather than retrofit** (Java Best
+  Waifu, 2020 winner: from scratch "is usually faster than expected and it is way
+  better on the long run"). We are 26 snapshots of incremental edits to one file.
+
 ## Closed directions — do not re-open without a NEW reason
 
 Written 2026-09-05 at g_iter26, after a run of iterations in which nearly every

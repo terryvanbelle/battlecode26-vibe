@@ -292,6 +292,16 @@ public class ReplayDump {
                             + (d.isRatTrapType() ? "RAT" : "CAT") + " loc=" + loc(d.loc()));
                     break;
                 }
+                case Action.RemoveTrap: {
+                    // Iteration 201 needs to prove the King retracts its ring,
+                    // and the absence of these lines previously proved nothing
+                    // because the action was simply not decoded here.
+                    RemoveTrap d = new RemoveTrap();
+                    d.__init(pos, bb);
+                    System.out.println("round " + round + " " + who + " RemoveTrap"
+                            + " loc=" + loc(d.loc()) + " team=" + d.team());
+                    break;
+                }
                 case Action.TriggerTrap: {
                     TriggerTrap d = new TriggerTrap();
                     d.__init(pos, bb);

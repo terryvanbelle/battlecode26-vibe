@@ -12735,3 +12735,148 @@ moving and it does not.
 behaviour is deterministic map data; it decides our win rate; and neither steering
 it (squeaks — withdrawn), racing it (7 of 8 losses end with the enemy King
 untouched), nor trapping it (this) is available.
+
+## Iteration 199 — gate the trap ring on an early RUSH SIGNATURE — see 202
+
+Iteration 185 had shown that gating the King's trap ring on `!isCooperation`
+reached peers 78/108 with pure_cooperator at exactly 50%, because **our own ring
+is what breaks the peace**: `triggerTrap` credits the backstab to the trap's
+OWNER, and 10 of 12 peer King-kill losses follow from it. A pacifist that never
+attacks cannot kill our King. It failed only because cooperation breaks at rounds
+10-53 on rush maps, so the ring arrived too late and early wipes rose 14 -> 18.
+
+Those two populations separate EARLY, before cooperation says anything. On the
+traced knifefight wipe enemy rats are adjacent to our King at ROUND 2; against
+pure_cooperator on peaceinourtime cooperation never breaks at all and a CAT kills
+our King. So latch on the rush itself: arm the ring if the King sees an enemy rat
+within its radius^2 25 by round 50, or if cooperation has already broken.
+
+    MECHANISM  PASSED, both halves.
+      (a) knifefight vs bench_spaark   ring placements r1-20 = 8, = control
+      (b) peaceinourtime vs pure_coop  ring placements 0, cooperation NEVER
+                                       breaks; game flips LOSS r523 -> WIN r476
+
+    peers            76/108 (70.4%)   80/108 (74.1%)   18 changed: 11 gained, 7 lost
+      pure_cooperator  23/54            29/54          +11 -5
+      immediate_defector 53/54          51/54           +0 -2
+    benchmarks        8/162             6/162           +2 gained, 4 lost
+    close-spawn wins  4/42              3/42
+    close-spawn wipes 14/42            16/42
+
+Three maps flipped sides against themselves (corridorofdoomanddespair,
+dirtpassageway, wallsofparadis each gained one side and lost the other), which is
+churn; toomuchcheese was gained on BOTH sides, which is not.
+
+**TWO ERRORS OF MINE, both corrected before deciding.**
+
+1. I first reported the close-spawn guard as **4/42 -> 1/42, "GUARD BROKEN"**,
+   using a close-spawn map set I had invented on the spot
+   ({knifefight, tiny, thunderdome, dirtfulcat, closeup, minimaze, jail}). The
+   control's eight wins contain NONE of those maps, so the control's own value
+   under my set is 0/42 -- I was comparing against a remembered 4/42 computed on
+   a different set. The real set is recorded in this log under "early wipes are
+   entirely a close-spawn phenomenon": the seven maps whose Kings spawn within
+   ~21 tiles, {knifefight, tiny, thunderdome, dirtfulcat, popthecork, evileye,
+   toomuchcheese}. Recomputed correctly, the guard drifts 4/42 -> 3/42. This is
+   `same-map-set-control-or-no-comparison` in a new disguise: the map SET has to
+   match, not just the map list length.
+
+2. I ran the "benchmark" gauntlet without setting OPPONENTS and got a second peer
+   run (108 games, pure_cooperator) that I briefly read as benchmark output.
+
+## Iteration 200 — hold the build cadence, place nothing — VOID on its own check
+
+Premise: `KING_TRAPS_ENABLED` guards the whole branch, so switching it off does
+not merely withhold a trap -- it also stops `TRAPS_PER_BUILD = 2` from withholding
+two King-actions in three, meaning the King builds many more rats. Iteration 199
+would then be a TWO-knob change. Evidence for the premise: on minimaze vs
+immediate_defector the control places 7 rings and WINS at r2000 while 199 places 0
+and LOSES, on a map where an enemy rat never comes within d^2 25 of our King in
+2000 rounds -- so that ring was never acting defensively.
+
+Proposed fix: take the identical decision the control takes, consume the same
+King-action, place nothing. (Dirt was the obvious filler and is wrong: it is
+impassable, and this log already records both Kings boxed in by dirt on `closeup`
+building zero rats.)
+
+**VOID — the mechanism check refuted the premise.** King spawns on that map:
+
+    CONTROL 120 spawns, 7 traps      ITER199 110 spawns, 0     ITER200 103, 0
+
+Trap-skipping produces FEWER rats, not more, so "cadence" is not what the ring was
+worth there and the two-knob story is wrong. No further measurement run.
+
+## Iteration 201 — build the ring, then retract it if quiet — REJECTED
+
+If the ring's cost is the backstab and its value is early defence, the two live in
+different parts of the game: every early wipe is over before round 100, while the
+peer games the ring costs run to r2000. So behave exactly like the control through
+the danger window, then, in games showing no threat (no rush signature AND
+cooperation intact), take the ring off the board. `removeRatTrap` does **not**
+assert action readiness, so retracting the whole ring is free.
+
+    MECHANISM  PASSED. knifefight r1-20 = 8 placements (= control); on
+               peaceinourtime 16 traps placed by r35 and all 16 REMOVED at r100
+               in a single turn.
+
+    peers      76/108 (70.4%)  ->  74/108 (68.5%)   pure_cooperator 23/54 -> 21/54
+
+**REJECTED, and the negative is the useful part: it proves the peace is already
+broken well before round 100.** Retracting at r100 is far too late, and a ring
+that exists at all is a ring that gets triggered. That kills the whole "defend
+early, disarm later" family, not just this parameter.
+
+Required extending `tools/replaydump/ReplayDump.java`, which had **no case for
+`Action.RemoveTrap`** -- removals were invisible, so "0 removals" read as "the
+retraction never fired" when it had fired sixteen times in one round. An action
+the dumper cannot decode is an action no mechanism check can confirm. Regression
+test added. Also fixed `test_turns_mode`'s hardcoded [300,320] window, which fails
+on any game shorter than 300 rounds (the default fixture is a knifefight wipe over
+by round 20) and was reporting an empty window as a decoding regression.
+
+## Iteration 202 — arm the ring on contact, with no deadline — REJECTED
+
+Iteration 199's only defect is a rush that lands after round 50 arriving to no
+ring. Dropping the deadline should fix it: arm the first time an enemy rat is seen
+near our King, whenever that happens.
+
+    peers  76/108 control -> 77/108   pure_cooperator 23/54 -> 26/54
+
++1 game is noise. **REJECTED, and it establishes that the deadline is doing real
+work rather than being an arbitrary constant** -- the three variants rank
+
+    arm within 50 rounds   80/108   pure_cooperator 29/54
+    arm on contact, ever   77/108   pure_cooperator 26/54
+    build then retract     74/108   pure_cooperator 21/54
+
+An unbounded latch arms on any wandering forager, which on a quiet map is exactly
+the ring we are trying not to build.
+
+## Iteration 199 — ACCEPTED as g_iter27
+
+Re-decided after Iterations 200-202 established that the rush-window gate is the
+best of the three variants and that its apparent guard breakage was my own
+map-set error (see above). Final evidence:
+
+    mechanism        PASSED both halves (ring identical on knifefight r1-20 = 8;
+                     zero placements and peace held on peaceinourtime)
+    peers            76/108 -> 80/108   pure_cooperator 23/54 -> 29/54, +11 -5
+    head-to-head     30/54 (56%) vs g_iter26 -- the pre-accept check
+    vs_old_bots      215/270; 51/54, 51/54, 47/54, 36/54 vs iters 1/11/20/24
+    benchmarks       8/162 -> 6/162      (-2 = 0.8 sigma, no information alone)
+    close-spawn      wins 4/42 -> 3/42, wipes 14/42 -> 16/42
+
+Accepted under the standing rule (mechanism pass + a significant gain on EITHER
+instrument + no *statistically significant* regression), and under the user's
+direction of 2026-09-05 to spend effort on the peer gauntlet rather than the
+benchmark. The benchmark move and both guard drifts are 1-2 games each, none
+individually significant; the peer gain is +4 with the targeted sub-score moving
++6 in the predicted direction, and the head-to-head against the outgoing build
+agrees.
+
+**What this change actually is.** It is not a defensive improvement -- it is a
+decision to stop being the team that breaks the peace when nothing threatens us.
+The ring's cost was never the cheese; it was that `triggerTrap` credits the
+backstab to the trap's OWNER, converting a pacifist opponent into one that can
+kill our King. Recorded honestly: the ring remains worth four benchmark wins and
+every close-spawn win, so this trades a little of that for a lot of peer standing.
