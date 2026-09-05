@@ -12062,3 +12062,42 @@ So the reactive cat trap defends against cats *passing through*, not against the
 one that stops. That is a real gap with no counter yet identified: the King cannot
 outrun a cat (`movementCooldown` 40 against the cat's 20), our rats bite for 10
 against 4000 HP, and dirt cannot be placed on an occupied tile.
+
+## Iteration 182 — the King has a blind spot: cats grind it from outside its own reach
+
+Chasing the Iteration 181b finding that a cat killed our King while we were still
+cooperating. The obvious counter was the King's own bite —
+`RAT_KING_ATTACK_DISTANCE_SQUARED` is **8**, four times a rat's 2, and the King is
+idle in ~89% of rounds (Iteration 171).
+
+**Measured, and the counter is unavailable:**
+
+    rounds with a cat within the King's attack range (d^2 8):   0
+    closest any cat ever came to the King's centre:             d^2 10
+    CatScratch actions in the game:                            98
+    King hp drops coinciding with a CatScratch:                29 of 29
+
+**Every one of the 29 drops is a cat scratch, and the cat is never once inside the
+King's attack range.**
+
+**Why: the King is SIZE 3 and its attack range is measured from its CENTRE.**
+`assertCanAttackRat` computes `this.getLocation().distanceSquaredTo(loc)` against
+`RAT_KING_ATTACK_DISTANCE_SQUARED` 8, while the King's body occupies the whole 3x3
+and can be scratched at its edge. So a cat sitting beyond d^2 8 from the centre
+still reaches the body, and the King cannot reach back. **Its effective reach past
+its own body is under two tiles, and a cat can grind it from outside that.**
+
+That closes the last available counter to a parked cat:
+
+    King flight        movementCooldown 40 against the cat's 20 -- cannot outrun it
+    cat traps          fire constantly (28 placed, 9 live, cat within d^2 20 in
+                       22% of rounds) and do nothing: 4000 hp against 100, and a
+                       parked cat never steps on one
+    King's own bite    THIS -- geometrically out of range
+    dirt               assertCanPlaceDirt rejects an occupied tile
+
+**What remains untried is our RATS.** They already engage cats — worth eleven peer
+games (Iteration 178) — but they engage the *nearest* cat wherever it is, with no
+notion of defending the King. A cat parked on our King is worth far more to kill
+than one wandering the map, and nothing in the bot expresses that. That is the one
+lever this trace leaves open.
