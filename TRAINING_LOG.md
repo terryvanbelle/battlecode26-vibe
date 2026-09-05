@@ -12231,3 +12231,62 @@ largest improvement in this stretch was one I had thrown away.**
 That is the strongest available argument for the standing rule adopted since: run
 the peer gauntlet on every accept, and judge any small benchmark delta by the
 game-by-game diff rather than the total.
+
+## Iteration 187 — King-published census — CLOSED by reasoning, no run
+
+The structural attempt the closed-directions review called for: have the King
+publish what it alone sees correctly (360 degrees, radius^2 25) so rats can
+condition on a team-level fact instead of their 90-degree wedge, which has now
+killed three iterations (152, 158, 183).
+
+**It cannot work, and the reason is geometric.** The decision it was meant to
+improve — engage or flee near a cat — happens wherever a rat *meets* a cat, which
+is generally outside the King's radius. The King cannot see the local ally count
+at a remote skirmish, so its census cannot correct that undercount. The only
+quantities it can publish accurately are about its own neighbourhood, and
+Iteration 177 already measured that substituting a global count for local sensing
+makes things worse (-6 peer games): the decision turns on whether help is *at
+hand*, not on how many units exist.
+
+## Iteration 188 — damaged-rat retreat, re-opened — REJECTED
+
+Re-opened on the pattern that produced g_iter26: a rejection whose stated cause
+has changed. Iterations 149/150 rejected retreat because *"the clause that makes
+it safe is the clause that makes it worthless"* — the round gate cut the benefit
+and `cheeseTransferred` fell to 11425 against 12745. Two things had changed:
+
+1. **The build.** Both ran on g_iter24, before the movement fix. g_iter25 removed
+   the strafe penalty (0% against 50.6%, 26% more moves), and retreat's entire
+   cost is travel.
+2. **The instrument.** Iteration 150 was decided on a MIRROR reading of 46.3%, and
+   the mirror has since been shown unreliable in both directions.
+
+**Mechanism passed on both axes, and the old failure mode reversed.** Matched
+g_iter26 control on rift:
+
+    metric                  control    iteration 188
+    their grabs of us         175          148
+    our cheeseTransferred   12865        13607
+
+Retreat now *raises* income rather than cutting it — the movement fix really did
+change the economics, exactly as predicted.
+
+**Result — REJECT, and decisively.**
+
+    instrument      g_iter26        iteration 188
+    peers         76/108 (70.4%)   67/108 (62.0%)   13 changed: 2 gained, 11 LOST
+      pure_coop     23/54 (43%)     15/54 (28%)
+
+Nine peer games, directional. **The mechanism improved and the outcome got much
+worse**, which means retreat is bad on its merits rather than badly gated — the
+rats that walk home are not paying for the trip in lost cheese any more, they are
+simply not where they are needed.
+
+**And the mirror was right this time.** Iteration 150's 46.3% correctly predicted
+a rejection that the peers now confirm at -9. The mirror has now been wrong about
+the emergency override and the cat traps, and right about the desperation flag and
+this — which is the point of
+`an-instrument-that-cannot-pose-the-situation-says-inert`: **nothing in a mirror
+reading tells you which case you are in.** Re-opening on a changed cause was still
+correct procedure; it cost one run and converted a weakly-founded rejection into a
+firmly-founded one.
