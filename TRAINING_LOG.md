@@ -11008,3 +11008,77 @@ Taken with Iteration 158 (focus fire on the weakest rat: no gain) that closes
 target selection as a direction from both ends. Every remaining path runs back
 through attack volume, and volume has now failed seven times because buying it
 means not collecting cheese.
+
+## Iteration 165 — how our wins actually happen, and the capability we have never used
+
+Started by asking which losses are near-misses. Ended somewhere much more useful.
+
+### Our rats do not kill the enemy King. Cats do.
+
+Enemy King minimum HP (of 600) across six g_iter26 losses, against how close any
+of our rats ever got to it:
+
+    replay                        King min hp    our closest rat
+    bench_spaark   jail    A            600           1.4 tiles
+    bench_finalist closeup A            600          18.4
+    bench_spaark   pipes   A            560          20.0
+    bench_stroke   whatsthecatdoin B    114           3.0
+    bench_stroke   closeup A            120          12.7
+    bench_finalist peaceinourtime  B    160          16.0
+
+**No correlation.** We stood adjacent to their King on `jail` and it never lost a
+point of health; we were sixteen tiles away on `peaceinourtime` and it fell to
+160. Their treasuries were 1567-2813 at those moments, so it was not starvation.
+
+Reproducing a WIN settles it — `bench_stroke popthecork botA`, which we win at
+r318 by King destruction:
+
+    enemy King 600 -> 20
+    29 hp drops, EVERY ONE of size 20  (= CAT_SCRATCH_DAMAGE)
+    drops occurring while one of our rats was adjacent:  0 of 29
+
+**Cats kill the enemy King, and all eight of our wins are King-destructions.** Our
+contribution to the win condition is indirect: we survive, and a cat does the
+work. This is the single largest correction to the model of the game in the log.
+
+### And cats are steerable — by a call we have never made
+
+`InternalRobot`'s cat AI, in ATTACK mode:
+
+    Message squeak = getFrontMessage();
+    if (squeak != null && ...) this.dir = this.getLocation().directionTo(squeak.getSource());
+
+A cat **turns toward the source of a squeak**. Turning re-aims its vision cone,
+which is how it picks its next target.
+
+    rc.squeak(int)          no action cooldown, no cheese, 1 message per turn
+    SQUEAK_RADIUS_SQUARED   16  (4 tiles)
+    recipients              CATS of any team, AND our own teammates in range
+    message carries         content, sender id, round, and LOCATION
+    MESSAGE_ROUND_DURATION  5
+
+    our squeaks per game:      0        (grep: zero references in RobotPlayer)
+    bench_stroke on rift:   2870
+    bench_spaark on pipes:  1070
+    bench_stroke popthecork: 668
+
+**We have never squeaked. Every opponent squeaks hundreds to thousands of times
+per game.**
+
+### This also explains a failure I had filed under something else
+
+`writeSharedArray` requires `isRatKingType`, so **our rats have no way to talk to
+each other at all** — the shared array is King-write-only, and squeak is the only
+rat-to-rat channel. Iteration 158's focus fire failed partly because "the weakest
+visible enemy" is not a shared ordering across eight different 90-degree cones.
+It could not have been, because our rats have no shared anything. Squeak carries a
+location and an integer, for free, to every ally within four tiles.
+
+So a single unused call sits underneath at least three separately-diagnosed
+problems: no coordination (158), no threat bearing (153, closed because the King
+cannot see attackers — but a rat that IS being grabbed could squeak), and no
+influence over the units that actually decide games.
+
+**This is what `audit-unused-capabilities-not-just-behaviour` is for, and I found
+it late** — the audit in Iteration 156 checked whether the code we HAVE runs, and
+this is the complementary question about code we never wrote.
