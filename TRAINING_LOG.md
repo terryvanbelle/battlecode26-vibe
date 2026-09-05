@@ -12516,3 +12516,40 @@ the whole run: every "N games changed, X gained Y lost" diff is a true statement
 about the change rather than about run-to-run variation, and the churn-versus-
 directional distinction that decided most of these iterations rests on solid
 ground.
+
+## Iteration 194 — attack the enemy King — CLOSED on the pre-check, no code
+
+The last strategic asymmetry standing: cats deal the enemy King's damage and we
+deal essentially none (Iteration 165 — 29 drops of exactly 20, 88 adjacent cat
+turns against 4 of ours), yet 91% of games end in King destruction. Our win
+condition is outsourced to a third party we cannot steer.
+
+The pre-check asked whether any targeting scheme could possibly help — how often
+is the enemy King inside one of our rats' vision at all?
+
+    replay                       rounds our rat within d^2 20 of their King
+    rift     vs bench_stroke          0 of 1999   (0.0%)
+    closeup  vs bench_stroke          0 of  472   (0.0%)
+    closeup  vs bench_finalist        0 of  864   (0.0%)
+
+**Never. Not rare — zero, across 3335 sampled rounds.** No targeting, bearing or
+priority scheme can act on a unit no rat ever sees, which is also why Iteration
+164's King-preference was byte-identical and why Iteration 138 gated off the
+desperation raid.
+
+And the obvious fix is already closed from the other end: sending rats far from
+home is precisely what Iteration 191's leash test measured, and *shortening* their
+range halved deaths while costing 18 peer games — so our rats stay near home
+because that is where the value is, and the enemy King is not reachable from
+there.
+
+**This closes the last open direction.** The final state of the search:
+
+    deal more damage        five iterations, mechanism-proven, all nil
+    lose fewer rats         leash halved deaths, -18 peer games
+    remove waste            6.9% idle turns; path "inefficiency" is lower than
+                            the opponent's (74% vs 93% revisits)
+    attack the win condition our rats never see the enemy King, in any game
+
+g_iter26 stands as a local optimum under every framing this run could construct,
+on two instruments both verified deterministic (Iterations 174, 193).
