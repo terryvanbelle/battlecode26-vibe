@@ -11422,3 +11422,50 @@ own King would need placing far from home, where the King cannot reach (build
 radius 8) and rats cannot place (`placeDirt` is available to any robot type, but
 a rat's build radius is `BUILD_DISTANCE_SQUARED` 2). That is the shape of any
 future attempt, and it is a different design rather than a tuning of this one.
+
+## Iteration 172 — rat-placed dirt walls — REJECTED, and it closes the dirt direction
+
+The fix Iteration 171 pointed at: a rat, not the King, as the placer. A baby
+rat's `BUILD_DISTANCE_SQUARED` is 2, so it walls the tile in front of it anywhere
+on the map, far from the tiles our own economy uses.
+
+**Pre-checks first, both answered before writing code:**
+- *Where does our dirt come from?* `TeamInfo.updateDirt(team, isPlace)`
+  **increments** on a removal, so the inventory is what our King digs out of its
+  own base when `findBuildLocation` returns null. It banks 18-24 a game and spent
+  none of it until now.
+- *Does it exist early?* 0-1 at round 1, 13-17 by round 25. So a wall cannot
+  defend the opening rush, only the mid-game.
+
+**The asymmetry that motivated it:** they must reach our King to win; we never
+reach theirs. Iteration 165 measured our rats adjacent to the enemy King just 4
+turns in a whole game, and all eight of our wins are King kills dealt by cats.
+Obstructing the map costs us an approach we do not make.
+
+**Mechanism passed clearly.** Dirt inventory, which plateaued at 18 in the
+baseline, now runs down to 1-2 — the rats are spending it — and the traced game
+lasted to r795 against the baseline's r721.
+
+**Result — REJECT.**
+
+    instrument                  g_iter26        iteration 172
+    benchmarks                    8/162             5/162   (7 changed, 2 gained 5 lost)
+    close-spawn wins               4/42              2/42
+    early wipes                      14                15
+    peers, full mapset, paired   76/108 (70.4%)    73/108 (67.6%)
+
+Neither benchmark delta nor close-spawn was unambiguously significant on its own
+(-3 is 1.2 sigma, -2 of 42 about 1 sigma), so per the user's rule this went to the
+peers rather than to a verdict. The peers found no gain either: **-3, with no
+instrument favouring it.**
+
+**One thing it does confirm.** The rat-placed version is far less harmful than
+the King-placed one — peers -3 against -10, and `pure_cooperator` 41% against
+26%. So Iteration 171's diagnosis was right: the damage there really was
+self-blocking near home, and moving the placer away removed most of it. What
+remains is simply that a wall on contact buys nothing: it spends the rat's action
+(which competed with a bite) and delays an enemy that walks around it.
+
+**Dirt is now closed in both placements.** Combined with traps closed in four
+dimensions plus type (161/102/168/169), the entire terrain-and-obstacle family is
+exhausted.
