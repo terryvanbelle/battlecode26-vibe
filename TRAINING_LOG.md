@@ -13074,3 +13074,36 @@ first enemy trigger lands at r47-r49, whereas a genuine rush has enemy rats besi
 our King at round 2. So the ring is being armed by `RUSH_WINDOW = 50`, a window
 wide enough to catch maps that are not rushes. Tightening it should keep the ring
 exactly where it earns its close-spawn wins and drop it where it only costs us.
+
+## Iteration 208 — narrow RUSH_WINDOW 50 -> 20 — ACCEPTED as g_iter29
+
+From Iteration 207's rejection. Ablating the ring gained +6 peers but nearly doubled
+close-spawn wipes; the diff showed the maps whose cat traps the ring destroys are
+mostly NOT close-spawn. A genuine rush has enemy rats beside our King at ROUND 2
+(traced on knifefight), whereas keepout and mercifullattice are far-spawn maps whose
+enemies merely wander into King vision at r40-49. `RUSH_WINDOW = 50` was wide enough
+to catch them, arming a ring that buys no wipe protection there and only revokes our
+cat-trap rights for the rest of the game.
+
+    MECHANISM  PASSED both halves.
+      knifefight vs bench_spaark   ring r1-20 = 8, unchanged (a real rush arms)
+      keepout                      ring 71 -> 0, cat traps 0 -> 112
+      mercifullattice              ring 17 -> 0, cat traps 0 ->  48
+
+    peers              95/108 -> 100/108 (92.6%)   5 gained, 0 LOST
+      pure_cooperator    41/54 -> 46/54
+      immediate_defector 54/54 -> 54/54   (sweep preserved)
+    benchmarks         11/162 -> 11/162   identical
+    close-spawn wins     4/42 ->   4/42   identical
+    close-spawn wipes   16/42 ->  16/42   identical
+    head-to-head       28/54 (51.9%) vs g_iter28
+
+**Five games gained and none lost, with every benchmark guard landing on exactly the
+control value.** The gained maps are the predicted ones -- keepout, mercifullattice,
+thunderdome -- plus evileye and starvation.
+
+The near-50% head-to-head is consistent rather than contradictory: the two builds
+differ only on maps where enemy rats first reach our King between r20 and r50, so on
+most of the pool they play identically and direct play is a coin flip. This is a
+case where the head-to-head has little resolution *by construction*, and the
+five-nil peer diff is the informative instrument.
