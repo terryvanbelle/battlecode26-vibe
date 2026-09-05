@@ -12996,3 +12996,50 @@ this project that peers, benchmarks and both close-spawn guards have agreed. The
     vs_old_bots   215/270 -> 234/270 (86.7%); 54/54, 53/54, 45/54, 41/54, 41/54
 
 Accepted as **g_iter28**.
+
+## Iteration 206 — dose the cat-trap round gate — 100 CONFIRMED, kept
+
+`CAT_TRAP_FIRST_ROUND = 100` was chosen from an argument ("every early wipe is over
+before round 100"), never measured -- exactly the kind of constant nobody chose.
+Dosed on peers against the g_iter28 control, no resampling (both instruments are
+byte-deterministic):
+
+    round   0 (ungated)   91/108   pure_cooperator 40/54   immediate_defector 51/54
+    round  50             91/108                   40/54                      51/54
+    round 100             95/108                   41/54                      54/54   <- kept
+    round 200             92/108                   39/54                      53/54
+
+**Concave with an interior optimum at 100**, so the value is near-optimal rather
+than arbitrary, and the gate is load-bearing in both directions -- too early costs
+the immediate_defector sweep (54/54 -> 51/54, rats standing beside cats during the
+rush), too late gives up catDamage the long games need. Same shape as Iteration
+83's bite-boost curve, and the same lesson: a negative slope on one side does not
+condemn the interior point.
+
+## Analysis note — the ring and the cat traps are mutually exclusive
+
+Not an iteration; a measurement made while Iteration 206 ran, and the most
+important thing learned today. Per-map, on g_iter28:
+
+    map               our ring   1st enemy trigger   rat-placed cat traps
+    mercifullattice      17            r49                   0
+    thunderdome         225            r30                   0
+    keepout              71            r47                   0
+    trapped               0            r67                  75
+    wallsofparadis        0           r123                  61
+
+**Wherever the ring arms, an enemy triggers it at r30-r49** -- well before our
+round-100 gate -- `triggerTrap` credits the backstab to the trap's OWNER, and
+`catTrapsAllowed` then bars us from placing cat traps for the rest of the game. The
+dichotomy is total: ring armed => exactly zero cat traps; ring unarmed => 61-75.
+
+This is not a placement-condition failure. Those same maps show 166-370 CatScratch
+events against our rats, so cats are adjacent to our rats constantly; we are simply
+forbidden to place. It also explains where the remaining points losses are worst:
+mercifullattice catShare 5.9%, thunderdome 23.8%, dirtpassageway 25.8%,
+starvation 28.6% -- all maps where the ring has revoked our rights.
+
+So the ring does not merely coexist with the new mechanism, it destroys it on
+roughly half the map set. Iteration 174 priced the ring at benchmarks 8 -> 4 and
+close-spawn 4/42 -> 0/42 when nothing competed with it; that number cannot settle
+the trade any more. Tested next.
