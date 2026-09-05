@@ -11286,3 +11286,39 @@ wrong quadrant.
 **The trap budget is now confirmed correct in four dimensions:** density
 (Iteration 161), steady rate (102), start time (168), and geometry (this). Type
 is closed by engine rule. That closes traps as a direction.
+
+## CORRECTION to Iteration 166 — squeaks do NOT increase cat activity
+
+Iteration 166's *result* stands: squeaking unconditionally lost 8/162 -> 4/162,
+directionally, with four of five lost games on `popthecork`. **Its stated
+mechanism was wrong**, and the error is one this log already has a rule against.
+
+I wrote that squeaking "doubles how much cats ACT (1272 -> 2963 cat-turns)". Those
+counts come from games of different length — 318 rounds and 824 rounds. Per
+round:
+
+    replay            rounds   squeaks   cat-turns   cat-turns PER ROUND
+    baseline win        318         0        1272           4.00
+    iteration 166       824      2227        2963           3.60
+    iteration 170       880        59        2947           3.35
+
+**Cat activity per round is flat, and if anything falls.** Iteration 170 makes the
+point unmissable: 59 squeaks produce the same cat-turn total as 2227 squeaks,
+because the total is just `~4 cats x rounds`. Squeaking has no measurable effect
+on how much cats act.
+
+This is exactly `normalize-per-round-before-comparing`, which exists because
+replay totals scale with game length and a longer-surviving bot reads as a
+regression. I had the memory and still compared raw totals — because the two
+numbers sat in the same table as a King-HP comparison that *was* valid.
+
+**What this changes.** The claim that "squeaks tether cats to the squeaker" is
+withdrawn; the observed cat behaviour is consistent with squeaks doing nothing to
+cats at this scale. Iteration 166's loss therefore has **no established
+mechanism** — it may simply be that squeaking is a wasted action slot, or the
+`d^2 64` gate perturbed movement. The associated memory has been corrected.
+
+It does not rescue Iteration 166 — 8/162 -> 4/162 with 5 of 6 directional flips
+is still a real regression — but it removes a false constraint from future squeak
+work: **the cat cost may not exist**, so a comms use should be judged on what the
+message buys, not on cat side effects.
