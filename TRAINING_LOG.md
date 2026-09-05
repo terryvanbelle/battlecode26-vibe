@@ -11975,3 +11975,38 @@ to walk and do nothing where they do not.
 any future reasoning about either trap type. It also explains part of the
 Iteration 155 confusion — cat traps look dormant partly because we frequently
 revoke our own right to place them.
+
+## Iteration 181 — attack the catDamage denominator — CLOSED without a run
+
+Iteration 180 showed peer points losses are decided by catDamage, and that raising
+our numerator nets zero because the term is a SHARE. The untried half was reducing
+theirs. Both routes close on measurement:
+
+**1. Their cat traps are unremovable AND negligible.** `assertCanRemoveCatTrap`
+checks `hasCatTrap(loc, this.getTeam())` — only our OWN traps can be removed, the
+same ownership rule that made `MapInfo.getTrap` useless for enemy traps in
+Iteration 156. And it would not matter:
+
+    replay                theirCatDmg   their placements   trap dmg (est)   bite dmg
+    closeup     botB           4928             7                500          4428
+    keepout     botA           7504             0                  0          7504
+    rift        botB           9376             0                  0          9376
+    sittingducks botB          4116             0                  0          4116
+
+**Their cat damage is essentially all teeth** — traps are ~2% of it in the one
+game they used any.
+
+**2. Denying their bites means winning fights we lose 0.02:1** (Iteration 156:
+seven enemy rats killed per eight games against 347 lost). Closed by every combat
+iteration in the log.
+
+**So the catDamage share is closed in both directions.** Five iterations have
+raised our numerator (142, 147, 179, and the cat-trap family 128/130/134/135/180);
+this closes the denominator. Since the peer points-loss decomposition is
+`catDamage -8.9, kings +0.0, cheese +0.1`, **those 19 games are not winnable
+through the scored terms as currently understood.**
+
+That redirects attention to the other bucket: **12 of 32 peer losses are King
+kills**, against an opponent running our own economy and movement code. A peer
+that beats us by destroying our King is a policy difference, not a strength
+mismatch, and it has never been traced.
