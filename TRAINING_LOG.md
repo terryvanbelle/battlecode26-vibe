@@ -12010,3 +12010,55 @@ That redirects attention to the other bucket: **12 of 32 peer losses are King
 kills**, against an opponent running our own economy and movement code. A peer
 that beats us by destroying our King is a policy difference, not a strength
 mismatch, and it has never been traced.
+
+## Iteration 181b — first trace of peer KING-KILL losses: two distinct causes
+
+Thirteen of the 32 peer losses end in King destruction, none of them early wipes
+(r455 and later). Traced four.
+
+### Cause 1: our own trap ring unleashes a pacifist opponent
+
+`pure_cooperator` has `desperate = false` and lays no rat traps, so it never
+initiates a backstab and its rats cannot attack us at all while cooperation holds.
+We break it ourselves:
+
+    replay                       coop ends   our traps placed   first enemy trigger of OUR trap
+    popthecork      botB              r88          26                  r88
+    tiny            botA              r10          56                  r10
+    peaceinourtime  botA            never          20                  none
+    whatsthecatdoin botA             r740          16                  none
+
+**In two of four, cooperation ends on the exact round an enemy first steps on one
+of our rat traps.** `triggerTrap` credits the backstab to the trap's OWNER, so our
+ring converts a peaceful opponent into an attacker — on `tiny`, at round 10.
+
+This compounds the Iteration 180 finding: the same event also permanently revokes
+our cat-trap rights. **One trap trigger costs us both the peace and the cat traps.**
+It is still not worth removing the ring — Iteration 174 measured ablation as
+peer-churn and benchmark -4 with close-spawn 4/42 -> 0/42 — but it explains a real
+part of why we score only 43% against an opponent running our own code.
+
+### Cause 2: a CAT kills our King while we are still cooperating
+
+`peaceinourtime botA`, cooperation never breaks, and we lose anyway at r523:
+
+    our King hp 600 -> 20 over 522 rounds
+    drop sizes: 29 drops, EVERY ONE of exactly 20   (= CAT_SCRATCH_DAMAGE)
+    hp lost while treasury < 50: 0 of 580
+    our rats alive at r100/300/500: 24 / 19 / 12
+
+Not starvation, not bites, with a healthy army and treasury throughout. **This is
+the exact mirror of how we win** — Iteration 165 found the enemy King dying to 29
+drops of 20 with our rats never adjacent.
+
+**And the counter already exists and already fires.** We placed **28 cat traps**
+in that game, peaking at 9 live, and a cat was within d^2 20 of our King in **114
+of 522 rounds (22%)**. The feature was not dormant here; it simply does not work
+against this threat. A cat has 4000 HP against a trap's 100, and **a cat parked
+adjacent to the King never steps on a trap** — traps punish movement, and a
+grinding cat does not need to move.
+
+So the reactive cat trap defends against cats *passing through*, not against the
+one that stops. That is a real gap with no counter yet identified: the King cannot
+outrun a cat (`movementCooldown` 40 against the cat's 20), our rats bite for 10
+against 4000 HP, and dirt cannot be placed on an occupied tile.
