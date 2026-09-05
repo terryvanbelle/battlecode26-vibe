@@ -12697,3 +12697,41 @@ circuit.
 around the King.** CAT_TRAP is 100 damage for 10 cheese, cats have 4000 hp, and a
 circuit repeats — this is the first mechanism found that makes a cat step on
 something deliberately rather than by luck.
+
+## Iteration 198 — trap the cat waypoint — CLOSED on the pre-check, no code
+
+The lever Iteration 197's engine re-read opened: cats turn aggressive on arriving
+at fixed waypoints, so a waypoint is observable and a returning cat must step onto
+that exact tile.
+
+**The observation held.** On `peaceinourtime` — the map where a cat ground our King
+from 600 to 20 — cat presence near our King is extremely concentrated:
+
+    cat-in-vision turns 136, distinct tiles 15, top 5 tiles = 83%
+    most-visited tile (9,47): 95 of 136 turns
+
+**But both halves of the idea fail.**
+
+1. **The King cannot reach it.** The waypoint tile is **d^2 49** from our King,
+   against `RAT_KING_BUILD_DISTANCE_SQUARED` 8. Only a rat could place there, and
+   rat-placed cat traps were already measured at exactly zero net across 108 peer
+   games (Iteration 180).
+
+2. **The cat arrives ONCE.** Across the whole 522-round game there is a single
+   distinct arrival onto that tile — the cat walked there and parked for 95 turns.
+   A trap triggers on arrival, not on occupancy, so it would fire once for 100
+   damage against a 4000 hp cat that goes on to deal 580 to our King.
+
+And on `rift` and `closeup`, **no cat enters the King's vision at all**, so there
+is nothing to observe in the first place.
+
+**This re-confirms Iteration 182 from a new direction: a parked cat is
+unanswerable.** Traps punish movement, and the cat that kills our King moves once.
+The waypoint mechanic makes cat behaviour *predictable* but not *exploitable* —
+knowing where a cat will go does not help when the counter requires it to keep
+moving and it does not.
+
+**The engine re-read is therefore complete without yielding a lever.** Cat
+behaviour is deterministic map data; it decides our win rate; and neither steering
+it (squeaks — withdrawn), racing it (7 of 8 losses end with the enemy King
+untouched), nor trapping it (this) is available.
