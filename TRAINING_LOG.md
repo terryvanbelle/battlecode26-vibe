@@ -11082,3 +11082,47 @@ influence over the units that actually decide games.
 **This is what `audit-unused-capabilities-not-just-behaviour` is for, and I found
 it late** — the audit in Iteration 156 checked whether the code we HAVE runs, and
 this is the complementary question about code we never wrote.
+
+## Iteration 166 — squeak as a cat lure — REJECTED (but the mechanic is now characterised)
+
+The first time this bot has ever called `rc.squeak()`. Gated to fire only beyond
+d^2 64 from our own King, on the theory that a squeak drags cats toward the
+squeaker and so should pull them out of our base.
+
+**Mechanism pass:** 2227 squeaks from a baseline of zero, no exceptions.
+
+**Result — REJECT, directional.**
+
+    benchmarks          8/162 -> 4/162   (-4)
+    close-spawn wins     4/42 ->  1/42   BREACHED
+    games changed           6:  1 gained, 5 lost
+    FOUR of the five losses are popthecork -- the map we won most reliably
+
+**What squeaking actually does, measured.** On `popthecork`, which the baseline
+wins at r318 and this loses at r824:
+
+    metric                              baseline    iter166
+    enemy King min hp                         20        380
+    our King min hp                          366         17
+    total cat TURNS                         1272       2963
+    cat-turns within 5 tiles of their King    14         14
+    cat-turns within 5 tiles of our King       0          0
+
+**Squeaking does not relocate cats. It doubles how much they act.** Cat turns went
+1272 -> 2963 with identical positioning near both Kings. A squeak keeps a cat in
+ATTACK mode and re-aims it at the squeaker, so instead of wandering the map — and
+wandering into the enemy base, which is how we win — the cats spent the game
+hunting our rats. Their King finished at 380 instead of 20.
+
+So the lure works in exactly the wrong direction: **the value of cats to us is
+that they roam, and squeaking stops them roaming.** That also explains why four
+of the five lost games are `popthecork`, the map whose wins are most
+cat-dependent.
+
+**The capability is not dead — this USE of it is.** The far larger prize is that
+`writeSharedArray` requires `isRatKingType`, so squeak is **the only rat-to-rat
+channel that exists**, and it carries a location and an integer to every ally
+within four tiles for free. Our rats currently have no shared state of any kind,
+which is why Iteration 158's focus fire could not work. Any future use should
+treat the cat-attraction as a COST to be minimised (squeak rarely, or only when
+no cat is within the radius) rather than as the point.
