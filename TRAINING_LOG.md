@@ -11360,3 +11360,65 @@ that the channel may have no profitable use for this bot.
 
 Recorded alongside the correction above: **there is no measured cat cost to
 squeaking**, so the channel is cheap. It is the *content* that has failed twice.
+
+## Iteration 171 — King idle-action audit, and the dirt wall — REJECTED
+
+Started as a different *category* of question after many closed directions: not
+"should the King do X instead of Y" but "does it act at all when it could?"
+
+**A premise I had wrong, corrected by reading the field order.**
+`RAT_KING(600, 3, 25, 360, 10, 40, 20000)` maps to health / size / vision^2 /
+angle / **actionCooldown 10** / movementCooldown 40. The King's *action* cooldown
+is 10 against `COOLDOWNS_PER_TURN` 10, so it can act **every round** — not every
+fourth as I had estimated. Measured utilisation across five g_iter26 losses:
+
+    closeup 6.0%   corridor 11.2%   dirtfulcat 41.1%   closeup 11.2%   corridor 31.1%
+
+Median ~11%: the King idles through most of its turns. But the idleness is
+**cheese-gated, not wasted** — median treasury is 752-1198, below
+`REPLACEMENT_RESERVE` 1000, and Iteration 162 already proved that forcing that
+spend loses. The attack path is also correct and reachable (it runs after the
+build attempt, and the King bites 8-59 times a game). So the budget question is a
+void on its own.
+
+**What it surfaced: `placeDirt` has never been called by this bot.** We only ever
+`removeDirt`. It is nearly free — `PLACE_DIRT_CHEESE_COST = 0`, needing only an
+action, dirt inventory, and a tile within `RAT_KING_BUILD_DISTANCE_SQUARED` 8 —
+and dirt is **impassable**, so it builds a wall. Our dirt inventory climbs to
+18-24 over a game and we spend none of it.
+
+**Two reachability failures before it fired**, both worth recording:
+1. Gated on "enemy rat visible while idle": **zero placements in a whole game.**
+   The King is only idle when out of cheese, and enemies are almost never inside
+   its radius^2 25 vision at that moment — the same conjunction that left
+   Iteration 128's cat traps dormant.
+2. Ungated but restricted to the outer ring (d^2 5..8): **still zero.** Around a
+   SIZE-3 King that annulus is a handful of tiles and our own delivering rats sit
+   on them. Only `d^2 >= 3` fired, confirmed with a `System.out` probe reading
+   `DIRTWALL 1 at [1,3]` at round 45.
+
+**Result — REJECT, on the peers.**
+
+    instrument                  g_iter26        iteration 171
+    benchmarks                    8/162             6/162   (4 changed, 1 gained 3 lost: churn)
+    early wipes                      14                13   (slightly better)
+    close-spawn wins               4/42              3/42
+    peers, full mapset, paired   76/108 (70.4%)    66/108 (61.1%)   -10
+      vs pure_cooperator         23/54  (43%)      14/54  (26%)
+
+Per the user's rule the churn-level benchmark delta sent this to the peers rather
+than to a verdict, and the peers found a significant regression: **-10 games, with
+`pure_cooperator` collapsing 43% -> 26%.**
+
+**Why: we wall ourselves in.** Dirt at d^2 >= 3 from a size-3 King sits directly
+on the tiles our own rats use to reach it and deliver cheese, and on the tiles
+`findBuildLocation` needs. The `MAX_DIRT_WALL` cap of 6 was meant to bound that
+and did not — six impassable tiles inside a build radius of ~21 is enough to
+matter. The near-mirror instrument shows it most clearly because there both sides
+have identical economies and only ours is obstructed.
+
+**The capability is real and remains unused.** A wall that does not enclose our
+own King would need placing far from home, where the King cannot reach (build
+radius 8) and rats cannot place (`placeDirt` is available to any robot type, but
+a rat's build radius is `BUILD_DISTANCE_SQUARED` 2). That is the shape of any
+future attempt, and it is a different design rather than a tuning of this one.
