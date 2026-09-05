@@ -11733,3 +11733,48 @@ the desperation flag (worth 0), **and nothing in the mirror result distinguishes
 the two cases.** That is the argument for the standing rule adopted this session:
 run the peers on every accept, and judge by the game-by-game diff rather than the
 total.
+
+## Iteration 176 — extend the emergency override to bypass the build CAP — REJECTED
+
+The audit's largest finding suggested its own extension. The Iteration 40/84
+override is worth fifteen peer games by relaxing the cheese reserve when the King
+sees no allied rat — but it relaxes only the cheese gate, not the count gate:
+
+    buildLoc != null && canBuildRat && cheese - ratCost >= buildReserve
+        && builtCount < MAX_POPULATION
+
+`builtCount` is cumulative per 400-round window, so an army wiped late in a window
+leaves the King unable to rebuild until the window rolls over, however much cheese
+the override just freed. That is the situation the override exists for,
+half-answered.
+
+**Mechanism passed — the cap really was binding.** Matched control on
+whereisthecheese:
+
+    g_iter26 control   27 spawns
+    iteration 176      34 spawns   (+26%)
+
+**Result — REJECT.**
+
+    instrument         g_iter26        iteration 176
+    peers            76/108 (70.4%)   74/108 (68.5%)   18 changed: 8 gained, 10 lost
+    benchmarks         8/162            8/162          (flat)
+    close-spawn wins    4/42             2/42
+    early wipes           14               13
+
+**Churn on peers, flat on benchmarks, close-spawn down two.** No gain on either
+instrument, so no accept.
+
+**Why the extra rats do not help, and it is the session's recurring answer.** The
+rats get built and immediately die: this is the same wall as
+`economic-throughput-passes-its-own-check-and-loses`, where three separate
+iterations raised output, proved their mechanism, and lost. Rebuilding faster
+after a wipe adds bodies to a fight we lose at 0.02:1
+(Iteration 156), so the marginal rat is worth much less than the first one the
+override already buys.
+
+**That also sharpens what the override actually does.** It is not valuable because
+it produces rats in bulk — bulk is what this iteration added, to no effect. It is
+valuable because it produces *the first few* rats when we have none, restoring
+cheese income before the King starves. Fifteen peer games come from escaping zero,
+not from rebuilding to strength.
