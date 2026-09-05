@@ -11234,3 +11234,55 @@ So Iteration 96's result — the ring halving early wipes, measured on a far wea
 bot — is now re-validated on g_iter26 from the opposite direction, and the trap
 budget is confirmed correct in all three dimensions tested this session: density
 (161, 3:1 worse), steady rate (102, 1:1 worse) and start time (168, delay worse).
+
+## Iteration 169 — trap type (closed free) and threat-biased ring geometry — REJECTED
+
+Two dimensions, one closed without a run and one measured.
+
+### Trap TYPE — closed on reachability, no Gauntlet
+
+`CAT_TRAP` is half the cost and double the damage of `RAT_TRAP` (10/100 vs
+20/50), which looks like an obvious upgrade for rush defence. It is not, and the
+engine says so outright in `processTrapsAtLocation`:
+
+    wrongTrapType = ((isBabyRatType() || isRatKingType()) && type == CAT_TRAP)
+                 || (isCatType() && type == RAT_TRAP);
+
+**Baby rats and kings never trigger a cat trap.** Cat traps cannot answer a rat
+rush at any price. Cheapest possible negative — one grep.
+
+### Ring GEOMETRY — measured, rejected
+
+Only ~21 tiles sit within `RAT_KING_BUILD_DISTANCE_SQUARED` 8, the ring saturates
+(Iteration 157), and half of it faces away from the enemy. On the traced
+knifefight wipe the Kings spawn five tiles apart, so the rush arrives from one
+bearing. `findTrapLocation` now biases placement toward the nearest visible enemy
+rat, taking the bearing from the King's own 360-degree vision rather than the
+shared-array symmetry guess (wrong on 16 of 27 maps, Iteration 138).
+
+**Mechanism passed strongly:** enemy trigger events on our traps went **3 -> 8**
+on the traced map, a 2.7x rise.
+
+**Result — REJECT.** Per the user's rule the flat benchmark sent this to the
+peers rather than to a rejection, and the peers settled it:
+
+    instrument                  g_iter26        iteration 169
+    benchmarks                    8/162             7/162   (1 game changed)
+    early wipes                      14                14   (unchanged)
+    close-spawn wins               4/42              3/42
+    peers, full mapset, paired   76/108 (70.4%)    70/108 (64.8%)   -6
+
+No gain on either instrument, and peers down six. **Tripling the trigger rate on
+one map produced no reduction in early wipes at all** — the guard this change
+existed to move.
+
+**Why, most likely:** concentrating the budget on one bearing opens every other
+bearing, and the nearest *visible* enemy rat is a poor proxy for where the rush
+will actually arrive — the King's vision is radius^2 25, so it sees the threat
+only once it is nearly on top of the ring, by which point the traps are already
+placed. A ring that is uniformly thin everywhere beats one that is thick in the
+wrong quadrant.
+
+**The trap budget is now confirmed correct in four dimensions:** density
+(Iteration 161), steady rate (102), start time (168), and geometry (this). Type
+is closed by engine rule. That closes traps as a direction.
