@@ -12435,3 +12435,55 @@ that costs no actions once placed), the emergency override (spends cheese we wer
 hoarding anyway), and the movement fix (removes waste with no trade-off at all).
 None of them buys an advantage by trading one resource for another. That is a
 narrow and demanding class, and it is the honest place to look next.
+
+## Iteration 192 — waste audit: the zero-marginal-cost class is empty
+
+The search criterion the evidence dictates. Both halves of the obvious framing are
+measured and wrong, so the remaining class is **waste** — places the bot pays a
+cost and gets nothing, removable without giving anything up. That is exactly what
+the movement fix was, and it is worth +14 peer games.
+
+Measured on the matched g_iter26 control (rift vs bench_stroke, 38097 rat-turns):
+
+**1. Wasted turns — 6.9%, real but small.**
+
+    rat-turns with no move, no turn, no action:   4799   12.6%
+      of which movement-cooldown bound:           2186   45.6% of those
+      TRULY idle (could have acted, did not):     2613    6.9% of all rat-turns
+
+**2. Wasted travel — NOT waste. The control inverted the reading.**
+
+    steps per unit of net displacement:   11.7x
+    tile revisits by the same rat:        74% of all steps
+
+That looks damning, and it is not, because a forager shuttling between mine and
+King revisits tiles by design and ends where it started. Against the opponent on
+the same map:
+
+    OURS     167 rats,  31852 steps,  74% revisits
+    THEIRS   180 rats,  93451 steps,  93% revisits
+
+**They revisit more than we do, while winning.** An absolute path-efficiency
+number means nothing without a control; had I stopped at 74% I would have spent a
+run straightening routes that are not crooked. (They also take 2.9x more steps
+with ~3x more rats, i.e. per-rat parity — the same normalisation result as
+Iteration 189's cheese finding.)
+
+**3. Wasted cheese — no evidence.** Pickups run 314 per 1000 rounds against 237.5
+transfers, about 1.3 pickups per delivery, so rats are not hoarding into the
+`CHEESE_COOLDOWN_PENALTY`. `deliverCheese` firing at `getRawCheese() > 0` is doing
+its job.
+
+**4. Wasted King actions — already answered.** Iteration 171 measured ~11%
+utilisation and established the idleness is cheese-gated, not squandered.
+
+**Conclusion: there is no large waste left to remove.** The only candidate is 6.9%
+of rat-turns, and those rats are mostly boxed in by terrain or allies rather than
+choosing to do nothing. **The zero-marginal-cost class has been searched and is
+essentially empty** — the movement fix appears to have been the one big piece of
+free value in the bot, which is consistent with it being the largest single
+improvement measured (+14 peer games).
+
+That is the honest state: g_iter26 is a local optimum under every framing this run
+could construct — more damage, fewer losses, and less waste have all been tested
+and all are exhausted.
