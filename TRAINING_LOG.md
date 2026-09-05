@@ -10771,3 +10771,64 @@ collecting, which this project has now tested six times — Iterations 115, 118,
 economy-first policy is not an oversight; it is what keeps us alive.** The combat
 gap is structural, and closing it by fighting more has been measured to cost more
 than it gains.
+
+## Iteration 159/160 — chase radius, re-dosed and then GATED — **ACCEPTED** (g_iter26)
+
+Iteration 145 measured `CHASE_RADIUS_DSQ` 20 at 6/162 against a then-baseline of
+8/162 and I recorded a "clean interior optimum at 8". Two things justified
+re-opening it: the noise standard changed (Iteration 151 showed a -2 delta can be
+eight games churning both ways), and **g_iter25 changed movement outright** — 0%
+strafes against 50.6%, 26% more moves per game. The cost of chasing is travel
+time, and travel time had just fallen.
+
+### 159: unconditional d^2 20 — rejected, but the diff was the finding
+
+    benchmarks          6/162 -> 7/162   (+1, noise)
+    close-spawn wins     4/42 ->  2/42   BREACHED
+    early wipes            14 ->    17   directional
+
+Unlike Iteration 151's churn, the five changed games were **structural**:
+
+    GAINED  bench_finalist whatsthecatdoin A   loss r885  -> win r1009
+    GAINED  bench_spaark   closeup         B   loss r820  -> win r738
+    GAINED  bench_stroke   whatsthecatdoin A   loss r1187 -> win r533
+    LOST    bench_spaark   popthecork      B   win r570   -> loss r822  [close-spawn]
+    LOST    bench_stroke   popthecork      A   win r318   -> loss r143  [close-spawn]
+
+Every gain is a longer map; both losses are close-spawn. So the wider radius is a
+**map-dependent trade, not a flat optimum** — and Iteration 145's single number
+was averaging a trade it could not see.
+
+### 160: the same radius, gated on round >= 300 — accepted
+
+    final int CHASE_RADIUS_DSQ = rc.getRoundNum() >= 300 ? 20 : 8;
+
+Round 300 is past the entire wipe window (every early wipe is before round 100,
+fastest losses rounds 19-28), so it removes exactly the early chasing that costs
+close-spawn games and keeps the late chasing that wins long ones. Same clause
+that restored the guard in Iteration 150.
+
+**Mechanism check:** RatAttack on rift is 299 with the gate, *identical* to the
+ungated arm and against g_iter25's 234 — the gate costs nothing where the benefit
+lives, because rift is long.
+
+**Result — ACCEPT.**
+
+    benchmarks              6/162 -> 8/162
+    games changed                2, BOTH GAINED, none lost
+    close-spawn wins         4/42 -> 4/42    (restored)
+    early wipes                14 ->   14    (restored)
+    g_iter25 head-to-head    28/54 = 51.9%   (flat -- no contradiction)
+
+Prediction stated before the run — *close-spawn returns to 4/42, wipes to ~14,
+and the three gained games survive* — held on every count. The two surviving
+gains are both `whatsthecatdoin`, at r760 and r501.
+
+No instrument contradicts another, so no peer tiebreak was needed. And the
+game-by-game diff is what distinguishes this from Iteration 151's "+2": two games
+moved, both in the same direction, zero against.
+
+**Method note worth keeping.** Iterations 159 and 160 together are the argument
+for diffing every run rather than reading totals. 159's "+1 benchmark game" was
+simultaneously a real gain on long maps and a real loss on close-spawn ones; the
+total hid both. The gate then captured one and discarded the other.
