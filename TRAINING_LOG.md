@@ -12917,3 +12917,82 @@ saturation; it read the right curve for the wrong reason.
 Reverted to 20. **The capability is restored and already saturated at the engine
 cap, so there is no lever here** -- and the restored value is already inside
 g_iter27's measured 80/108, not additional to it.
+
+## Iteration 204 — rats lay cat traps beside cats — the mechanism
+
+**The target, measured on g_iter27's own peer run.** 19 of 28 peer losses are
+decided on POINTS at round 2000, and catDamage share decides essentially all of
+them. Median catShare in those losses is **35.1%** while cheese share sits at
+parity (~50%) and both Kings are alive, so the 0.5-weighted cat term is the whole
+game. Five losses were within 4.4 points, each needing only 2-4pp of cat share:
+
+    map                margin   catShare   ourCat/theirCat
+    pipes               -4.4      45.8%      3656/4332
+    trapped             -4.0      47.2%      1670/1866
+    wallsofparadis      -2.6      46.5%       844/970
+    uneruesansfin       -2.1      48.2%       842/904
+    whatsthecatdoin     -2.0      50.2%      1936/1922
+
+**Why this is not Iteration 179 again.** That bought cat damage by sending rats to
+ENGAGE cats and cost 3 peer games -- closing on a cat gets rats scratched for 20
+and stops them foraging. This buys the same currency from a different source, and
+the engine is explicit about both halves:
+
+    if (type == CAT_TRAP && robot.getType().isCatType() && robot.getHealth() > 0)
+        teamInfo.addDamageToCats(trap.getTeam(), min(type.damage, robot.getHealth()));
+    if (trap.getType() != TrapType.CAT_TRAP)
+        ... backstab(robot.getTeam().opponent());
+
+1. A cat trap triggered by a cat credits its **full 100 damage to the trap's
+   OWNER**.
+2. Cat traps are **exempt from the backstab** that rat traps cause -- so this is
+   compatible with g_iter27's thesis rather than in tension with it.
+
+At 10 cheese for 100 damage it is the cheapest damage in the game (RAT_TRAP is 20
+for 50), and `BUILD_DISTANCE_SQUARED` is 2, so any rat can place one beside a cat.
+Placed only where it will fire: within our build radius AND within the trap's own
+trigger radius of the cat.
+
+    MECHANISM  PASSED, overwhelmingly. 45-75 rat-placed traps per game, 0 exceptions.
+               map              ours/theirs control -> iteration 204     our share
+               pipes             3656/4332  ->  4812/3006             45.8% -> 61.5%
+               trapped           1670/1866  ->  7268/ 666             47.2% -> 91.6%
+               wallsofparadis     844/ 970  ->  6410/1422             46.5% -> 81.8%
+               All three flipped LOSS -> WIN. Note their catDamage FALLS as ours
+               rises: cat HP is a finite contested pool, exactly the shape
+               "proportional score terms are contested" predicts.
+
+    peers      80/108 -> 91/108   pure_cooperator 29/54 -> 40/54, +17 gained 6 lost
+    benchmarks  6/162 -> 10/162
+    GUARD BROKEN  close-spawn wipes 16/42 -> 20/42, close-spawn wins 3/42 -> 2/42
+
+Cats are **not** killed by this -- there are only 2 per map and they survive; the
+apparent "cat deaths" were `DieAction target=` lines in which the cat is the ACTOR
+killing our rats. Same actor/victim ambiguity as RatNap/ThrowRat; checked rather
+than assumed this time.
+
+## Iteration 205 — gate the cat trap past the wipe window — ACCEPTED as g_iter28
+
+Iteration 204's guard breakage has a mechanical cause: laying the trap consumes the
+rat's action and returns, so a rat that would have FLED instead stands beside the
+cat and takes the 20-damage scratch. That is pure cost during the early rush and
+pure profit afterwards, and the two separate cleanly in time -- every early wipe is
+over before round 100, while the points games this wins run to r2000. So gate
+placement to round >= 100.
+
+    peers        80/108 -> 95/108 (88.0%)   +17 gained, 2 lost, net +15
+      pure_cooperator     29/54 -> 41/54
+      immediate_defector  51/54 -> 54/54  (swept; all 13 remaining losses are
+                                           pure_cooperator)
+    benchmarks    6/162 -> 11/162          (g_iter26 was 8; best in the project)
+    close-spawn wins   3/42 -> 4/42        (restored, above the control)
+    close-spawn wipes 16/42 -> 16/42       (unchanged from control)
+
+**Every instrument moves the same way and no guard regresses** -- the first time in
+this project that peers, benchmarks and both close-spawn guards have agreed. The
++15 on peers is the largest single-iteration gain in the run.
+
+    head-to-head  41/54 (76%) vs g_iter27 -- the pre-accept gate
+    vs_old_bots   215/270 -> 234/270 (86.7%); 54/54, 53/54, 45/54, 41/54, 41/54
+
+Accepted as **g_iter28**.
