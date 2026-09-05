@@ -11322,3 +11322,41 @@ It does not rescue Iteration 166 — 8/162 -> 4/162 with 5 of 6 directional flip
 is still a real regression — but it removes a false constraint from future squeak
 work: **the cat cost may not exist**, so a comms use should be judged on what the
 message buys, not on cat side effects.
+
+## Iteration 170 — squeak as a danger signal — REJECTED
+
+First *comms* use of `squeak()`, the only rat-to-rat channel in the game
+(`writeSharedArray` requires `isRatKingType`, so our rats have shared no state at
+all). A rat whose health dropped since last turn squeaks its location; allies
+within earshot **step away** from a fresh warning rather than converging on it.
+
+Avoidance rather than reinforcement was a deliberate choice: converging on a
+fight is what Iterations 115/118/119/121/142/145 each tried and lost, and the
+Iteration 156 audit explains why — we kill 7 enemy rats per eight games while
+losing 347, a 0.02:1 exchange, so reinforcing a losing trade loses harder.
+
+**Mechanism passed:** 59 squeaks from a baseline of zero, no exceptions, and the
+guard against speaking within a cat's earshot worked as written.
+
+**Result — REJECT, directional.**
+
+    benchmarks         8/162 -> 6/162   (6 games changed, 2 gained 4 lost)
+    EARLY WIPES           14 ->    18   (46% of all losses)
+    close-spawn wins    4/42 ->  3/42
+
+**Why: avoidance scatters the defence exactly when it is needed.** During a rush
+every defender is taking damage, so every defender is squeaking, so every nearby
+rat walks away from the King. The signal is loudest precisely where we least want
+rats to leave — `knifefight` wipes went 4 -> 6 and `tiny` 4 -> 6.
+
+**Both responses to a distress signal are now measured and both lose:**
+converging (six iterations) and avoiding (this one). That is informative about
+the channel rather than the signal — **the value of rat-to-rat comms, if any, is
+not in reacting to combat.** Any further squeak work should carry information
+that is *not* about danger: cheese locations, explored regions, or a rendezvous.
+Note that cheese-location sharing is throughput, which is separately closed
+(`economic-throughput-passes-its-own-check-and-loses`), so the honest reading is
+that the channel may have no profitable use for this bot.
+
+Recorded alongside the correction above: **there is no measured cat cost to
+squeaking**, so the channel is cheap. It is the *content* that has failed twice.
