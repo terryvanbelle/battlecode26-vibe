@@ -12343,3 +12343,49 @@ King placement (169: triggers tripled on one map, peers -3). **Untried: placing 
 the approaches to CHEESE MINES**, which are static and which enemy rats must visit
 repeatedly — `hasCheeseMine` blocks the mine tile itself but not its neighbours.
 Headroom is small (3-9 traps under the cap) but the location has never been tested.
+
+## Iteration 190 — trap the approaches to cheese mines — REJECTED
+
+The one lead surviving the Iteration 189 audit. Their robots step on our traps 5.5
+times per 1000 rounds while ours step on theirs 31.5 — a 6x disadvantage on our
+most effective weapon — because our ring is capped by geometry around a King that
+never moves. Three earlier placement variants failed and shared a flaw: none put a
+trap where an enemy has a *reason* to walk. A cheese mine is static, both teams
+must visit it, and a collecting rat is already standing there, so unlike Iteration
+157 there is no travel cost.
+
+**Mechanism passed on both conditions:**
+
+    matched g_iter26 control on rift    control   iteration 190
+    rat-placed traps                        0          10
+    enemy triggers on OUR traps            11          21     (nearly doubled)
+    King ring placements                   23          32     (ROSE)
+
+The ring was not cannibalised — the opposite. More triggers free cap slots, so the
+King places *more*. That is the failure mode of Iterations 157 and 169 avoided.
+
+**A stale control nearly inverted this reading.** My first comparison used 39 ring
+placements and 23 triggers, carried over from a g_iter25-era replay, against which
+iter190 looked like a clear VOID (both numbers *falling*). The matched g_iter26
+control reads 23 and 11, against which both *rose*. Same discipline as Iteration
+162, and this time it saved a correct result rather than catching a wrong one.
+
+**Result — REJECT.**
+
+    instrument      g_iter26        iteration 190
+    peers         76/108 (70.4%)   75/108 (69.4%)   21 changed: 10 gained, 11 lost
+    benchmarks      8/162             7/162
+    close-spawn      4/42              3/42
+    early wipes        14                14
+
+Churn on both instruments, no gain.
+
+**Why doubling the trigger rate buys nothing.** Ten extra triggers at RAT_TRAP's
+50 damage is ~500 damage, about five rats' worth — against an opponent we already
+lose to at 7 kills per 347 losses (Iteration 156). **Trap damage converts no better
+than bite damage does.** The 6x trigger asymmetry the audit found is real, and
+closing it is simply not worth much, because killing a few more enemy rats has
+never been the constraint.
+
+That closes the last lead from the action-histogram audit, and with it the trap
+LOCATION question in its fourth and final variant.
