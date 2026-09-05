@@ -11513,3 +11513,24 @@ sign.
 better-understood reason than in Iteration 146: not that we cannot afford the
 rats, but that a King which does not fight is not worth eight rats' worth of
 economy, however large the army.
+
+### Verification: g_iter26 checked on the sensitive instrument
+
+Iteration 173 showed the benchmark set is nearly blind to regressions — a change
+that collapsed the peers by 28 games moved benchmarks by 2. g_iter26 itself was
+accepted on a **+2 benchmark result with a flat mirror and no peer run**, so by
+that standard its evidence was thin. Re-measured against the same archetypes and
+map set:
+
+    build       benchmarks    peers, full mapset
+    g_iter25       6/162       72/108  (66.7%)
+    g_iter26       8/162       76/108  (70.4%)
+
+**Both instruments agree**, so the accept stands on better evidence than it had
+on the day. Worth noting the peer delta (+4) is smaller than the 28-game swing a
+genuinely bad change produces, which is the right shape for a modest, correct
+change rather than a dramatic one.
+
+**Standing change to method:** run the peer gauntlet on every accept, not only
+when instruments conflict. It is 108 games and it is the only instrument that
+reliably shows harm.
