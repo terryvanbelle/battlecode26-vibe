@@ -11614,3 +11614,39 @@ The two audits show the distinction cleanly:
 sensitivity.** The game-by-game diff is still the deciding tool on the peer
 instrument, exactly as on benchmarks — a lesson I had already learned for
 benchmarks in Iteration 151 and briefly forgot when the instrument changed.
+
+### King trap ring — peer re-audit: KEEP, and it settles the Iteration 82/96 conflict
+
+The highest-stakes item on the accepted list, and the one with a genuine
+unresolved disagreement in its history: Iteration 82 ablated the ring and scored
+**57.4% on the mirror** (i.e. remove it); Iteration 96 restored it because
+benchmark early wipes **halved, 26% -> 13%**. The peers had never been asked.
+
+    instrument           g_iter26 (ring on)      ring ablated
+    peers                  76/108 (70.4%)       78/108 (72.2%)   20 changed: 11 gained, 9 lost
+    benchmarks               8/162                 4/162         -4
+    close-spawn wins          4/42                  0/42         TOTAL COLLAPSE
+    early wipes                 14                   ~42         (31 on close-spawn alone,
+                                                                  plus 11 outside the set)
+
+**Peers are neutral** — twenty games flipping 11/9 is churn by the standard
+established two entries above, not the +2 the total suggests. **Benchmarks are
+emphatic**: the ring is worth four wins, *every* close-spawn win, and it holds
+early wipes to a third of what they become without it.
+
+**So Iteration 82's 57.4% mirror reading was churn all along**, and Iteration 96
+was right to override it. The conflict that has sat in this log since is now
+resolved with a third, sensitive instrument agreeing that the ring is not merely
+harmless but load-bearing.
+
+### The audit so far
+
+    feature                       peers            verdict
+    reactive cat traps (128)      -3 directional   KEEP -- and "dormant" was wrong
+    cheese-boosted bite (83)      +2 churn         KEEP (neutral)
+    King trap ring (48/96/102)    +2 churn         KEEP (benchmarks -4, wipes 3x)
+
+**No harmful feature found.** The premise that started this audit — that
+benchmark-blindness may have let a regression into the accepted list — is so far
+not borne out, and two features are better founded than the log claimed. That is
+a satisfying negative: the accepted list survives its first serious cross-check.
