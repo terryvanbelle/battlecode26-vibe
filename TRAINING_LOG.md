@@ -11579,3 +11579,38 @@ So Iteration 155's write-up is corrected: the feature is live, worth ~3 peer
 games, and its acceptance in Iteration 128 was better founded than my own later
 audit suggested. The audit's first result is that an accepted feature is *more*
 valuable than believed, not less.
+
+### Bite boost (Iteration 83) — peer re-audit: NEUTRAL, keep it
+
+Second feature audited, and the one I most suspected: the 4-cheese boosted bite
+was kept on a 53.7% *mirror* reading, and it spends cheese, which Iteration 163
+showed is the binding constraint.
+
+    instrument      g_iter26        boost ablated
+    benchmarks        8/162            8/162      (2 changed: 1 gained, 1 lost)
+    peers            76/108           78/108      (12 changed: 7 gained, 5 lost)
+
+**Net +2 on peers, but from twelve games flipping in both directions.** That is
+churn, not a gain — the same reading I would apply to a benchmark result, and the
+net of twelve coin-flips has a spread of about +/-1.7. **Verdict: neutral. The
+feature stays**, because changing the accepted build needs a reason and "no
+measurable difference" is not one.
+
+### An important correction to what I wrote earlier in this entry
+
+I said the peer instrument's exact reproducibility means "any difference is
+signal". **That is wrong and I should not have written it.** Reproducibility means
+a *repeated identical run* gives an identical result — which it does, byte for
+byte. It does not mean a code change produces only meaningful differences: game
+trajectories are chaotic, so any perturbation reshuffles a batch of near-threshold
+games in both directions.
+
+The two audits show the distinction cleanly:
+
+    cat traps ablated    3 games changed, ALL 3 lost      -> directional, real
+    bite boost ablated  12 games changed, 7 gained 5 lost -> churn, neutral
+
+**Determinism removes run-to-run noise; it does not remove trajectory
+sensitivity.** The game-by-game diff is still the deciding tool on the peer
+instrument, exactly as on benchmarks — a lesson I had already learned for
+benchmarks in Iteration 151 and briefly forgot when the instrument changed.
