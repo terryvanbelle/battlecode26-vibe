@@ -10926,3 +10926,48 @@ not a different map set, but a different *build*. **A measurement is only
 evidence about the bot that produced it.** The habit that caught it — running a
 matched control on the current build before trusting a remembered number — is
 cheap and should be unconditional.
+
+## Iteration 163 — move the population gate 1500 -> 1000 — REJECTED (decisively)
+
+Iteration 162's control exposed a second stale belief: Iteration 147's population
+gate is `cheese > 1500`, but g_iter26's treasury hovers **890-1490**, i.e. below
+it. Sampling the round lines, the gate is open in only 8-40% of rounds and its
+maximum is 2488 — the *starting* treasury. So the accepted g_iter24 feature is
+mostly an **early-game** effect (cap 60 at spawn, then closed), not the "build
+freely when rich" behaviour I had been describing in three separate entries.
+
+Moving the gate into the band the treasury actually occupies looked like the
+obvious correction.
+
+**Mechanism check — passed cleanly.** Both pre-registered conditions:
+
+    gate open on rift    8%  ->  43%
+    spawns (matched g_iter26 control on the same map)   168 -> 177
+    traced game still reaches r2000 (no starvation collapse)
+
+**Result — REJECT, and not marginally.**
+
+    benchmarks          8/162 -> 3/162   (-5, about 2 sigma)
+    close-spawn wins     4/42 ->  2/42   BREACHED
+    games changed           7:  1 gained, 6 lost -- directional
+
+The losses sweep `peaceinourtime` (three of four sides), both `popthecork`
+close-spawn wins, and both `whatsthecatdoin` wins that g_iter26 had gained.
+
+**This replicates Iteration 148 on the current build.** That iteration measured
+gate 1000 as worse on g_iter24; I had discounted it precisely because it was a
+g_iter24 number, having just been burned by trusting one in Iteration 162. Both
+builds agree, so **the 1500 gate is genuinely right and the question is closed**
+— and the caution was still correct procedure, since the only way to know which
+stale numbers survive a build change is to re-measure them.
+
+**The real lesson is about the direction of the error.** Spending deeper produces
+more rats — spawns rose 168 -> 177, exactly as designed — and still loses five
+games. That is now the *third* time this session that raising economic throughput
+measured well on its own mechanism and lost benchmark games: Iteration 151's
+movement speed (rescued only by the peer tiebreak), Iteration 162's reserve, and
+this. **Cheese held above the reserve is not idle capital; it is what keeps the
+King alive while the army is being destroyed** — Iteration 155 put 42.4% of King
+damage at treasury < 50, and every one of those games had already lost its army.
+The treasury band of 890-1490 is not a failure to spend. It is the equilibrium
+the bot needs.
