@@ -12101,3 +12101,42 @@ games (Iteration 178) — but they engage the *nearest* cat wherever it is, with
 notion of defending the King. A cat parked on our King is worth far more to kill
 than one wandering the map, and nothing in the bot expresses that. That is the one
 lever this trace leaves open.
+
+## Iteration 183 — rats prioritise the cat nearest our King — VOID
+
+The one lever Iteration 182 left open. Our rats are the only unit that can reach a
+cat grinding the King, they already engage cats (worth eleven peer games), and
+`nearestOfType` picks the nearest cat with no notion of which one matters. The
+change re-targets an engagement the rat was already going to make, among cats
+already inside its vision, so it should cost no travel.
+
+**Result — VOID. The traced game is identical.**
+
+    metric                     control (g_iter26)   iteration 183
+    King hp lost to scratches         580                580
+    scratch-coincident drops           29                 29
+    our catDamage                    3598               3598
+    result                     LOSS r523          LOSS r523
+
+**Why, and it took a careful second look.** Measuring globally, the conditions look
+perfect: more than one cat is visible *somewhere* in all 522 rounds, a cat sits
+within d^2 20 of our King in 118 rounds, and one of our rats is within d^2 20 of
+that cat in **118 of 118 (100%)** of them. On those numbers the re-targeting
+should fire constantly.
+
+It does not, because **global proximity is not per-rat visibility.** A Baby Rat
+senses through a **90-degree cone** of radius^2 20, so an individual rat almost
+never has two cats in view at once — and with one candidate, "nearest cat" and
+"cat nearest the King" are the same cat. The selector had a choice globally and
+essentially never had one locally.
+
+I nearly recorded the opposite conclusion ("our rats never get near that cat"),
+which the global numbers flatly contradict. The cone is the reason, as it was for
+Iteration 152's sweep and Iteration 158's focus fire: **any per-rat target
+preference is limited by what one 90-degree wedge contains, and that is usually a
+single candidate.** Cross-rat coordination would be needed to express a team-level
+priority, and the only channel for it — `squeak` — was measured neutral-to-harmful
+in Iterations 166 and 170.
+
+That closes the parked-cat problem: the King has no counter of its own (Iteration
+182), and the rats cannot be told which cat to prefer.
