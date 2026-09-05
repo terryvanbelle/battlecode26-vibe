@@ -12290,3 +12290,56 @@ this — which is the point of
 reading tells you which case you are in.** Re-opening on a changed cause was still
 correct procedure; it cost one run and converted a weakly-founded rejection into a
 firmly-founded one.
+
+## Iteration 189 — action-histogram audit of what the opponent does that we do not
+
+Every remaining lead had been a variation on something we already do. This asks
+the other question systematically: enumerate the opponent's actions, normalised
+per round, and diff against ours.
+
+    per 1000 rounds        ours    theirs   ratio      (bench_stroke rift)
+    CheesePickup          314.0     943.0    3.0x
+    CheeseTransfer        237.5     469.5    2.0x
+    RatAttack             149.5     393.0    2.6x
+    RatNap                 84.5    1426.0   16.9x
+    RatSqueak               0.0    1228.0     inf
+    ThrowRat                0.0     145.5     inf
+    PlaceTrap              11.5     121.5   10.6x
+    TriggerTrap            31.5       5.5    0.2x
+
+**The largest apparent gap dissolves on normalisation.** They pick up 3-14x more
+cheese, which looked like a collection-efficiency problem — the one economic
+avenue not already closed. Per rat:
+
+    cheese pickups per rat per 1000 rounds
+      rift              ours 17.6   theirs 16.9   1.0x   (mean rats 18 vs 56)
+      closeup (stroke)  ours 14.4   theirs 26.0   1.8x   (4 vs 29)
+      closeup (finalist) ours 19.6  theirs 25.6   1.3x   (3 vs 26)
+
+**Our rats are as efficient at collecting as theirs — at parity on rift.** The
+entire cheese gap is army size, which is downstream of rats dying, which is
+closed. That kills the collection lead before it cost a run, and it is exactly
+`normalize-per-round-before-comparing` applied to a per-unit denominator instead
+of a per-round one.
+
+**Squeak, throw, attack volume and RatNap are all already closed** (Iterations
+166/170, 143/152/177, 156/158, 143).
+
+**What remains unexplained is the trap asymmetry.** They place traps at 10.6x our
+rate, and the trigger balance is inverted: our robots step on their traps 31.5
+times per 1000 rounds while theirs step on ours 5.5 times — **a 6x disadvantage on
+the one weapon the audit found to be our most effective** (Iteration 174: the ring
+is worth four benchmark wins and every close-spawn win).
+
+Our ring is capped by geometry: `findTrapLocation` scans ~21 tiles within
+`RAT_KING_BUILD_DISTANCE_SQUARED` 8 of a King that never moves, and we run 16-22
+live of a team cap of 25. Theirs is not, because **their King moves** (14-79
+distinct positions against our 1, Iteration 167), so it can seed traps across the
+map.
+
+Already tried and failed: rat-placed traps anywhere (157 arm A: 13 placed, zero
+extra triggers), in a band near our King (157 arm B: worse), and threat-biased
+King placement (169: triggers tripled on one map, peers -3). **Untried: placing on
+the approaches to CHEESE MINES**, which are static and which enemy rats must visit
+repeatedly — `hasCheeseMine` blocks the mine tile itself but not its neighbours.
+Headroom is small (3-9 traps under the cap) but the location has never been tested.
