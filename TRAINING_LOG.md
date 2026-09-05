@@ -10846,3 +10846,38 @@ r501), reproduced and verified against its `results.csv` row.
 
 `g_iter26` ends in 6, so it joins the `vs_old_bots` roster from the next accept
 onward (the tracker excludes the current build by construction).
+
+## Iteration 161 — phase-conditional trap density (3:1 early, 2:1 later) — REJECTED
+
+Tested whether Iteration 102's `TRAPS_PER_BUILD = 2` hides the same
+map-dependent trade that Iteration 145's chase radius did. It does not.
+
+    benchmarks           8/162 -> 6/162
+    close-spawn wins      4/42 ->  2/42   BREACHED
+    early wipes             14 ->    12   (better, but see below)
+
+**Game-by-game: 6 changed, 2 gained, 4 lost** — directional, not churn.
+
+    GAINED  bench_stroke   whatsthecatdoin B   loss r1088 -> win r853
+    GAINED  bench_stroke   uneruesansfin   B   loss r2000 -> win r1548
+    LOST    bench_finalist popthecork      B   win r431   -> loss r783  [close-spawn]
+    LOST    bench_stroke   popthecork      A   win r318   -> loss r121  [close-spawn]
+    LOST    bench_finalist whatsthecatdoin A   win r760   -> loss r803
+    LOST    bench_stroke   whatsthecatdoin A   win r501   -> loss r985
+
+It costs both `popthecork` close-spawn wins **and undoes both of the wins
+Iteration 160 had just gained**.
+
+**The instructive part is that early wipes went DOWN (14 -> 12) while close-spawn
+WINS also went down (4 -> 2).** More traps early does exactly what Iteration 96
+said it does — it prevents King rushes — but it buys that by building fewer rats,
+and on close-spawn maps the games we were *winning* were won by having rats, not
+by surviving longer. Not being wiped and winning are different outcomes, and a
+change can improve the first while losing the second.
+
+**So Iteration 102's constant is genuinely flat, not a hidden trade.** That also
+bounds the lesson from Iteration 160: finding one averaged trade does not license
+re-opening every constant as potentially conditional. The chase radius was
+conditional because its *cost* (travel time) and its *benefit* (kills) fall in
+different game phases; trap density trades against building in the same phase, so
+there is no window to separate.
