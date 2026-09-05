@@ -13107,3 +13107,66 @@ differ only on maps where enemy rats first reach our King between r20 and r50, s
 most of the pool they play identically and direct play is a coin flip. This is a
 case where the head-to-head has little resolution *by construction*, and the
 five-nil peer diff is the informative instrument.
+
+## Iteration 209 — trace the remaining King losses — WE were breaking the peace
+
+The loss profile inverted across three accepts: the points bucket is nearly gone and
+King kills are what remain.
+
+    build       KING losses   POINTS losses
+    g_iter27         9             19
+    g_iter28         6              7
+    g_iter29         6              2
+
+Traced g_iter29's King losses vs `pure_cooperator`. **Every HP drop on our King is
+exactly 10 = RAT_BITE_DAMAGE, sixty of them, and not one is 20 =
+CAT_SCRATCH_DAMAGE.** So enemy RATS kill it, not cats -- and the opponent is a pure
+cooperator, which cannot attack anyone until the peace is broken.
+
+Two clusters, by the round cooperation breaks:
+
+    map                coop false   our ring   cause
+    tiny                   r10         56      our RING (close-spawn, legitimate)
+    dirtfulcat             r18         52      our RING
+    popthecork            r600          0      no trap on the board at all
+    streetsofnewyork      r627         16      late
+    dirtpassageway        r952          0      late
+
+The late cluster has no trap explanation, so something else of ours bit first.
+
+## Iteration 210 — revoke the `desperate` licence to bite first — ACCEPTED as g_iter30
+
+Found it: two attack gates of the form `(!rc.isCooperation() || desperate)`, from
+**Iteration 11**, justified in the comment as *"certain starvation is worse than
+betting on a combat edge we've already demonstrated"*. Both halves are now false.
+
+- We have no combat edge. We trade **7 kills for 347 losses** (0.02:1).
+- Cooperation is now worth far more than a bite. `backstab(this.team)` fires on
+  biting ANY non-cat, and being the backstabber costs our cat-trap rights
+  **permanently** plus the 0.5 catDamage weight -- the term that decides these
+  games. That price did not exist when Iteration 11 set the policy; g_iter28
+  created it.
+
+An iteration-11 premise still steering the bot at iteration 209, invalidated by two
+accepts made this same day.
+
+    MECHANISM  PASSED. popthecork botB: cooperation now NEVER breaks (no "-> false"
+               line at all), cat traps unchanged at 65, zero exceptions, and the
+               game flips from LOSS r1034 to WIN r2000.
+
+    peers            100/108 -> 103/108 (95.4%)   3 gained, 0 LOST
+      pure_cooperator   46/54 -> 49/54
+      immediate_defector 54/54 held
+    benchmarks        11/162 -> 11/162   identical
+    close-spawn wins    4/42 ->   4/42   identical
+    close-spawn wipes  16/42 ->  16/42   identical
+    head-to-head      26/54 (48.1%) vs g_iter29
+
+**The three games gained are exactly the three predicted** -- dirtpassageway,
+popthecork, streetsofnewyork, the late-break cluster -- and the ring cluster (tiny
+x2, dirtfulcat) is untouched, as predicted.
+
+The head-to-head is one game below even, which is noise, and is blind here by
+construction: against a mirror of g_iter29 the OPPONENT bites first and becomes the
+backstabber, so the pure-cooperator dynamic this change targets never arises. Same
+category as Iteration 208's 51.9% -- an instrument that cannot pose the situation.
