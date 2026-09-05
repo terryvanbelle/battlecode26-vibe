@@ -10733,3 +10733,41 @@ already found 3:1 density worse than 2:1.
 So the trap budget is fully deployed and correctly positioned, and trap-based
 avenues are now closed in both directions: we cannot avoid enemy traps either,
 since `MapInfo.getTrap()` only reveals our own (Iteration 156).
+
+## Iteration 158 — focus fire on the weakest enemy — VOID, no Gauntlet spent
+
+From the Iteration 156 audit: 369 bites produce seven kills across eight games.
+`RAT_BITE_DAMAGE` is 10 against 100 HP, so a kill needs ten landed bites on the
+same target, and choosing by proximity smears 3690 hp of damage — in principle
+thirty-six rats — across everything in sight.
+
+**Two arms, both measured against a matched g_iter25 control on the same three
+maps and opponent:**
+
+                              kills   attacks   our deaths
+    g_iter25 control              6       216          178
+    arm A: global weakest         2       113          148
+    arm B: weakest IN RANGE       3       162          195
+
+Arm A halved our attack count, and the reason is a real design error worth
+recording: ranking by health *globally* sends a rat walking toward a distant
+wounded enemy instead of biting the healthy one already beside it, so it spends
+turns travelling rather than attacking. Arm B fixed that — an in-range target
+always outranks an out-of-range one, and weakness only breaks ties among
+reachable ones — and recovered most of the attack volume.
+
+**Neither raised kills.** Pre-registered bar was *kills must rise*; they fell.
+VOID.
+
+**What this actually establishes.** Kill counts run 0-3 per game, so target
+selection is not tunable at this sample size — but more importantly it is not the
+binding constraint. The constraint is **volume**: 369 attacks against their 2346.
+Even perfect target selection cannot convert 369 bites into a favourable exchange
+against an opponent landing 158 throws at 42 damage each.
+
+And attacking ~6x more means our rats spending turns fighting instead of
+collecting, which this project has now tested six times — Iterations 115, 118,
+119, 121, 142, 145 — and which lost benchmark games every time. **Our
+economy-first policy is not an oversight; it is what keeps us alive.** The combat
+gap is structural, and closing it by fighting more has been measured to cost more
+than it gains.
