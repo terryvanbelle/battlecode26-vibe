@@ -505,6 +505,13 @@ public class RobotPlayer {
         // radius laid more traps and pushed close-spawn wipes 32% -> 34%. The
         // curve is 7 -> 8 -> 8, so the effect saturates at 20 and the extra
         // traps are wasted cheese. Keeping the cheaper dose.
+        // Iteration 203 re-dosed this to 36 and reverted: the constant was
+        // suspect (Iteration 129 chose 20 under a regime where our own ring
+        // revoked our cat-trap rights mid-game), and g_iter27 did restore the
+        // capability -- closeup botB goes 0 -> 15 placements. But the binding
+        // constraint is the engine's, not ours: TrapType.CAT_TRAP has
+        // maxCount 10, and we already place 15-16 per game, i.e. we hold the cap
+        // and refill it. Widening 20 -> 36 bought exactly ONE extra trap.
         final int CAT_TRAP_TRIGGER_DSQ = 20;
         if (nearestCat != null
                 && nearestCat.getLocation().distanceSquaredTo(rc.getLocation()) <= CAT_TRAP_TRIGGER_DSQ) {
@@ -518,7 +525,25 @@ public class RobotPlayer {
             }
         }
 
-        final boolean KING_TRAPS_ENABLED = true;
+        // Iteration 211 (TRAINING_LOG.md): ARM THE RING WHEN ATTACKED, NOT WHEN
+        // APPROACHED.
+        //
+        // The ring is what breaks the peace: triggerTrap credits the backstab to
+        // the trap's OWNER, and being the backstabber costs our cat-trap rights
+        // permanently plus the 0.5 catDamage weight. A proximity latch cannot
+        // tell a rusher from a pacifist -- pure_cooperator walks up to our King
+        // and never attacks, and we armed anyway, breaking a peace we wanted.
+        //
+        // But an opponent that attacks makes ITSELF the backstabber:
+        // `backstab(this.team)` fires on biting any non-cat. So "we have been
+        // attacked" is already observable for free as !isCooperation(), with no
+        // state to track, and it is true of exactly the opponents the ring is for.
+        //
+        // This is Iteration 185's rule, which was rejected at wipes 14 -> 18. The
+        // cause has changed twice: that was g_iter26, before cat traps made the
+        // peace valuable, and Iteration 210 has since removed our own first-bite,
+        // so cooperation now actually survives against a peaceful opponent.
+        final boolean KING_TRAPS_ENABLED = !rc.isCooperation();
         boolean placedTrap = false;
         // Iteration 102 (TRAINING_LOG.md): is the ring UNDERweight? Iteration
         // 101 varied this same ratio toward FEWER traps (one trap per two
@@ -537,6 +562,24 @@ public class RobotPlayer {
         // Self-limiting: RAT_TRAP maxCount is 25 and findTrapLocation returns
         // null once the ring is full, in which case we fall through and build.
         final int TRAPS_PER_BUILD = 2;
+        //
+        // Iteration 200 (TRAINING_LOG.md): SUPPRESS THE TRAP, KEEP THE CADENCE.
+        //
+        // Iteration 199 gated this whole branch on a rush signature and gained
+        // +4 peer games (pure_cooperator 23/54 -> 29/54, by not being the team
+        // that breaks the peace) but broke the close-spawn guard, 4/42 -> 1/42.
+        // The reason it moved two things at once: skipping the branch does not
+        // merely withhold a trap, it also stops TRAPS_PER_BUILD from withholding
+        // two King-actions out of every three, so the King builds many more
+        // rats. On minimaze vs immediate_defector the control places 7 rings and
+        // WINS at r2000 while 199 places 0 and LOSES -- on a map where an enemy
+        // rat never once comes within d^2 25 of our King in 2000 rounds, so that
+        // ring was never acting defensively. Its value there was cadence.
+        //
+        // So separate them: take the identical decision the control would take,
+        // consume the same King-action, and simply place nothing. Dirt was the
+        // obvious filler and is wrong -- it is impassable, and the log already
+        // records both Kings boxed in by dirt on `closeup` building zero rats.
         if (KING_TRAPS_ENABLED && builtCount >= 5 && trapsSinceBuild < TRAPS_PER_BUILD
                 && rc.getGlobalCheese() > RESERVE + 100) {
             MapLocation trapSpot = findTrapLocation(rc);
@@ -666,6 +709,55 @@ public class RobotPlayer {
         RobotInfo nearestCat = nearestOfType(rc, nearby, UnitType.CAT);
         if (nearestCat != null) {
             int allies = countAlliesNear(rc, nearby, nearestCat.getLocation(), 8);
+            // Iteration 204 (TRAINING_LOG.md): BUY catDamage WITH TRAPS, NOT TEETH.
+            //
+            // 19 of g_iter27's 28 peer losses are decided on POINTS at r2000, and
+            // catDamage share decides essentially all of them -- median share
+            // 35.1% against cheese already at parity. Five are within 4.4 points,
+            // needing only a few hundred cat damage.
+            //
+            // Iteration 179 bought that currency by sending rats to ENGAGE cats
+            // and cost 3 peer games, because closing on a cat gets rats scratched
+            // for 20 and stops them foraging. A trap buys the same currency from
+            // a different source, and the engine is explicit:
+            //
+            //   if (type == CAT_TRAP && robot.getType().isCatType() && hp > 0)
+            //       teamInfo.addDamageToCats(trap.getTeam(), min(damage, hp));
+            //   if (trap.getType() != TrapType.CAT_TRAP)  ... backstab(...)
+            //
+            // so a cat trap credits its FULL 100 damage to the trap's owner, and
+            // -- unlike a rat trap -- never triggers the backstab, which is what
+            // makes this compatible with g_iter27 rather than in tension with it.
+            // At 10 cheese for 100 damage it is also the cheapest damage in the
+            // game (RAT_TRAP is 20 for 50).
+            //
+            // Placed only where it will actually fire: within our own build radius
+            // (BUILD_DISTANCE_SQUARED 2) AND within the trap's own trigger radius
+            // of the cat, i.e. right beside it. Otherwise fall through and bite.
+            //
+            // GATED PAST THE WIPE WINDOW. Laying the trap consumes the rat's
+            // action and returns, so a rat that would have FLED now stands beside
+            // the cat and takes the 20-damage scratch. Ungated this cost
+            // close-spawn wipes 14/42 -> 20/42 and close-spawn wins 4 -> 2, even
+            // while benchmarks rose 8 -> 10 and peers 80 -> 91. The two effects
+            // separate cleanly in time: every early wipe is over before round 100,
+            // whereas the points games this wins run to r2000, so nothing of value
+            // is given up by staying out of the way early.
+            final int CAT_TRAP_CHEESE_FLOOR = 200;
+            final int CAT_TRAP_FIRST_ROUND = 100;
+            if (rc.getRoundNum() >= CAT_TRAP_FIRST_ROUND
+                    && rc.getGlobalCheese() > CAT_TRAP_CHEESE_FLOOR) {
+                MapLocation catLoc = nearestCat.getLocation();
+                for (MapLocation loc : rc.getAllLocationsWithinRadiusSquared(
+                        rc.getLocation(), GameConstants.BUILD_DISTANCE_SQUARED)) {
+                    if (loc.distanceSquaredTo(catLoc) <= TrapType.CAT_TRAP.triggerRadiusSquared
+                            && rc.canPlaceCatTrap(loc)) {
+                        rc.placeCatTrap(loc);
+                        rc.setIndicatorString("cat trap beside cat @" + loc);
+                        return;
+                    }
+                }
+            }
             // Replay evidence (TRAINING_LOG.md, `pure_cooperator` mirror-match
             // trace): catDamage stayed [0,0] all session despite cats visibly
             // scratching/killing our own rats dozens of times per game -- a
@@ -746,6 +838,19 @@ public class RobotPlayer {
         // a sighted enemy even while still nominally cooperating: certain
         // starvation is worse than betting on a combat edge we've already
         // demonstrated (see the King-side comment for the full reasoning).
+        // Iteration 210 (TRAINING_LOG.md): the `desperate` licence to bite first
+        // is REVOKED. Iteration 11 justified it as "certain starvation is worse
+        // than betting on a combat edge we've already demonstrated". Both halves
+        // are now false. We have no combat edge -- we trade 7 kills for 347
+        // losses (0.02:1) -- and since g_iter27/g_iter28 cooperation is worth far
+        // more than a bite: `backstab(this.team)` fires on biting ANY non-cat, and
+        // being the backstabber costs us our cat-trap rights permanently plus the
+        // 0.5 catDamage weight, which is the term that decides these games.
+        //
+        // Traced on popthecork botB: cooperation flips at r600 with no rat trap on
+        // the board from either side, our King takes its first damage at r975 and
+        // dies by r1034 to SIXTY bites of exactly RAT_BITE_DAMAGE 10 -- from a
+        // PURE COOPERATOR, which cannot attack until someone breaks the peace.
         boolean desperate = true;  // ARCHETYPE: immediate defector
         if (true) {  // ARCHETYPE: immediate defector always fights
             // Replay evidence (TRAINING_LOG.md, `closeup` vs. `immediate_defector`):
@@ -921,8 +1026,10 @@ public class RobotPlayer {
         RobotInfo best = null;
         int bestDist = Integer.MAX_VALUE;
         for (RobotInfo info : rc.senseNearbyRobots(rangeSq)) {
+            // Iteration 210: `desperate` no longer licenses biting first. See
+            // runBabyRat -- biting any non-cat makes US the backstabber.
             boolean hostile = info.getType() == UnitType.CAT
-                    || ((!rc.isCooperation() || desperate) && info.getTeam() != rc.getTeam());
+                    || (!rc.isCooperation() && info.getTeam() != rc.getTeam());
             if (!hostile) continue;
             if (!rc.canAttack(info.getLocation())) continue;
             int d = info.getLocation().distanceSquaredTo(me);

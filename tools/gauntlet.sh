@@ -93,6 +93,7 @@ BOT_LINES=$(wc -l < "$REPO/src/bot/RobotPlayer.java" 2>/dev/null || echo 0)
 # telling me to re-sync bench_finalist/spaark/stroke, which is noise that trains
 # you to skip past the ONE warning that matters -- the peers, which have now
 # drifted three separate times.
+STALE_OPPS=""   # must exist even when nothing is stale; the script runs under set -u
 for _opp in $OPPONENTS; do
   case "$_opp" in
     g_iter*) continue ;;                      # frozen snapshots; drift is the point
@@ -112,6 +113,7 @@ for _opp in $OPPONENTS; do
     echo "  !! WARNING: $_opp is older than $(basename "$(dirname "$_newest_snap")") --"
     echo "  !! it is missing at least one accepted iteration. Re-sync before trusting win rates."
     echo "  !! (See TRAINING_LOG.md's archetype-staleness entries.)"
+    STALE_OPPS="$STALE_OPPS $_opp"
   fi
 done
 
@@ -221,6 +223,15 @@ done
   total=$(($(wc -l < "$OUT/results.csv") - 1))
   wins=$(grep -c ',win$' "$OUT/results.csv" || true)
   echo "run $RUN_ID   bot=$BOT"
+  # Repeat any staleness warning HERE, inside the summary. It was already printed
+  # at startup and it fired correctly on five consecutive runs on 2026-09-05 --
+  # and was missed every time, because the results were read with
+  # `grep -E "^overall:|^  vs "`, which discards it. A warning that only appears
+  # 300 lines above the number it invalidates is a warning you will filter out.
+  if [ -n "$STALE_OPPS" ]; then
+    echo "!! STALE OPPONENTS:$STALE_OPPS -- win rates below are INFLATED."
+    echo "!! Run tools/resync_archetypes.py before trusting or logging this run."
+  fi
   awk -v w="$wins" -v t="$total" 'BEGIN{printf "overall: %d/%d wins (%.1f%%)\n", w, t, (t>0)?100*w/t:0}'
   echo
   for OPP in $OPPONENTS; do

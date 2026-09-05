@@ -13220,3 +13220,54 @@ ring-related iteration should re-check it rather than assume 18 is the new floor
 
 **Only two peer losses remain**, both on points: peaceinourtime botB and
 safelycontained botB.
+
+## Iteration 212 — re-sync the peer archetypes to g_iter31 — NEW BASELINE
+
+The peer instrument had saturated at 106/108 (98.1%), which is a **resolution
+failure, not a result** -- the peer rate is a policy check centred on 50%.
+
+**Cause: the archetypes were ~107 lines behind (1343 -> 1450), missing the entire
+cat-trap mechanism from Iteration 204/205** -- the single largest feature in the bot
+-- plus the 210/211 policy changes. We were beating a version of ourselves from
+before the biggest accept of the run.
+
+    instrument                    stale archetypes    re-synced to g_iter31
+    peers, full mapset               106/108 (98.1%)      79/108 (73.1%)
+      vs pure_cooperator              52/54  (96%)        27/54  (50.0%)
+      vs immediate_defector           54/54 (100%)        52/54  (96%)
+    peer losses to work on                  2                   29
+
+`pure_cooperator` lands on **exactly 50.0%**, which is what a correctly-calibrated
+archetype should give, and the loss list is a full spread of maps again.
+
+**This does not invalidate the accepts.** Every one was measured against a control
+on the SAME archetypes, which is the condition that matters, and the independent
+`vs_old_bots` ladder confirms the lineage really did improve (g_iter31 beats
+g_iter26 38/54). But **the absolute peer figures logged for Iterations 204-211 were
+inflated**, and 79/108 is the number to compare against from here.
+
+**THE WARNING FIRED AND I FILTERED IT OUT.** `gauntlet.sh`'s date-based staleness
+guard printed
+
+    !! WARNING: pure_cooperator is older than g_iter30 --
+
+on **five consecutive peer runs** (204, 205, 208, 210, 211). I missed every one,
+because I read each result with `grep -E "^overall:|^  vs "` -- a filter that
+discards warnings by construction. The 25% line-count guard never fired either:
+107/1450 is 7.4%, under its threshold. So the date guard was the only thing working,
+and my own extraction hid it.
+
+Three fixes:
+1. `gauntlet.sh` now repeats the warning **inside the summary block**, directly above
+   `overall:`, where it cannot be separated from the number it invalidates.
+2. Two resync anchors were stale and the tool **hard-aborted rather than silently
+   skipping a policy edit**, which is exactly why it was written that way:
+   `KING_TRAPS_ENABLED = true;` (changed by 211) and
+   `if (!rc.isCooperation() || desperate) {` (changed by 210). Both updated; the
+   replacements are unchanged in intent.
+3. `STALE_OPPS` is now initialised -- under `set -u` it was unbound precisely when
+   nothing was stale, i.e. immediately after a successful re-sync.
+
+Also learned the hard way: **do not edit a shell script while a background job is
+running it.** Bash reads scripts incrementally; editing `gauntlet.sh` mid-run threw
+a syntax error at the summary block and lost a completed 108-game run's results.csv.

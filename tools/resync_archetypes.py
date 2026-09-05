@@ -46,8 +46,12 @@ PURE_COOPERATOR = [
     # Cat traps are exempt -- triggerTrap skips the backstab for CAT_TRAP -- so
     # a pure cooperator SHOULD lay those, and their absence WAS drift
     # (Iteration 128 never reached the archetype).
+    # Anchor updated for g_iter31 (Iteration 211), which replaced the constant
+    # `true` with `!rc.isCooperation()` -- the ring now arms on being attacked.
+    # A pure cooperator still lays NO rat traps at all, so the replacement is
+    # still the constant false; only the text being matched changed.
     ("no rat traps (owner would initiate the backstab)",
-     "final boolean KING_TRAPS_ENABLED = true;",
+     "final boolean KING_TRAPS_ENABLED = !rc.isCooperation();",
      "final boolean KING_TRAPS_ENABLED = false;  // ARCHETYPE: trap owner backstabs"),
     # Never defects out of desperation.
     ("never desperate (King side)",
@@ -60,8 +64,11 @@ IMMEDIATE_DEFECTOR = [
     ("always desperate (rat side)",
      "boolean desperate = rc.readSharedArray(2) == 1;",
      "boolean desperate = true;  // ARCHETYPE: immediate defector"),
+    # Anchor updated for g_iter30 (Iteration 210), which REVOKED the `desperate`
+    # licence to bite first, so the gate is now `!rc.isCooperation()` alone. The
+    # archetype still forces the combat block permanently on.
     ("combat block always active",
-     "if (!rc.isCooperation() || desperate) {",
+     "if (!rc.isCooperation()) {",
      "if (true) {  // ARCHETYPE: immediate defector always fights"),
     # The raid is gated off in the main bot (Iteration 138) but is this
     # archetype's defining behaviour, so it is forced back on.
