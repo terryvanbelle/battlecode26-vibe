@@ -107,6 +107,26 @@ def main():
     ts = run_timestamp(rundir).isoformat()
     snap = current_snapshot()
 
+    # Re-running the same snapshot must not double-write. The history is keyed
+    # by (current_snapshot, opponent); a repeat measurement replaces the earlier
+    # one rather than appending beside it, or the chart draws two points on one
+    # date. This bit me when a partial roster run was followed by a full one.
+    existing_rows = []
+    if HISTORY_CSV.exists():
+        with open(HISTORY_CSV) as f:
+            existing_rows = list(csv.DictReader(f))
+    snap_now = current_snapshot()
+    dropped = [r for r in existing_rows
+               if r["current_snapshot"] == snap_now and r["opponent"] in tally]
+    if dropped:
+        keep = [r for r in existing_rows if r not in dropped]
+        with open(HISTORY_CSV, "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=["date", "current_snapshot", "opponent",
+                                              "wins", "total", "win_pct"])
+            w.writeheader()
+            w.writerows(keep)
+        print(f"  replaced {len(dropped)} existing row(s) for {snap_now}")
+
     is_new = not HISTORY_CSV.exists()
     HISTORY_CSV.parent.mkdir(parents=True, exist_ok=True)
     with open(HISTORY_CSV, "a") as f:

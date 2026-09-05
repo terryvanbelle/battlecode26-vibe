@@ -13043,3 +13043,34 @@ So the ring does not merely coexist with the new mechanism, it destroys it on
 roughly half the map set. Iteration 174 priced the ring at benchmarks 8 -> 4 and
 close-spawn 4/42 -> 0/42 when nothing competed with it; that number cannot settle
 the trade any more. Tested next.
+
+## Iteration 207 — ablate the rat-trap ring now cat traps exist — REJECTED
+
+A legitimate re-open: Iteration 174 priced the ring at benchmarks 8 -> 4 and
+close-spawn 4/42 -> 0/42 when nothing competed with it. Something does now, and the
+dichotomy logged above says the ring *destroys* the cat-trap mechanism wherever it
+arms.
+
+    MECHANISM  PASSED emphatically -- the three maps with exactly ZERO cat traps
+               under g_iter28 place 48-112 once the ring is gone:
+                 thunderdome      catDamage ours 1906 -> 5624   (23.8% -> 72%)
+                 keepout                     4156 -> 12898      (35.1% -> 81%)
+                 mercifullattice              286 -> 5576       ( 5.9% -> 70%)
+
+    peers              95/108 -> 101/108 (93.5%)   +8 gained, 2 lost
+      pure_cooperator    41/54 -> 49/54
+    benchmarks         11/162 ->   8/162
+    close-spawn wins     4/42 ->   2/42
+    close-spawn wipes   16/42 ->  31/42            <- REGRESSION, ~3.3 sigma
+
+**Rejected on the wipe guard.** Cat traps damage CATS; they are no defence against
+a rush, so removing the ring leaves close-spawn maps undefended and nearly doubles
+the early wipes. The peer gain is real but cannot be bought this way.
+
+**What the diff shows instead.** The maps whose cat traps the ring destroys are
+mostly NOT close-spawn maps -- keepout and mercifullattice are far-spawn, and there
+the ring buys no wipe protection at all, it only revokes our cat-trap rights. Their
+first enemy trigger lands at r47-r49, whereas a genuine rush has enemy rats beside
+our King at round 2. So the ring is being armed by `RUSH_WINDOW = 50`, a window
+wide enough to catch maps that are not rushes. Tightening it should keep the ring
+exactly where it earns its close-spawn wins and drop it where it only costs us.
