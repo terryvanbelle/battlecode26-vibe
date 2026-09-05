@@ -10881,3 +10881,48 @@ re-opening every constant as potentially conditional. The chase radius was
 conditional because its *cost* (travel time) and its *benefit* (kills) fall in
 different game phases; trap density trades against building in the same phase, so
 there is no window to separate.
+
+## Iteration 162 — phase-gated REPLACEMENT_RESERVE — REJECTED (and the premise was stale)
+
+Applied the Iteration 160/161 cost-benefit-phase test: the reserve's benefit is a
+survival buffer (early, while a rush is live) and its cost is unspent cheese
+(late, where compounding pays), so it looked like a genuine conditional. Decayed
+1000 -> 300 after round 300.
+
+**The premise was wrong, and the control is what caught it.** I justified this by
+quoting Iteration 147's finding that we bank "1000-2800 cheese permanently
+unspent". That measurement is from a **g_iter24-era trace**. On g_iter26 the same
+map reads:
+
+    g_iter26 on rift   cheese hovers 890-1490,  168 spawns
+    iteration 162      cheese 49-1490,          140 spawns
+
+The treasury already sits just above the 1000 reserve — the equilibrium Iteration
+92 described — so there is no idle pool to release. **Lowering the reserve
+produced FEWER rats, not more** (168 -> 140): we overspent early, ran the
+treasury to 49, and could not sustain. The traced game ended at r1623 with the
+King destroyed instead of surviving to r2000.
+
+So the mechanism check failed in the intended direction. Pre-registered: *banked
+cheese must fall AND spawns must rise*. Cheese fell; spawns fell too.
+
+**Result — REJECT.**
+
+    benchmarks         8/162 -> 7/162   (3 games changed, 1 gained 2 lost -- churn)
+    close-spawn wins    4/42 ->  4/42   (guard held)
+    early wipes           14 ->    14   (guard held)
+
+**This replicates Iteration 92 on a build two major accepts later.** That
+iteration decayed the same constant after round 1200, was accepted on mirror and
+peers, cost one benchmark game and was reverted. Getting the same answer from a
+much more aggressive gate on a very different bot makes `REPLACEMENT_RESERVE =
+1000` settled rather than merely untested.
+
+**The methodological error is the more valuable output.** I carried a numeric
+baseline across three accepted iterations and used it as if it described the
+current build. That is the same failure as
+`same-map-set-control-or-no-comparison`, in a form the memory does not yet cover:
+not a different map set, but a different *build*. **A measurement is only
+evidence about the bot that produced it.** The habit that caught it — running a
+matched control on the current build before trusting a remembered number — is
+cheap and should be unconditional.
