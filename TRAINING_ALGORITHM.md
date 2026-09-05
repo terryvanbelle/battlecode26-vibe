@@ -860,6 +860,22 @@ doubled them, 11 -> 21, for nothing), more rats to do the damage (176). Before
 proposing anything whose value is "we deal more damage", note that five iterations
 have proved the mechanism and none moved a result.
 
+**Survival does not convert either, if bought with inactivity.** Iteration 191
+leashed foragers and HALVED the death rate (82.5 -> 42.5 per 1000 rounds) for -18
+peer games. Our rats die because they are doing the thing that wins games. Both
+halves of the obvious framing are therefore measured and wrong.
+
+**And the zero-marginal-cost class is empty.** Iteration 192 searched for waste --
+the class the movement fix belonged to -- and found only 6.9% truly idle
+rat-turns. Path inefficiency looked large (74% of steps are revisits) until the
+opponent was measured on the same map at 93%: foragers shuttle by design.
+
+**The three changes that ever paid share one property: capability preserved at
+ZERO marginal cost** -- the trap ring (standing defence, no actions once placed),
+the emergency override (spends cheese already hoarded), the movement fix (removes
+pure waste). On this record, a proposal that spends anything to gain something has
+roughly a one-in-fifteen chance.
+
 **What remains open:** nothing incremental that this session could find. The
 honest next step is a structural change with a mechanism nobody has tried, or
 accepting the current build as a local optimum and hardening it.
