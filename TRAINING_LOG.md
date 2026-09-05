@@ -11650,3 +11650,49 @@ harmless but load-bearing.
 benchmark-blindness may have let a regression into the accepted list — is so far
 not borne out, and two features are better founded than the log claimed. That is
 a satisfying negative: the accepted list survives its first serious cross-check.
+
+## Iteration 175 — peer audit, part 2: the emergency override is worth 15 games
+
+The Iteration 40/84 emergency override — when the King can see no allied Baby
+Rat, the build reserve drops from `REPLACEMENT_RESERVE` 1000 to `RESERVE` 150, so
+it can rebuild instead of hoarding while starving.
+
+**Iteration 84 measured it on the mirror at 26/54 = 48.1%** and concluded it was
+*"inert to within one game in 54"*, keeping it only because removing it was
+equally neutral, and explicitly instructing that it **"should not be credited in
+any future reasoning."**
+
+    instrument       g_iter26        override ablated
+    peers            76/108 (70.4%)     61/108 (56.5%)     -15
+      pure_cooperator  23/54 (43%)       13/54 (24%)
+      immediate_def    53/54 (98%)       48/54 (89%)
+    games changed                        19: 2 gained, 17 LOST
+
+**Seventeen of nineteen changed games are losses.** That is directional harm at a
+scale nothing else in this audit approaches — the override is worth about fifteen
+peer games, and the log has been carrying an instruction not to credit it.
+
+**Why the mirror could not see it.** The override fires precisely when our army
+has been wiped and the King is alone. In a mirror both sides run the same policy
+and reach that state symmetrically, so the advantage cancels; against
+`pure_cooperator`, which plays a different backstab policy, it does not. This is
+the same shape as the cat-trap correction two entries above: **an instrument that
+never poses the situation a feature answers will always call that feature
+inert.**
+
+Verdict: **KEEP, and the log's own note about it is now retracted.** Iteration 40
+was right, Iteration 84's re-measurement was reading a blind instrument, and the
+feature is one of the more valuable things in the bot.
+
+### Audit scoreboard
+
+    feature                        peers                  verdict
+    reactive cat traps (128)       -3, all directional    KEEP (was wrongly "dormant")
+    cheese-boosted bite (83)       +2, 12 flips 7/5       KEEP (neutral)
+    King trap ring (48/96/102)     +2, 20 flips 11/9      KEEP (benchmarks -4, wipes 3x)
+    emergency override (40/84)     -15, 19 flips 2/17     KEEP (was wrongly "inert")
+
+**Two of four accepted features were recorded as worthless and are not.** The
+audit has found no harmful feature, but it has found something arguably more
+useful: the log's confidence was misallocated, and in both cases the error came
+from trusting a single instrument that structurally could not see the effect.
