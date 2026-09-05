@@ -12487,3 +12487,32 @@ improvement measured (+14 peer games).
 That is the honest state: g_iter26 is a local optimum under every framing this run
 could construct — more damage, fewer losses, and less waste have all been tested
 and all are exhausted.
+
+## Iteration 193 — instrument verification: benchmarks are deterministic too
+
+The peer gauntlet was verified byte-reproducible at Iteration 174 (a repeat run of
+an unmodified build gave identical sub-scores). The benchmark set never was, and
+every benchmark comparison in this run used the single 20260905-005757 control —
+so a non-deterministic pipeline would have invalidated all of them.
+
+Re-ran that control on an unchanged g_iter26:
+
+    repeat    8/162   bench_finalist 4/54, bench_spaark 2/54, bench_stroke 2/54
+    control   8/162   bench_finalist 4/54, bench_spaark 2/54, bench_stroke 2/54
+    sorted results.csv diff: 0 lines
+
+**Identical, game for game.** A raw `diff -q` reports the files as differing, but
+only because games finish in a different order under `MAXJOBS=6` parallelism — the
+sorted comparison is empty. Worth noting because the naive check is misleading,
+and because every game-by-game diff in this run keyed on
+`(opponent, map, side)` rather than row order, so none was affected.
+
+Integrity alongside it: archetypes rebuilt from the newest accepted snapshot
+(`resync_archetypes.py --check` clean), working tree clean, `src/bot`
+byte-identical to `src/g_iter26` after roughly twenty revert cycles.
+
+**Both instruments are now verified deterministic**, which retroactively firms up
+the whole run: every "N games changed, X gained Y lost" diff is a true statement
+about the change rather than about run-to-run variation, and the churn-versus-
+directional distinction that decided most of these iterations rests on solid
+ground.
