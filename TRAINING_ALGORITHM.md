@@ -889,6 +889,20 @@ the benchmarks at 193 (a repeat run differs only in row order under parallelism;
 the sorted diff is empty). So every "N games changed, X gained Y lost" judgement
 in this log is a true statement about the change, not about run-to-run variation.
 
+**The benchmark ceiling is structural, not a tuning failure.** Iteration 195
+analysed the WINS rather than the losses. All 8 fall on three maps of 27, all are
+King destructions dealt by CATS, and no structural property separates those maps
+(popthecork 4/6 and dirtfulcat 0/6 match on size, cat count and King distance).
+Nor is it "do cats reach their King" — closeup, a loss, has 290 cat-turns adjacent
+to the enemy King against popthecork's 112. **The decisive figure: their King's HP
+when ours dies, across eight losses — 600, 600, 600, 600, 600, 600, 600, 120.**
+Seven of eight end with the enemy King untouched, so "survive longer so the cats
+finish" is dead before it is proposed.
+
+**Therefore judge policy work on the PEERS.** That is where our own decisions
+decide games: 76/108 with 32 losses whose margins run -0.6 to -21, against a
+benchmark set whose outcome is bounded by where cats happen to wander.
+
 **What remains open:** nothing incremental that this session could find. The
 honest next step is a structural change with a mechanism nobody has tried, or
 accepting the current build as a local optimum and hardening it.
