@@ -10542,3 +10542,82 @@ Sample archived as `replays/iter151_bench_spaark_popthecork_botB.bc26`: one of
 the three **benchmark games this iteration turned from a loss into a win**
 (`bench_spaark popthecork botB`, loss at r164 -> win at r570). Reproduced and
 verified against that pairing's `results.csv` row before copying.
+
+## Iteration 155 — ablate the reactive cat traps — NEUTRAL, and Iteration 128 is DORMANT
+
+Motivated by Iteration 154's damage attribution: cats are ~11% of all King damage,
+the smallest of the three sources, while a cat trap costs a King action and draws
+on the team-wide `CAT_TRAP.maxCount` of 10.
+
+**Result — exactly neutral, on every instrument:**
+
+    benchmarks           6/162 -> 6/162,  and ZERO of the 162 games changed result
+    g_iter25 mirror      28/54 = 51.9%   (+1 game over even, 0.27 sigma)
+    close-spawn wins      3/42 -> 4/42
+    early wipes                13/38 on close-spawn, same wipe maps
+
+Not merely the same score — **the identical outcome in all 162 games.** That is a
+much stronger statement than a matching total, and it has a simple explanation:
+
+    OUR cat trap placements, across all 8 sampled g_iter25 losses:  0, 0, 0, 0, 0, 0, 0, 0
+
+**The feature never fires in the games we lose.** Its trigger needs a cat within
+d^2 20 of the *King*, and the King's own vision is radius^2 25, so a cat has to
+walk within ~4.5 tiles of our King — which on most maps never happens. This is
+the same dormancy Iteration 137 found from the other side ("no cat comes within
+d^2 20").
+
+**So Iteration 128 is dead weight.** It was accepted on +1 benchmark game, which
+by the standard established this session is 0.4 sigma — indistinguishable from
+noise — and the story attached to it came from a single replay
+(`peaceinourtime`). Iteration 154 then showed that story describes the smallest
+damage source, and this shows the code does not run in the games that matter.
+Even on `peaceinourtime` itself, the ablated build still wins at r511, identical
+to baseline.
+
+**Reverted anyway.** The ablation is costless but not beneficial, and the
+standing rule is that the accepted build changes only on measured improvement.
+The deliverable here is the finding, not the diff. What the finding is worth is
+that it invalidates a *reason* — no future iteration should reason from "we have
+reactive cat traps" or cite Iteration 128's cat-grinding story as characteristic.
+
+### The wider lesson: audit accepted features for dormancy
+
+Three separate accepted features have now turned out to be inert or near-inert
+when finally measured — the desperation raid (Iteration 138, gated off), the
+desperation flag itself (Iteration 141, "exactly inert"), and now Iteration 128.
+All three were accepted on 1-2 game benchmark moves before the noise floor was
+understood. A 1-2 game move at an 8/162 base rate is under 1 sigma, so **a
+meaningful fraction of the accepted feature list may be noise**, and dormant code
+is worse than useless because it supplies confident-sounding explanations for
+behaviour it never produced.
+
+### King damage re-measured on g_iter25
+
+Repeating Iteration 154's attribution on the current build, eight losses:
+
+    starvation   2020   42.4%   (was 34.3% on g_iter24)
+    combat       2746   57.6%   (of which -10 bites 42.6%, -20 scratches 18.2%)
+    4 of 8 losses are primarily STARVATION (was 2 of 6)
+
+Starvation has grown, which looked at first like the bill for Iterations 147 and
+151 both pushing toward more spending. **It is not.** Checking how many rats we
+had alive during the starving rounds:
+
+    bench_finalist closeup   75 starving rounds, our rats: 0.0
+    bench_spaark   closeup   75 starving rounds, our rats: 0.0
+    bench_spaark   pipes     75 starving rounds, our rats: 0.0
+    bench_finalist corridor 100 starving rounds, our rats: 4.0
+
+**In three of four the army was already at zero.** Starvation is not an economic
+mismanagement mode we can fix by spending less; it is the terminal phase after
+the army is wiped, with the King bleeding `RAT_KING_HEALTH_LOSS` 10/round until
+it dies. Every King-damage route therefore leads back to army survival.
+
+Also verified rather than assumed, since two iterations rested on it:
+**`addHealth` clamps to max health and has no positive call sites anywhere in the
+engine — there is no healing.** A damaged rat is permanently damaged, so the HP
+clause that enables 70% of grabs can never be undone once taken.
+
+And `bench_spaark pipes` is the whole problem in one line: **92 rats built, zero
+alive at the end.** We can out-produce; we cannot keep anything alive.
