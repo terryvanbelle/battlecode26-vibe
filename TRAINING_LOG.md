@@ -13271,3 +13271,89 @@ Three fixes:
 Also learned the hard way: **do not edit a shell script while a background job is
 running it.** Bash reads scripts incrementally; editing `gauntlet.sh` mid-run threw
 a syntax error at the summary block and lost a completed 108-game run's results.csv.
+
+## Analysis note — the cats now DIE, and that ends the game
+
+Not an iteration; the most important thing the re-sync revealed, found while
+Iteration 213 ran. Against archetypes that finally carry the cat-trap mechanism, the
+loss profile is unrecognisable: **26 of 29 losses are POINTS losses with median round
+691**, i.e. the games no longer reach r2000.
+
+Traced `pure_cooperator__tiny__botB`:
+
+    round 177  id4(team0,CAT) DieAction target=id4(team0,CAT)
+    === MatchFooter winner=1 winType=MORE_POINTS totalRounds=177
+    our King hp 600 -> 600, untouched
+    cat traps placed: them 41, us 24
+
+**Both cats are dead by round 177 and the match ends there.** Confirmed in the
+engine -- `GameWorld.checkWin` has three endings, not two:
+
+    if (setWinnerIfKilledAllRatKings()) return;
+    // all cats dead
+    if (setWinnerifAllCatsDead()) return;
+
+plus `checkEndOfMatch()` at the time limit. With two cats at 4000 HP each and
+`CAT_TRAP.damage` 100, two trap-laying teams burn the whole cat pool in under 200
+rounds.
+
+**The game we are now playing is a race to bank catDamage share before the cats
+expire**, decided on points at that instant, with combat essentially irrelevant --
+our King finishes at full health. Every earlier finding about long games, cheese
+equilibria and King survival applies to a match shape that no longer occurs against
+a current-generation opponent.
+
+This also retroactively explains the Iteration 204/205 result: the cat trap was not
+just a cheap source of catDamage, it was a lever on **when the game ends**, and we
+found it first. The archetypes have now caught up.
+
+Immediate consequence: `CAT_TRAP_FIRST_ROUND = 100` has us sitting out the first 100
+rounds of a ~177-round race. Its dose (Iteration 206) was measured when the opponent
+had no cat traps at all.
+
+## Iteration 213 — re-dose CAT_TRAP_FIRST_ROUND for the cat race — ACCEPTED as g_iter32
+
+Direct consequence of the analysis note above: the game now ends when the cats die,
+usually well before r2000, so `CAT_TRAP_FIRST_ROUND = 100` had us sitting out the
+opening of a race we are trying to win. Iteration 206 dosed that constant to 100
+against archetypes with NO cat traps, i.e. in a world with unlimited time -- the
+re-open test is satisfied because that condition no longer holds.
+
+Dosed on the RE-SYNCED peers (Iteration 212 baseline 79/108):
+
+    gate    peers      pure_coop   benchmarks   close-spawn wins   wipes
+    100    79/108        27/54       11/162          4/42          18/42
+     50    85/108        32/54        9/162          2/42          19/42
+      0    87/108        35/54       10/162          2/42          20/42
+
+Monotone in the gate, and `gate=0` dominates `gate=50` outright -- better peers,
+identical guards. Note the median game length is unchanged at 660 rounds either way:
+we are not ending races sooner, we are **banking more share within the same race**.
+
+    peers          79/108 -> 87/108 (80.6%)   14 gained, 6 lost, net +8
+      pure_cooperator  27/54 -> 35/54
+    head-to-head   35/54 (64.8%) vs g_iter31   -- decisive, unlike the last two
+    benchmarks     11/162 -> 10/162            (-1, noise)
+    close-spawn wins  4/42 ->  2/42
+    close-spawn wipes 18/42 -> 20/42
+
+**Guard movement, flagged rather than buried, and it is now CUMULATIVE.** Neither
+move is individually significant (close-spawn wins -2 is ~1.05 sigma, wipes +2 is
+~0.6 sigma), and this is far milder than Iteration 207's rejection (wipes +15). But
+across today the close-spawn guards have drifted in one direction the whole way:
+
+    build         close-spawn wins   wipes
+    g_iter26            4/42          14/42
+    g_iter31            4/42          18/42
+    g_iter32 (this)     2/42          20/42
+
+That is a real trend even though no single step is significant, and it has a clear
+cause: benchmarks do NOT lay cat traps, so every gain from early cat-trapping is
+invisible there while the cost -- rats standing beside cats instead of fleeing --
+is fully priced. **A future iteration should specifically try to recover close-spawn
+wins**, e.g. by gating early cat-trap placement on map size or on our own rat's
+health rather than on the round number.
+
+Accepted because the peers are now correctly calibrated (pure_cooperator at exactly
+50.0% before this change), +8 is large and directional, and the head-to-head agrees
+at 64.8%.
