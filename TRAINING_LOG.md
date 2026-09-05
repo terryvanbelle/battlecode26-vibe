@@ -12607,3 +12607,43 @@ of it in 0 of 3335 sampled rounds** (Iteration 194).
 structural rather than a tuning failure. The bot's own contribution — surviving,
 collecting, defending the King — is fully optimised under every framing this run
 constructed; what it cannot do is produce the event that actually wins games.
+
+## Iteration 196 — endgame cheese push — VOID on the pre-check
+
+With benchmarks shown to be cat-bounded, policy work belongs on the peers, whose
+19 points-losses have margins from -0.6 to -21.2. The -0.6 game does not need
+catDamage (closed in both directions) — it needs 0.6 points from *any* term, and
+cheese is the one nobody had tried to win, because economy work was closed on
+THROUGHPUT grounds, which is a different claim from shifting the share.
+
+**The pre-check closes it.** `deliverCheese` already sits above the combat block
+and fires unconditionally whenever a rat carries anything, so there is no endgame
+priority to add. And the term is not merely close, it is at parity — on
+`safelycontained`, the -0.6 game itself:
+
+    ours     1205 pickups / 1011 transfers
+    theirs   1225 pickups / 1027 transfers
+
+Within 2%. There is no headroom to take, which is consistent with Iteration 189's
+finding that our per-rat collection rate matches theirs.
+
+**So the cheapest scoring margin in the project is unreachable**, and with it the
+last identified target. The scored terms now stand as: catDamage closed in both
+directions, kings closed (a second King is worth +16.7 against margins of -33 to
+-64, and cost 28 peer games when tested), cheese at parity with delivery already
+maximal.
+
+### State of the search
+
+    axis                     verdict
+    deal more damage         five iterations, mechanism-proven, all nil
+    lose fewer rats          leash halved deaths, -18 peer games
+    remove waste             6.9% idle turns; we revisit LESS than the opponent
+    attack the win condition our rats never see the enemy King (0 of 3335 rounds)
+    win the scored terms     catDamage closed, kings closed, cheese at parity
+    benchmark ceiling        7 of 8 losses end with the enemy King untouched
+
+g_iter26 stands as a local optimum under every framing this run constructed, on
+two instruments both verified byte-deterministic (Iterations 174, 193). Further
+progress needs an idea from outside the space this session searched — not another
+variation inside it.
