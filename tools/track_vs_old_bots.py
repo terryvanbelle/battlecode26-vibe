@@ -90,6 +90,20 @@ def main():
             if row["bot_result"] == "win":
                 tally[opp][0] += 1
 
+    # Only ROSTER opponents may enter the history. The roster is every 5th
+    # accepted snapshot (N ending in 1 or 6); a gauntlet run often also contains
+    # the newest snapshot, because the pre-accept head-to-head is run in the same
+    # invocation. Those are a decision gate, NOT a fixed reference point, and
+    # appending them makes the chart's lines start at arbitrary dates and read as
+    # a collapse. This filter is why: roster_opponents() previously existed only
+    # to PRINT the list, and nothing enforced it.
+    roster = set(roster_opponents())
+    skipped = sorted(set(tally) - roster, key=lambda n: n)
+    for opp in skipped:
+        del tally[opp]
+    if skipped:
+        print(f"  skipped non-roster opponents: {', '.join(skipped)}")
+
     ts = run_timestamp(rundir).isoformat()
     snap = current_snapshot()
 
