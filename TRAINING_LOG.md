@@ -10687,3 +10687,49 @@ Worth recording as a pattern, because each would have been a confident finding:
 Three actor/victim confusions in one session, all in the same family as the
 Iteration 108 retraction. **Before counting any action, check which end of it the
 id refers to and whether the engine emits it at all.**
+
+## Iteration 157 — rats lay rat traps — VOID on the effect check, no Gauntlet spent
+
+Motivated by the Iteration 156 audit: traps are our best weapon by a wide margin
+(~9000 hp from enemy trigger events against 3690 hp from all 369 of our bites),
+and they out-trap us 73 placements to 39 on rift.
+
+**Not a repeat of Iterations 116/117.** Both tried this and were VOID because the
+code never fired, so neither tested the idea. `assertCanPlaceTrap` names both
+bugs: *"Can't place trap on an occupied tile"* (117 targeted the tile the placing
+rat stood on) and `cheese >= buildCost` where buildCost is 20 and `getAllCheese()`
+is raw + team (116 gated on cheese > 1000, above our own measured treasury). This
+time the eight neighbours are scanned with `canPlaceRatTrap()`, which checks
+occupancy, passability, existing traps, cheese mines and the cap.
+
+**The mechanism fired. The effect did not.** Two arms, same map/opponent/side
+control:
+
+    metric                        g_iter25   arm A: anywhere   arm B: band
+    King ring placements                39                32            27
+    RAT-placed traps                     0                13            14
+    enemy triggers on our traps         23                23            17
+    our rat deaths                     135               154           180
+
+Pre-registered: *enemy trigger count must rise*. Arm A left it exactly unchanged
+while laying 13 traps; arm B, which placed in a band just outside the King's own
+reach on the theory that traps only pay where the enemy must go, made it **worse**
+on every line. VOID, and no 162-game run spent on either.
+
+**The shared pool was the constraint, exactly as `measure-the-shared-pool-first`
+predicts.** `RAT_TRAP.maxCount` is 25 team-wide, and every trap a rat places is
+one the King cannot: ring placements fell 39 -> 32 -> 27 across the arms while
+total triggers fell 23 -> 23 -> 17. This is the same failure that killed
+Iterations 130/134/135 with cat traps, and I instrumented the pool in the first
+arm this time rather than after three attempts.
+
+**The positive finding, which is the useful part:** the ring works *because of
+where it is*, not because traps are good. Enemies converge on our King, so traps
+there are the only ones that get stepped on; traps anywhere else are wasted
+cheese and wasted cap. That also explains why the ring saturates — only ~21 tiles
+sit within `RAT_KING_BUILD_DISTANCE_SQUARED` 8 of the King, and Iteration 102
+already found 3:1 density worse than 2:1.
+
+So the trap budget is fully deployed and correctly positioned, and trap-based
+avenues are now closed in both directions: we cannot avoid enemy traps either,
+since `MapInfo.getTrap()` only reveals our own (Iteration 156).
