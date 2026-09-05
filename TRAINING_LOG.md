@@ -10621,3 +10621,69 @@ clause that enables 70% of grabs can never be undone once taken.
 
 And `bench_spaark pipes` is the whole problem in one line: **92 rats built, zero
 alive at the end.** We can out-produce; we cannot keep anything alive.
+
+## Iteration 156 — dormancy audit of the accepted feature list (measurement)
+
+Counting the proving action for each accepted feature, across the eight g_iter25
+benchmark losses.
+
+    feature                          fires per game        verdict
+    ---------------------------------------------------------------------
+    King rat-trap ring (48/96/102)   25.4 placed           LIVE
+    population cap from surplus      spawns 34-92 vs a     LIVE
+      (147, g_iter24)                base cap of 25
+    King digging                     dirt +2 to +77        LIVE
+    cat engagement (5/6, 103-105)    194 catDamage         LIVE but small
+    reactive cat traps (128)         0, 0, 0, 0, 0, 0, 0, 0   DORMANT
+    becomeRatKing (106)              0 (kings never 2)     DORMANT
+
+Two of the audited features never run. That is now **five** accepted features
+found inert on measurement — 106, 128, 138, 141, and the raid — all accepted on
+1-2 game benchmark moves, which at an 8/162 base rate is under 1 sigma.
+
+### The finding that matters: we barely fight, and lose badly when we do
+
+    ours vs theirs, same eight games      ours    theirs
+    RatAttack (bites)                      369      2346     they attack 6.4x more
+    enemy rats killed                        7       347     0.02 : 1 exchange
+
+**We kill seven enemy rats and lose 347.** On `closeup` they attack 13x more than
+we do. A bite is 10 damage against 100 HP, so killing a rat takes ten landed
+bites; a throw is 42 and they land 158 per game. That asymmetry is the whole
+population race, and it is why `bench_spaark pipes` reads *92 rats built, zero
+alive at the end*.
+
+**Our traps are our best weapon by a wide margin**, once the attribution is done
+correctly: enemy robots trigger our traps 180 times across the eight games
+(~9000 hp at RAT_TRAP's 50), against 3690 hp from all 369 of our bites combined.
+
+### Enemy traps hurt us more than our traps hurt them, and we cannot do anything about it
+
+    our robots triggering THEIR traps    420   (~21000 hp)
+    enemy robots triggering OUR traps    180   (~9000 hp)
+
+On rift they place 73 rat traps to our 39 and our rats walk into 72 of them.
+**But enemy traps are invisible to us**: `getMapInfo` calls
+`gw.getTrap(loc, this.getTeam())`, which indexes `trapLocations[team.ordinal()]`,
+so `MapInfo.getTrap()` only ever reveals our OWN traps. Trap avoidance is not
+implementable — closed before writing any code.
+
+### Three attribution errors caught in this audit alone
+
+Worth recording as a pattern, because each would have been a confident finding:
+
+1. `DamageAction` is **not** emitted for bites, so "our rats never damage an
+   enemy rat (0 per game)" was an artefact. Bites appear only as `RatAttack`,
+   which carries no target. Same shape as Iteration 154's discovery that King
+   damage is not a `DamageAction` either.
+2. `TriggerTrap`'s actor is the robot that **stepped on** the trap, and the
+   engine skips your own team's traps — so `(team1,...) TriggerTrap` counts our
+   rats dying on *their* traps, the exact opposite of the "our trap ring is
+   working" reading I first wrote.
+3. Trap damage and throw-landing damage are both self-attributed in `DieAction`,
+   so the earlier "52% of rat deaths are throws" figure silently included trap
+   deaths. On rift the split is 161 throws against 72 enemy-trap triggers.
+
+Three actor/victim confusions in one session, all in the same family as the
+Iteration 108 retraction. **Before counting any action, check which end of it the
+id refers to and whether the engine emits it at all.**
