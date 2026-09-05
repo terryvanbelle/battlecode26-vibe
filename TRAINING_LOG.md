@@ -11817,3 +11817,52 @@ That closes the recovery-latency direction. The override is well-tuned as
 written, and this is the second consecutive iteration (176 volume, 177 latency)
 to find that the most valuable feature in the bot cannot be improved along the
 obvious axis.
+
+## Iteration 178 — peer-audit cat engagement — KEEP, worth 11 peer games
+
+The last major accepted feature the audit had not covered, chosen because it was
+validated on the instrument least able to see either its benefit or its cost, and
+because it is causally implicated in our worst problem.
+
+**Two opposing predictions, cleanly distinguishable by one run:**
+- *Keep* — catDamage is a scored term, and only ~9% of benchmark games reach
+  scoring against 59% of peer games. The same blindness made me wrongly call the
+  cat traps dormant.
+- *Remove* — a scratch is 20 damage, rats never heal, and `canGrab` succeeds on
+  any weaker target, so every engagement permanently converts a full-HP rat into
+  a grabbable one, and grabs kill 52% of our rats.
+
+**Mechanism fired decisively.** On rift against `pure_cooperator`:
+
+    g_iter26 control   catDamage 8394 / 4644   -> WIN  at r2000
+    engagement off     catDamage  970 / 4640   -> LOSS at r2000
+
+An 89% collapse in our cat damage, turning a won cat term into a badly lost one.
+
+**Result — KEEP.**
+
+    instrument      g_iter26        engagement ablated
+    peers         76/108 (70.4%)   65/108 (60.2%)   31 changed: 10 gained, 21 LOST
+      pure_coop     23/54 (43%)     18/54 (33%)
+
+**The scoring prediction wins and the throw-loop prediction loses.** The HP cost
+is real — engaged rats *are* damaged and *are* therefore grabbable — but it is
+outweighed roughly two to one by the catDamage share. Worth stating plainly
+because I have twice argued from the throw loop as though it dominated every other
+consideration: **a mechanism being real does not make it decisive.**
+
+## Peer audit, final
+
+    feature                        peers   diff               verdict
+    cat engagement (5/6/103-105)   -11     31 flips, 10/21     KEEP
+    emergency override (40/84)     -15     19 flips, 2/17      KEEP (was "inert")
+    reactive cat traps (128)        -3      3 flips, all lost  KEEP (was "dormant")
+    King trap ring (48/96/102)      +2     20 flips, 11/9      KEEP (benchmarks -4)
+    cheese-boosted bite (83)        +2     12 flips, 7/5       KEEP (neutral)
+    desperation flag (11/12/141)     0      0 flips            KEEP (truly inert)
+
+**Six features audited, six kept, no harmful feature found.** Three were worth
+more than the log credited (cat engagement, the override, the cat traps), two were
+neutral, one was confirmed dead. The accepted list is sound, and the errors were
+all in the same direction: **features were undervalued because they were measured
+on instruments that could not pose the situations they answer.**
