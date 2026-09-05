@@ -11185,3 +11185,52 @@ is the one cats rarely reach, which is consistent with our reactive cat traps
 being dormant (Iteration 155: zero placements, because no cat ever comes within
 d^2 20 of our King). Copying their mobility would most likely copy their
 vulnerability.
+
+## Iteration 168 — delay the trap ring — REJECTED, and it re-validates Iteration 96
+
+**First early-wipe trace of the session**, which produced a directly measured
+mechanism rather than an inferred one. `bench_spaark knifefight botB`, a round-20
+loss with the Kings spawning **five tiles apart**. Our King goes 600 -> 28 in
+twenty rounds at ~38 damage/round from mixed drop sizes (10/20/40/60/92, i.e.
+many simultaneous attackers), while enemy rats adjacent to it climb 1 at r2 -> 6
+at r17 -> 8 at r19.
+
+    FIRST TWENTY ROUNDS      spawns   traps
+      us                          8       8
+      them                       14       0
+
+They spend the entire opening on bodies. We split it and lose the rush. Our rats
+*do* fight — cooperation ends at round 2, so the combat block is open; I checked
+this expecting it to be shut — but we land 8 attacks to their 50 purely because
+we have fewer bodies.
+
+**Change:** delay the ring rather than thin it. `builtCount >= 5` -> `>= 12`.
+Iteration 161 tested *more* early traps and Iteration 102 tested a *lower steady
+density*; neither tested delaying the start.
+
+**Mechanism check — passed exactly.** On the traced map, spawns in rounds 1-20
+went **8 -> 14**, matching their 14, traps 8 -> 4, and we survived to r29 instead
+of r20.
+
+**Result — REJECT on a directional regression, and the regression is the finding.**
+
+    benchmarks        8/162 -> 7/162   (9 games changed, 4 gained 5 lost: churn)
+    close-spawn wins   4/42 ->  4/42   (held)
+    EARLY WIPES          14 ->    20   (+43%, and 53% of all losses)
+    new wipe maps: thunderdome 3 -> 5, toomuchcheese 0 -> 2, evileye 0 -> 1
+
+**The change designed to reduce early wipes increased them by 43%.** Matching
+their build order exactly — 14 spawns to their 14 — still lost more games,
+because the six extra rats do not substitute for the ring.
+
+**Why, and it is a genuinely useful asymmetry.** More rats slightly delays each
+individual death (fastest losses moved 20/20/22 -> 21/22/25) but the ring
+*prevents* deaths outright. A rat trades bites at 10 damage against attackers who
+throw for 42; a trap deals 50 plus a 30-round stun to anything that steps on it,
+and a King under rush is exactly the place enemies must walk. **Bodies delay a
+rush; traps break it.**
+
+So Iteration 96's result — the ring halving early wipes, measured on a far weaker
+bot — is now re-validated on g_iter26 from the opposite direction, and the trap
+budget is confirmed correct in all three dimensions tested this session: density
+(161, 3:1 worse), steady rate (102, 1:1 worse) and start time (168, delay worse).
