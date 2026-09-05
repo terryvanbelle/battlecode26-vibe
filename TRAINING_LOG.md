@@ -11534,3 +11534,48 @@ change rather than a dramatic one.
 **Standing change to method:** run the peer gauntlet on every accept, not only
 when instruments conflict. It is 108 games and it is the only instrument that
 reliably shows harm.
+
+## Iteration 174 — peer re-audit of the accepted feature list
+
+Motivated by Iteration 173: the benchmark set is nearly blind to regressions, so
+features accepted on benchmarks alone — many on 1-2 game moves — have never been
+checked on the instrument that can see harm.
+
+### The method control, and it did two useful things
+
+Ablated the reactive cat traps (Iteration 128) first, precisely because Iteration
+155 had measured them **DORMANT**: zero placements across eight benchmark losses,
+and removing them changed **zero of 162 benchmark games**. Removing dead code
+should return the control's 76/108.
+
+    g_iter26 control        76/108 (70.4%)
+    cat traps ablated       73/108 (67.6%)   -3
+
+**1. The peer instrument is exactly reproducible.** Re-running the unmodified
+control produced 76/108 with identical sub-scores (23/54, 53/54) — not merely the
+same total but the same games. So the -3 is a real behavioural difference, and
+paired peer comparisons need no error bars at all: any difference is signal.
+
+**2. The cat traps are NOT dormant — Iteration 155 over-generalised.** That
+conclusion came from eight *benchmark* replays. The three peer games the feature
+decides are:
+
+    pure_cooperator     evileye           B   win r2000 -> loss r2000
+    pure_cooperator     sittingducks      A   win r2000 -> loss r2000
+    immediate_defector  whereisthecheese  A   win r877  -> loss r843
+
+Reproducing `sittingducks`: we place **4 cat traps** and cats trigger them **3
+times**, in a game whose `catDamage` finishes **exactly tied at [4000, 4000]**.
+Three triggers at CAT_TRAP's 100 damage decide a tied scoring term.
+
+**Why benchmarks could never see this.** Two of the three are r2000 points games,
+and only ~9% of benchmark games reach scoring against 59% of peer games
+(`peers-and-benchmarks-play-different-games`). Cat traps pay in long games decided
+on points; benchmark games end in King destruction long before the cat-damage
+share matters. **"Dormant on benchmarks" and "dormant" are different claims, and I
+conflated them.**
+
+So Iteration 155's write-up is corrected: the feature is live, worth ~3 peer
+games, and its acceptance in Iteration 128 was better founded than my own later
+audit suggested. The audit's first result is that an accepted feature is *more*
+valuable than believed, not less.
