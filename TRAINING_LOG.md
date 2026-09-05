@@ -11900,3 +11900,78 @@ instrument could not pose the situation, but the *shape* of the dose curve was
 apparently still recovered correctly by the mirror even where its absolute level
 was wrong. Worth remembering before re-dosing anything else on that basis — the
 premise is now tested and it failed.
+
+## Iteration 180 — first trace of a PEER loss, and rats laying cat traps — REJECTED
+
+Every replay traced in this project had been a *benchmark* loss; the peer gauntlet
+had been used purely as a scoreboard. g_iter26 loses 32 of 108 peer games and none
+had ever been examined.
+
+### The peer loss profile is the inverse of the benchmark one
+
+    19 of 32   pure_cooperator, POINTS at r2000
+    12 of 32   pure_cooperator, King kill
+     1 of 32   immediate_defector, King kill
+
+Against benchmarks, 83% of losses are King kills. Against a near-mirror we lose on
+**points**, and the margins are small — decomposed over five traced losses:
+
+    replay                          margin     cat    king  cheese
+    safelycontained  botA             -0.6    +0.0    +0.0    -0.6
+    sittingducks     botB             -4.5    -0.9    +0.0    -3.6
+    keepout          botA             -7.5    -9.2    +0.0    +1.7
+    closeup          botB            -10.5   -13.3    +0.0    +2.8
+    rift             botB            -21.2   -21.1    +0.0    -0.1
+    mean                              -8.9    -8.9    +0.0    +0.1
+
+**Decided entirely by catDamage**, with kings exactly tied and cheese neutral, at
+margins of -0.6 to -21 rather than the -46 of benchmark points losses. These are
+winnable games.
+
+### A mechanic discovery: our own rat traps disable our cat traps
+
+We placed **zero** cat traps across all five, while `pure_cooperator` placed seven,
+against a team-wide `CAT_TRAP.maxCount` of 10 at 100 damage each. Two distinct
+causes:
+
+- **closeup** — cooperation ends at round 194, *the exact round an enemy first
+  triggers one of our rat traps*. `triggerTrap` credits
+  `backstab(triggeringRobot.getTeam().opponent())`, so the trap's OWNER becomes
+  the backstabber, and `catTrapsAllowed` bars the backstabber permanently. **Our
+  King's trap ring silently revokes our own cat-trap rights for the rest of the
+  game.** Unavoidable — the ring is worth four benchmark wins and every
+  close-spawn win.
+- **rift** — still cooperating at r2000, so cat traps are legal; the King's
+  trigger just never fires, because it needs a cat within d^2 20 of the *King*.
+
+### The fix, and why it was worth retesting
+
+Rats go where cats are. Iterations 130/134/135 tried rat-placed cat traps and
+failed because rat placements starved the King's budget — the King was placing 52
+and the shared cap bound. **That cannot apply when the King places zero.**
+
+**Mechanism fired spectacularly on the traced map**, flipping it:
+
+    rift vs pure_cooperator    control        iteration 180
+    our cat traps                   0                   44
+    catDamage, ours              3808                 7022
+    catDamage, theirs            9376                 4000
+    result                       LOSS                  WIN
+
+**Result — REJECT.**
+
+    instrument      g_iter26        iteration 180
+    peers         76/108 (70.4%)   76/108 (70.4%)   16 changed: 8 gained, 8 lost
+    benchmarks      8/162             6/162
+    close-spawn      4/42              3/42
+
+**Exactly neutral on peers — 8 gained, 8 lost, net zero — and -2 on benchmarks.**
+A mechanism that reverses a 5500-point catDamage swing on one map nets nothing
+across 108. The cat term it wins on one map it loses on another, which is what
+"catDamage is a SHARE" means: forty-four traps raise our share where cats happen
+to walk and do nothing where they do not.
+
+**Kept for the record:** the backstab/cat-trap interaction is new and belongs in
+any future reasoning about either trap type. It also explains part of the
+Iteration 155 confusion — cat traps look dormant partly because we frequently
+revoke our own right to place them.
