@@ -11866,3 +11866,37 @@ more than the log credited (cat engagement, the override, the cat traps), two we
 neutral, one was confirmed dead. The accepted list is sound, and the errors were
 all in the same direction: **features were undervalued because they were measured
 on instruments that could not pose the situations they answer.**
+
+## Iteration 179 — re-dose cat engagement on the peer instrument — REJECTED, dose confirmed
+
+The audit's error pattern was one-directional: three features were worth *more*
+than the log credited and none was harmful. The inference was that doses chosen
+against those underestimates might also be too low. Cat engagement was the best
+candidate — worth eleven peer games, with a dose curve measured entirely on the
+mirror (Iterations 103-105: abstain 38.9%, break off at 60 HP 48.1%, current
+50.0%, break off at 10 HP 50.0%).
+
+Lowered the engage floor from `health > 30` to `health > 10`, i.e. engage more.
+
+**Result — REJECT.**
+
+    instrument      g_iter26        floor 10
+    peers         76/108 (70.4%)   73/108 (67.6%)   11 changed: 4 gained, 7 lost
+
+**The three-point curve on the sensitive instrument:**
+
+    never engage (Iteration 178)   65/108   -11
+    floor 10  (engage more)        73/108    -3
+    floor 30  (current)            76/108     0
+
+Engaging less is much worse; engaging more is somewhat worse. **The Iteration
+103-105 choice of 30 is confirmed optimal**, now on an instrument that can see it
+— and notably the mirror had scored floors 30 and 10 *identically* at 50.0%,
+which is again the reading a blind instrument produces.
+
+**The audit's inference does not generalise to doses.** Features being undervalued
+did not mean their knobs were mis-set: the value was underestimated because the
+instrument could not pose the situation, but the *shape* of the dose curve was
+apparently still recovered correctly by the mirror even where its absolute level
+was wrong. Worth remembering before re-dosing anything else on that basis — the
+premise is now tested and it failed.
