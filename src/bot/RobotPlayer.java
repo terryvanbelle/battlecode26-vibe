@@ -502,6 +502,13 @@ public class RobotPlayer {
         // radius laid more traps and pushed close-spawn wipes 32% -> 34%. The
         // curve is 7 -> 8 -> 8, so the effect saturates at 20 and the extra
         // traps are wasted cheese. Keeping the cheaper dose.
+        // Iteration 203 re-dosed this to 36 and reverted: the constant was
+        // suspect (Iteration 129 chose 20 under a regime where our own ring
+        // revoked our cat-trap rights mid-game), and g_iter27 did restore the
+        // capability -- closeup botB goes 0 -> 15 placements. But the binding
+        // constraint is the engine's, not ours: TrapType.CAT_TRAP has
+        // maxCount 10, and we already place 15-16 per game, i.e. we hold the cap
+        // and refill it. Widening 20 -> 36 bought exactly ONE extra trap.
         final int CAT_TRAP_TRIGGER_DSQ = 20;
         if (nearestCat != null
                 && nearestCat.getLocation().distanceSquaredTo(rc.getLocation()) <= CAT_TRAP_TRIGGER_DSQ) {

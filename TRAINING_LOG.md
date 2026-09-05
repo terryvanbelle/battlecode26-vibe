@@ -12880,3 +12880,40 @@ The ring's cost was never the cheese; it was that `triggerTrap` credits the
 backstab to the trap's OWNER, converting a pacifist opponent into one that can
 kill our King. Recorded honestly: the ring remains worth four benchmark wins and
 every close-spawn win, so this trades a little of that for a lot of peer standing.
+
+## Iteration 203 — cat traps after g_iter27 restored our rights — CLOSED, cap-bound
+
+A legitimate re-open under the stated rule: cat traps were logged "dormant"
+(Iteration 155), and part of that diagnosis was self-inflicted -- `triggerTrap`
+credits the backstab to the trap's OWNER, and `catTrapsAllowed` bars the
+backstabber PERMANENTLY, so our own rat ring revoked our cat-trap rights mid-game.
+g_iter27 stops arming the ring in quiet games, so the cause is gone.
+
+**The restoration is real, and map-dependent.** Our cat-trap placements, g_iter26
+-> g_iter27, same map and side:
+
+    closeup botB          0 -> 15     (first enemy trigger moves r194 -> r582)
+    peaceinourtime botA  28 -> 14     (both fire; g_iter26 places MORE)
+    rift, keepout         0 ->  0     (no cat ever comes within d^2 20 of our King)
+
+So the revocation story was true on closeup and false on peaceinourtime, where
+g_iter26 placed cat traps freely. "Dormant" was never one phenomenon: it is
+revocation on some maps, and cats simply patrolling elsewhere on others.
+
+**Then the re-dose, and why it closes.** Iteration 129 had chosen
+`CAT_TRAP_TRIGGER_DSQ = 20` over 36 on an identical win set, concluding the effect
+saturates -- but it measured that while the rights were dying mid-game, so the
+extra traps were being placed into a capability about to be revoked. That is a
+constant nobody chose, re-measured under the new regime:
+
+    MECHANISM  FAILED to move. closeup 15 -> 16, peaceinourtime 14 -> 16.
+
+**The reason is in the engine, not our policy: `TrapType.CAT_TRAP` has
+`maxCount 10`** -- ten active per team, against `RAT_TRAP`'s 25. We already place
+15-16 per game, i.e. we hold the cap and refill it as traps are consumed. The
+trigger radius was never the limiter, which is also why Iteration 129 saw
+saturation; it read the right curve for the wrong reason.
+
+Reverted to 20. **The capability is restored and already saturated at the engine
+cap, so there is no lever here** -- and the restored value is already inside
+g_iter27's measured 80/108, not additional to it.
