@@ -11126,3 +11126,62 @@ within four tiles for free. Our rats currently have no shared state of any kind,
 which is why Iteration 158's focus fire could not work. Any future use should
 treat the cat-attraction as a COST to be minimised (squeak rarely, or only when
 no cat is within the radius) rather than as the point.
+
+## Iteration 167 — squeak re-read, and a positional bug in Iteration 165's method
+
+Measurement only, no Gauntlet (both runs on this mechanic came back
+directional-negative).
+
+**1. "Squeaks tow cats home" is NOT supported.** Mean cat distance to each King,
+per 100-round bucket, baseline vs the squeak-lure arm on popthecork:
+
+    round     baseline: our King / theirs      iter166: our King / theirs
+      100            18.0 / 18.6                     20.0 / 20.1
+      200            23.7 / 22.3                     25.0 / 25.6
+      300            22.7 / 22.2                     20.3 / 21.3
+
+Essentially identical, and if anything the squeaking arm's cats are *further*
+from our King. Iteration 166's loss mechanism stands as originally written —
+squeaks double how much cats ACT (1272 -> 2963 cat-turns) and tether them to
+whoever squeaked, so they hunt our rats instead of roaming. They do not relocate
+toward anyone's base.
+
+**2. A method bug in Iteration 165, which I have now fixed and which CONFIRMS its
+conclusion.** That entry computed distances against each King's **initial**
+position. The enemy King *moves*:
+
+    enemy King on popthecork: 45 distinct positions, (23,31) at r1 -> (28,11) at r317
+
+Recomputing adjacency against the King's tracked position per round:
+
+    cat-turns within 3 tiles of the enemy King    14 (initial pos)  ->  88 (tracked)
+    our rat-turns within ~2 tiles                  0               ->   4
+
+88 adjacent cat-turns is consistent with the 29 scratches of exactly 20 damage,
+where 14 was not — the drop-size evidence was right and the positional evidence
+was broken. **Cats deal the enemy King's damage and our rats contribute ~nothing:
+88 cat-turns against 4 of ours.**
+
+**3. A new asymmetry, documented but NOT pursued.** Our King is completely
+stationary; theirs is not:
+
+    replay                     our King positions    their King positions
+    popthecork (win)                    1                    45
+    popthecork (iter166)                1                    79
+    rift                                1                    14
+    closeup                             1                    33
+    corridorofdoomanddespair            1                    56
+    dirtfulcat                          2                    40
+
+Our King has no movement code at all beyond a cat-flee reflex that Iteration 137
+showed never fires, so it never even attempts to move.
+
+**Why I am not chasing this.** Their King's moves are not cat-avoidance — 32
+increased distance to the nearest cat, 24 decreased it, which is indistinguishable
+from wandering — and on popthecork it moved 45 times and still died at r315. If
+anything the causation runs the other way: **a King that wanders meets cats, and
+cats are what kill Kings.** Our stationary King sits inside its own trap ring and
+is the one cats rarely reach, which is consistent with our reactive cat traps
+being dormant (Iteration 155: zero placements, because no cat ever comes within
+d^2 20 of our King). Copying their mobility would most likely copy their
+vulnerability.
