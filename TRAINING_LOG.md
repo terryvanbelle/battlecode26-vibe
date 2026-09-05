@@ -12647,3 +12647,53 @@ g_iter26 stands as a local optimum under every framing this run constructed, on
 two instruments both verified byte-deterministic (Iterations 174, 193). Further
 progress needs an idea from outside the space this session searched — not another
 variation inside it.
+
+## Iteration 197 — re-reading the engine: cats patrol FIXED waypoints
+
+With every axis inside the current design closed, this re-reads the engine for
+mechanics the architecture has never contemplated — unused *state and rules*
+rather than unused methods (audited exhaustively in Iteration 156).
+
+**The finding: cat behaviour is deterministic map data, and their aggression is
+location-triggered.**
+
+    InternalRobot constructor:
+        int[] waypointIndexLocations = gw.getGameMap().getCatWaypointsByID(this.ID);
+        catWaypoints[i] = indexToLocation(waypointIndexLocations[i]);
+
+    EXPLORE mode, on arriving at a waypoint:
+        previousWaypoint = currentWaypoint;
+        this.catState = CatStateType.ATTACK;
+
+**A cat switches to ATTACK when it REACHES A WAYPOINT — not when it sees a rat.**
+Each cat walks a fixed circuit assigned at map generation and becomes aggressive
+at fixed places on it, attacking for at most 8 turns before returning to the
+circuit.
+
+**Three consequences.**
+
+1. **It explains Iteration 195 mechanically.** Whether cats grind our King or the
+   enemy's is decided by whether a waypoint happens to sit near a King — pure map
+   layout. That is why no structural property separated the win maps, why
+   `popthecork` (4/6) and `dirtfulcat` (0/6) look identical, and why 7 of 8 losses
+   end with the enemy King untouched.
+
+2. **It refutes a hypothesis I was about to build on.** I had reasoned that our
+   rats attract cats into ATTACK mode, so the Iteration 191 leash failed by
+   drawing cats onto our King. False — rats do not trigger ATTACK at all. The
+   leash failed for the reason already logged: rats away from home are producing
+   value.
+
+3. **It opens the one lever left on the thing that decides games.** Waypoints are
+   not exposed to the bot (`RobotController` contains no reference to them), but
+   they are FIXED, so they are *observable*: a tile where cats repeatedly appear
+   and turn aggressive is a waypoint. Our reactive cat traps currently scatter
+   around the King whenever a cat comes within d^2 20 — Iteration 182 measured 28
+   placed and 9 live while a cat ground our King down anyway, because **a parked
+   cat never steps on a trap**. But a cat *returning to its waypoint* must move
+   onto that exact tile, every circuit.
+
+**Iteration 198: place cat traps on the observed waypoint rather than scattered
+around the King.** CAT_TRAP is 100 damage for 10 cheese, cats have 4000 hp, and a
+circuit repeats — this is the first mechanism found that makes a cat step on
+something deliberately rather than by luck.
