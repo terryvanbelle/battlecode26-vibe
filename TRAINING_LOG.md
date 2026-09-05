@@ -12553,3 +12553,57 @@ there.
 
 g_iter26 stands as a local optimum under every framing this run could construct,
 on two instruments both verified deterministic (Iterations 174, 193).
+
+## Iteration 195 — what produces our wins, and why there is no lever on it
+
+Every trace in this project had examined a loss. With all loss-driven directions
+closed, this examines the wins.
+
+**They are extraordinarily concentrated.** g_iter26's 8 benchmark wins fall on
+three maps and nowhere else:
+
+    popthecork 4/6    whatsthecatdoin 2/6    peaceinourtime 2/6
+    all 24 other maps 0/6
+
+**No structural property distinguishes those maps.** Size, cat count, King-to-King
+distance and symmetry, compared across win and loss maps:
+
+    popthecork   WIN   30x40  4 cats  KingDist 17
+    dirtfulcat   loss  30x30  2 cats  KingDist 15
+    peaceinourtime WIN 35x50  2 cats  KingDist 30
+    closeup      loss  30x30  2 cats  KingDist 38
+
+`popthecork` and `dirtfulcat` are near-identical on every axis and give 4/6 and
+0/6.
+
+**Nor is it whether cats reach the enemy King** — the obvious hypothesis, and it
+dies immediately:
+
+    case                  cat-turns near THEIR King   near OUR King
+    popthecork   WIN               112                      0
+    closeup      LOSS              290                      0
+
+Cats swarm the enemy King on `closeup` almost three times as heavily as on the map
+we win, and we lose anyway.
+
+**Because it is a RACE, and we are not in it.** Their King's HP at the moment ours
+dies, across eight benchmark losses:
+
+    600, 600, 600, 600, 600, 600, 600, 120
+
+**Seven of eight losses end with the enemy King untouched at full health.** The
+race is not close, so extending our own survival — the one lever the race framing
+suggested — buys nothing: there is no cat progress waiting to be finished.
+
+**Conclusion: our win condition is outsourced to a third party we cannot steer.**
+We win when cats happen to grind the enemy King down before anything happens to
+ours, which occurs on three maps out of 27. We have no lever on cats: the
+"squeaks move cats" claim was withdrawn as a normalisation error (Iteration 167,
+cat activity per round is flat at ~4 regardless of squeaking), and every attempt
+to reach the enemy King ourselves is closed because **our rats are within d^2 20
+of it in 0 of 3335 sampled rounds** (Iteration 194).
+
+**g_iter26 is at its ceiling against this benchmark set**, and the ceiling is
+structural rather than a tuning failure. The bot's own contribution — surviving,
+collecting, defending the King — is fully optimised under every framing this run
+constructed; what it cannot do is produce the event that actually wins games.
