@@ -843,6 +843,15 @@ revokes our own cat traps, costing perhaps ten peer games — and it is still wo
 keeping, since removal costs benchmarks -4, close-spawn 4/42 -> 0/42 and wipes
 14 -> ~42.
 
+**Re-opening on a changed cause is legitimate and has a track record.** Three
+attempts, all with a specific reason the old verdict no longer applied:
+Iteration 160 (chase radius, build and noise standard changed) ACCEPTED and became
+g_iter26; Iteration 173 (second King, army 3x larger) rejected at -28 peers;
+Iteration 188 (retreat, movement fix plus a discredited instrument) rejected at -9
+peers. **Two of three failed, and both failures were worth their run** — each
+converted a weakly-founded rejection into a firmly-founded one. What is not
+legitimate is re-opening because a direction feels under-explored.
+
 **What remains open:** nothing incremental that this session could find. The
 honest next step is a structural change with a mechanism nobody has tried, or
 accepting the current build as a local optimum and hardening it.
