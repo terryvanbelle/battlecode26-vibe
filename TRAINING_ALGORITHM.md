@@ -834,6 +834,15 @@ re-opened, one succeeding and one failing.
   the King's own bite is measured from its CENTRE while its size-3 body is
   scratched at the edge, so a cat at d^2 10 is untouchable (182).
 
+**The trap ring's early presence is confirmed three times over** — Iteration 96
+(restoring it halved wipes), 168 (delaying by build count, wipes +43%) and 185
+(delaying by hostility, wipes +29%). Any scheme that waits for evidence of a rush
+arrives too late. Its side effects are real and fully priced: an enemy stepping on
+our ring makes US the backstabber, which wakes a pacifist opponent and permanently
+revokes our own cat traps, costing perhaps ten peer games — and it is still worth
+keeping, since removal costs benchmarks -4, close-spawn 4/42 -> 0/42 and wipes
+14 -> ~42.
+
 **What remains open:** nothing incremental that this session could find. The
 honest next step is a structural change with a mechanism nobody has tried, or
 accepting the current build as a local optimum and hardening it.
