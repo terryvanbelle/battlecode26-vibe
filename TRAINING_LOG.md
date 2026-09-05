@@ -11469,3 +11469,47 @@ remains is simply that a wall on contact buys nothing: it spends the rat's actio
 **Dirt is now closed in both placements.** Combined with traps closed in four
 dimensions plus type (161/102/168/169), the entire terrain-and-obstacle family is
 exhausted.
+
+## Iteration 173 — second Rat King, re-tested on g_iter26 — REJECTED, and the peers are why
+
+Re-opened a measured negative for a specific reason, the same ground on which
+Iteration 160 reopened the chase radius and became g_iter26. Iteration 146 failed
+because mustering 8 rats cost two thirds of a 12-15 rat army; g_iter24 and
+g_iter25 have since taken our peak to **42 rats and 168 spawns a game**, so eight
+is now a fifth.
+
+**Mechanism passed better than it ever has.** On rift we reach `1:kings=2` *and*
+`1:kings=3`, and — the thing that killed Iteration 146 — **the army does not
+collapse**: 25 rats at r175, 31 at r425, 20 at r675.
+
+**Result — REJECT, and the two instruments disagree by an order of magnitude.**
+
+    instrument                  g_iter26        iteration 173
+    benchmarks                    8/162             6/162   (2 games changed, both lost)
+    close-spawn wins               4/42              4/42   (held)
+    early wipes                      14                14   (held)
+    peers, full mapset, paired   76/108 (70.4%)    48/108 (44.4%)   -28
+      vs pure_cooperator         23/54  (43%)      12/54  (22%)
+      vs immediate_defector      53/54  (98%)      36/54  (67%)
+
+**Benchmarks moved 2 games with both guards intact — I would have called that
+flat.** The peers found a **28-game collapse, about 5 sigma.**
+
+**Why the benchmark set cannot see it.** At an 8/162 base rate we lose almost
+everything anyway, so a change that makes us substantially worse has little room
+to show: the games it costs were already losses. The peers play our own game at
+~50% by construction, so a real strategic error registers at full size. The
+muster repeatedly pulls eight rats off the economy and parks them on a rendezvous
+tile; against an opponent with our economy that is decisive, and against a
+benchmark that was beating us regardless it is invisible.
+
+**This is the mirror image of Iteration 151**, where benchmarks read -2 and the
+peers rescued a change worth +18. The same instruction — *when benchmarks and the
+other instrument disagree, run the full peer evaluation* — has now caught an error
+in both directions. A -2 benchmark result means nothing on its own, in either
+sign.
+
+**The second-King direction is now closed on the current build**, and closed for a
+better-understood reason than in Iteration 146: not that we cannot afford the
+rats, but that a King which does not fight is not worth eight rats' worth of
+economy, however large the army.
