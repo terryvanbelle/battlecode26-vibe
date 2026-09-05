@@ -12140,3 +12140,59 @@ in Iterations 166 and 170.
 
 That closes the parked-cat problem: the King has no counter of its own (Iteration
 182), and the rats cannot be told which cat to prefer.
+
+## Iteration 184 — King-broadcast cat bearing — CLOSED on the pre-check, no code
+
+Widened the peer King-kill sample from 4 to 12 and classified each loss by whether
+CatScratch coincides with the King's hp drops:
+
+    CAT-KILLED    2 of 12 (17%)  -- and BOTH are peaceinourtime, one per side
+    rats/other   10 of 12        -- 60 drops of ~10, i.e. enemy rat bites
+
+Two games on a single map, against the risk of sending rats toward the King — the
+shape that failed in Iterations 115/118/119/121/142. The task's own bar was "if it
+is 1 in 12 the ceiling is too low", and it is. **Closed without writing code**,
+which is what the pre-check was for.
+
+## Iteration 185 — gate the trap ring on !isCooperation — REJECTED
+
+The wider sample found something better. Ten of twelve peer King-kill losses are
+enemy RAT BITES, and `pure_cooperator` cannot bite us while cooperation holds —
+its combat block is gated on `!isCooperation || desperate` and it sets
+`desperate = false`. **We break the peace ourselves**: `triggerTrap` credits
+`backstab(trap owner's opponent)`, so an enemy stepping on our ring makes us the
+backstabber. On popthecork cooperation ends at r88, the exact round of the first
+enemy trigger; on tiny, r10.
+
+Gating the ring on `!isCooperation` looked stable rather than merely delayed:
+benchmarks grab constantly and break the peace themselves at rounds 10-53, so we
+would still get our ring, while a pacifist would never wake up.
+
+**Mechanism passed** on tiny vs pure_cooperator — cooperation broke at r937
+instead of r10, traps 56 -> 1, and we survived to r1182 instead of r999.
+
+**Result — REJECT.**
+
+    instrument      g_iter26        iteration 185
+    peers         76/108 (70.4%)   78/108 (72.2%)   20 changed: 11 gained, 9 lost
+      pure_coop     23/54 (43%)     27/54 (50%)
+    benchmarks      8/162             6/162
+    EARLY WIPES        14                18
+    close-spawn      4/42              3/42
+
+Peers are churn (+2 from 11/9), and the benchmark side broke exactly where
+Iteration 168 said it would: **delaying the ring raises early wipes**, 14 -> 18
+here against 14 -> 20 there. The exposure is shorter — hostility appears at rounds
+10-23 on the wipe maps rather than at a build count — but it is the same failure.
+
+**Third confirmation that the ring's value is its EARLY presence.** Iteration 96
+(restoring it halved wipes), Iteration 168 (delaying by build count, +43% wipes)
+and now Iteration 185 (delaying by hostility, +29% wipes). The ring must be
+standing before the rush arrives, and any scheme that waits for evidence of a rush
+arrives too late.
+
+**The peace cost is therefore unavoidable and now fully priced.** Our ring wakes a
+pacifist opponent and revokes our own cat traps, costing perhaps ten peer games —
+and it is still worth keeping, because Iteration 174 measured its removal at
+benchmarks -4 with close-spawn 4/42 -> 0/42 and wipes 14 -> ~42. We pay the peace
+to survive the openings.
