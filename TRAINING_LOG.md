@@ -12389,3 +12389,49 @@ never been the constraint.
 
 That closes the last lead from the action-histogram audit, and with it the trap
 LOCATION question in its fourth and final variant.
+
+## Iteration 191 — leash the foragers — REJECTED, and it completes the picture
+
+Following the regularity that damage does not convert, the axis to push was
+survival: the three changes that ever paid were all about *not losing* things.
+Every counter to our death budget was already closed, so the untried form was
+having fewer rats where they die — `explore()` walks a fixed compass heading with
+no leash at all, so rats wander arbitrarily far into ground the opponent controls.
+
+**Mechanism passed, and dramatically.** Matched g_iter26 control on rift:
+
+    leash             rat deaths /1000r      cheeseTransferred
+    none (control)          82.5                  12865
+    d^2 400 (20 tiles)      72.0                  11857
+    d^2 100 (10 tiles)      42.5                   5729
+
+A 10-tile leash **halves our death rate**. Every previous survival attempt failed
+its mechanism check or barely moved it; this one works outright.
+
+**Result — REJECT, decisively, on the 20-tile version.**
+
+    instrument      g_iter26        leash d^2 400
+    peers         76/108 (70.4%)   58/108 (53.7%)   20 changed: 1 gained, 19 LOST
+      pure_coop     23/54 (43%)      9/54 (17%)
+
+Eighteen peer games, 19 of 20 changed games lost. The tighter leash was not even
+worth running.
+
+**Survival does not convert either, if it is bought with inactivity.** That is the
+mirror of `damage-does-not-convert` and it completes the picture: our rats die
+*because* they are doing the thing that wins games, and keeping them alive by
+keeping them home destroys more than it saves. The 52%-of-deaths-are-throws figure
+is a cost of doing business, not a leak to be plugged.
+
+**What that means for the loss model.** Both halves of the obvious framing are now
+measured and both are wrong:
+
+    "deal more damage"   five iterations, all mechanism-proven, all nil
+    "lose fewer rats"    leash halves deaths, costs 18 peer games
+
+The value in this bot has come from three things only, and all three are about
+**capability preserved at zero marginal cost** — the trap ring (a standing defence
+that costs no actions once placed), the emergency override (spends cheese we were
+hoarding anyway), and the movement fix (removes waste with no trade-off at all).
+None of them buys an advantage by trading one resource for another. That is a
+narrow and demanding class, and it is the honest place to look next.
