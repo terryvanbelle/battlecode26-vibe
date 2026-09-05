@@ -762,7 +762,31 @@ public class RobotPlayer {
                     rc.attack(enemy.getLocation());
                     return;
                 }
-                if (enemy.getLocation().distanceSquaredTo(rc.getLocation()) <= 8) {
+                // Iteration 159 (TRAINING_LOG.md): RE-DOSE on g_iter25. Iteration
+                // 145 measured d^2 20 at 6/162 against a then-baseline of 8/162
+                // and I read three points as an interior optimum. Both premises
+                // have since moved: a "-2 games" delta was shown in Iteration
+                // 151 to be eight games churning BOTH ways (0.8 sigma), and
+                // g_iter25 changed movement outright -- 0% strafes against
+                // 50.6%, and 26% more moves per game. The cost of chasing is
+                // travel time, and travel time just fell, so a radius tuned on
+                // a bot that moved at 0.55x speed on half its steps is not
+                // obviously tuned for this one.
+                // Iteration 160: the wider radius is CONDITIONAL on the game
+                // having survived its opening. Iteration 159 ran d^2 20
+                // unconditionally and the game-by-game diff was structural
+                // rather than churn: all three games GAINED were longer maps
+                // (whatsthecatdoin r1009 and r533, closeup r738) and both games
+                // LOST were close-spawn popthecork, with early wipes rising
+                // 14 -> 17 directionally and close-spawn wins halving 4/42 ->
+                // 2/42. Chasing further costs travel time we cannot afford
+                // while a rush is still live, and buys kills once it is not.
+                // Round 300 is past the entire wipe window -- every early wipe
+                // is before round 100 and the fastest losses are rounds 19-28 --
+                // which is the same clause that restored the guard in
+                // Iteration 150.
+                final int CHASE_RADIUS_DSQ = rc.getRoundNum() >= 300 ? 20 : 8;
+                if (enemy.getLocation().distanceSquaredTo(rc.getLocation()) <= CHASE_RADIUS_DSQ) {
                     if (engage(rc, enemy.getLocation())) return;
                 }
             }

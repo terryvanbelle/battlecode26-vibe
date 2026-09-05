@@ -10832,3 +10832,17 @@ moved, both in the same direction, zero against.
 for diffing every run rather than reading totals. 159's "+1 benchmark game" was
 simultaneously a real gain on long maps and a real loss on close-spawn ones; the
 total hid both. The gate then captured one and discarded the other.
+
+**vs_old_bots after g_iter26** (270 games): 232/270 (85.9%), unchanged from
+g_iter25 — g_iter1 94%, g_iter6 94%, g_iter11 93%, g_iter16 70%, g_iter21 78%.
+Expected: the change is gated to round 300+ and the lineage is dominated by
+close-spawn and mid-length games where the gate keeps the old behaviour. **A flat
+lineage number is the correct reading of a change designed to alter only the late
+game**, not a warning.
+
+Sample archived as `replays/iter160_bench_stroke_whatsthecatdoin_botA.bc26` — one
+of the two games this iteration turned from a loss into a win (loss r1187 -> win
+r501), reproduced and verified against its `results.csv` row.
+
+`g_iter26` ends in 6, so it joins the `vs_old_bots` roster from the next accept
+onward (the tracker excludes the current build by construction).
