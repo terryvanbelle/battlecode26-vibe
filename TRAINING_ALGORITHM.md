@@ -876,6 +876,19 @@ the emergency override (spends cheese already hoarded), the movement fix (remove
 pure waste). On this record, a proposal that spends anything to gain something has
 roughly a one-in-fifteen chance.
 
+**The win condition itself is unreachable.** Cats deal the enemy King's damage
+and we deal essentially none (Iteration 165), yet 91% of games end in King
+destruction. Iteration 194 checked whether any targeting scheme could change that:
+our rats are within d^2 20 of the enemy King in **0 of 3335 sampled rounds**,
+across three games. No bearing, priority or broadcast can act on a unit no rat
+ever sees — and closing the distance is exactly what Iteration 191 measured as
+costing 18 peer games.
+
+**Both instruments are verified deterministic** — the peers at Iteration 174 and
+the benchmarks at 193 (a repeat run differs only in row order under parallelism;
+the sorted diff is empty). So every "N games changed, X gained Y lost" judgement
+in this log is a true statement about the change, not about run-to-run variation.
+
 **What remains open:** nothing incremental that this session could find. The
 honest next step is a structural change with a mechanism nobody has tried, or
 accepting the current build as a local optimum and hardening it.
