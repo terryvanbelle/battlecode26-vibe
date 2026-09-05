@@ -779,3 +779,61 @@ run (every ~10 iterations, run against a **fixed**, never-retired roster of
 every-10th accepted snapshot, track win % over time in a checked-in CSV +
 chart). Not urgent before there's a roster worth tracking — revisit this
 once the project has passed roughly its 10th accepted iteration.
+
+## Closed directions — do not re-open without a NEW reason
+
+Written 2026-09-05 at g_iter26, after a run of iterations in which nearly every
+avenue was closed by measurement rather than by argument. Each line records what
+was tried and what killed it. **Re-opening one of these is legitimate only when
+something has changed that bears on the stated cause** — that is exactly how
+Iteration 160 (chase radius) and Iteration 173 (second King) were correctly
+re-opened, one succeeding and one failing.
+
+**Combat**
+- *Attack volume* — we land 369 bites to their 2346 and trade 7 kills for 347
+  losses (0.02:1). Buying volume means not collecting cheese; failed in
+  Iterations 115, 118, 119, 121, 142, 145, 158.
+- *Target selection* — focus-fire on the weakest (158) and preferring the enemy
+  King (164) are both inert or harmful. Per-rat preferences are bounded by the
+  **90-degree cone**: one rat rarely sees two candidates, so the rule cannot fire
+  (183, byte-identical game).
+- *Throws* — they throw our rats 158x/game, 52% of our rat deaths. Using it
+  ourselves is capped by the same cone (143); the facing clause enables only ~30%
+  of grabs and the HP clause the rest, and rats never heal (152, 177).
+
+**Terrain and obstacles**
+- *Traps* — density (161), steady rate (102), start time (168) and geometry (169)
+  all confirmed at their current values; TYPE is closed by engine rule
+  (`wrongTrapType`: rats never trigger cat traps). The ring is worth 4 benchmark
+  wins and every close-spawn win (174).
+- *Dirt* — King-placed walls us in (171, peers -10); rat-placed is neutral (172).
+  `PLACE_DIRT_CHEESE_COST` is 0 but enemy traps are invisible
+  (`getTrap(loc, ourTeam)`), so avoidance is impossible.
+
+**Economy**
+- *Throughput* — three iterations raised output, each passed its own mechanism
+  check, each lost (151 movement, 162 reserve, 163 population gate). The
+  **890-1490 cheese band is the equilibrium the King needs**, not idle capital.
+  `REPLACEMENT_RESERVE` 1000 and the `cheese > 1500` population gate are each
+  confirmed on two different builds.
+
+**Scoring**
+- *catDamage* — closed in BOTH directions. Five iterations raised our numerator
+  (142, 147, 179, 128-family, 180); the denominator is unreachable because enemy
+  cat traps cannot be removed (`hasCatTrap(loc, ourTeam)`) and their cat damage is
+  ~98% teeth anyway (181).
+- *Second King* — worth +10 to +16.7 points against margins of -33 to -64 (146),
+  and re-tested on a 3x larger army it cost 28 peer games (173).
+
+**The King**
+- *Mobility* — cannot outrun a cat (`movementCooldown` 40 against 20), and the
+  enemy King's roaming is what gets it killed by cats (167).
+- *Action budget* — idles ~89% of rounds but the idleness is cheese-gated, not
+  wasted (171).
+- *A parked cat is unanswerable* — traps punish movement and it does not move;
+  the King's own bite is measured from its CENTRE while its size-3 body is
+  scratched at the edge, so a cat at d^2 10 is untouchable (182).
+
+**What remains open:** nothing incremental that this session could find. The
+honest next step is a structural change with a mechanism nobody has tried, or
+accepting the current build as a local optimum and hardening it.
