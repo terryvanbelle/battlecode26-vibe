@@ -13170,3 +13170,53 @@ The head-to-head is one game below even, which is noise, and is blind here by
 construction: against a mirror of g_iter29 the OPPONENT bites first and becomes the
 backstabber, so the pure-cooperator dynamic this change targets never arises. Same
 category as Iteration 208's 51.9% -- an instrument that cannot pose the situation.
+
+## Iteration 211 — arm the ring when ATTACKED, not when approached — ACCEPTED as g_iter31
+
+The last three King losses were the "ring cluster": on tiny (both sides) and
+dirtfulcat our ring armed at r10-r18 because an enemy rat came near, an enemy
+triggered it, we became the backstabber, and `pure_cooperator` then spent 900 rounds
+killing our King while we sat without cat-trap rights. Iteration 207 had already
+shown the causation from the other side -- ablating the ring globally gained exactly
+these three games -- and was rejected only for wipes 16/42 -> 31/42.
+
+**A proximity latch cannot tell a rusher from a pacifist.** But an opponent that
+attacks makes ITSELF the backstabber, because `backstab(this.team)` fires on biting
+any non-cat. So "we have been attacked" is already observable for free as
+`!rc.isCooperation()`, with no state to track, and it is true of exactly the
+opponents the ring exists for. `rushSignature` deleted.
+
+This is Iteration 185's rule, rejected then at wipes 14 -> 18. Re-opening was
+legitimate because the cause changed twice: that was g_iter26, before cat traps made
+the peace valuable, and Iteration 210 removed our own first-bite so cooperation now
+actually survives against a peaceful opponent.
+
+    MECHANISM  PASSED, both halves, decisively.
+      (a) knifefight vs bench_spaark: THEY break cooperation at round 2, our first
+          ring trap lands at r6 and we reach the same 8 traps by r30. A rusher
+          arms our ring with its own aggression.
+      (b) tiny and dirtfulcat vs pure_cooperator: ring 56 -> 0 and 52 -> 0, cat
+          traps 60 and 65, cooperation NEVER breaks, and both flip LOSS -> WIN
+          (r463 and r401).
+
+    peers            103/108 -> 106/108 (98.1%)   3 gained, 0 LOST
+      pure_cooperator   49/54 -> 52/54
+      immediate_defector 54/54 held
+    benchmarks        11/162 -> 11/162   identical
+    close-spawn wins    4/42 ->   4/42   identical
+    close-spawn wipes  16/42 ->  18/42   <- see below
+    head-to-head      28/54 (51.9%) vs g_iter30
+
+The three games gained are exactly the three predicted.
+
+**Pre-registration miss, recorded rather than glossed.** I registered
+`close-spawn wipes <= 16/42` and measured 18. At p ~ 0.38 and n = 42 the binomial
+sd is 3.14, so +2 is 0.64 sigma -- inside this project's own standard that a
+two-game move carries no information -- and far milder than the moves that killed
+Iteration 185 (+4) and Iteration 207 (+15). Accepted under the standing rule
+(mechanism + significant gain on one instrument + no *statistically significant*
+regression), but the guard did move in the harmful direction and the next
+ring-related iteration should re-check it rather than assume 18 is the new floor.
+
+**Only two peer losses remain**, both on points: peaceinourtime botB and
+safelycontained botB.
