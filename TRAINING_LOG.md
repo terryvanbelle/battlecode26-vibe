@@ -14492,3 +14492,51 @@ distinctive health drop (RAT_TRAP deals exactly 50) would have been the sound si
 And the "avoid the danger" family now has three failures for the same underlying
 reason -- 191, 225 and this -- avoidance costs foraging turns, which is the resource
 Iteration 238 identified as binding.
+
+## Iteration 240 — halve BUILD_WINDOW_ROUNDS 400 -> 200 — ACCEPTED as g_iter33
+
+**First accept since g_iter32, after eighteen rejections**, and it came from Iteration
+238's filter: the benchmark gap is RAT-TURNS (2104 vs 4187), not per-rat behaviour, so
+only changes that add turns can matter.
+
+Every previous population attempt raised `MAX_POPULATION` (111/112/113/114/120/125,
+219, 228) and was rejected for starving the King in short games, because a raised cap
+permits a BURST. `BUILD_WINDOW_ROUNDS` is a different knob entirely -- `builtCount`
+resets each window, so a shorter window delivers the SAME 25 builds per window more
+often rather than more at once. It was undosed, with no comment justifying 400.
+
+It targets the hole Iteration 228 traced exactly: on knifefight we spend all 25 builds
+in rounds 0-99 and then build NOTHING until r400, sitting at r325 on 1095 cheese with
+ZERO rats.
+
+    PAIRED CHECK (the discipline from Iteration 233) -- passed, and it is the first
+    candidate that has:
+      knifefight (the dead-window map)  spawns 44 -> 73, LOSS r687 -> WIN r822
+      closeup (open, cheese-rich)       pickups 593 -> 593, result unchanged
+    So it adds turns where they were missing and costs no foraging where foraging is
+    the whole game.
+
+    DOSE CURVE (peers, 216 games) -- concave with an interior optimum:
+      window   swept maps   games
+      400 (control)  54/108   161/216
+      300            60/108   165/216
+      200            64/108   166/216   <- accepted
+      100            60/108   162/216
+
+    peers       swept 54/108 -> 64/108 (+10)   games 161/216 -> 166/216
+      pure_cooperator 0 -> 6, immediate_defector 24 -> 27 (a PERFECT sweep),
+      opportunistic 5 -> 6, rusher 25 -> 25
+    benchmarks  10/162 -> 9/162   close-spawn wins 2/42 and wipes 20/42 IDENTICAL
+    head-to-head 31/54 (57.4%) vs g_iter32
+
+Accepted under the standing rule: mechanism pass, a significant gain on one instrument
+(+10 swept maps, the metric that is immune to spawn advantage), and no significant
+regression -- the benchmark -1 is well inside noise and both guards are unchanged.
+
+**Why this worked where eight population iterations failed.** They all raised the
+ceiling on how many rats may exist at once; this raises how often the allowance
+refreshes. The distinction matters because the failure mode of a cap raise is spending
+the treasury in a burst and starving the King during a rush, whereas the same total
+spend spread over twice as many windows never presents that burst. `immediate_defector`
+going 24/27 -> 27/27 swept is the clearest sign: that archetype attacks from round 1,
+and a steady replacement stream is exactly what survives it.
