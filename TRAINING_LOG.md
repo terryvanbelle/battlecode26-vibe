@@ -14973,3 +14973,112 @@ has already landed and the rat then spends turns walking away from a trap that i
 already consumed (`triggerTrap` calls `removeTrap`).
 
 Reverted to g_iter33.
+
+## Iteration 251 — the replacement reserve is denominated in the wrong unit — ACCEPTED as g_iter34
+
+Followed the user's steer to work on peers. Of 58 peer losses, **26 come from
+`opportunistic` alone** (28/54) while `immediate_defector` is 53/54 and `rusher` 49/54,
+so one archetype supplies 45% of the losses from 25% of the schedule.
+
+**Instrumented rather than inferred.** I added a temporary print to the King's build gate
+recording *why* it did not build, and ran `closeup` vs `opportunistic` (a swept loss, on
+points, at round 2000):
+
+    why=CHEESE   1664 turns  (83.5%)      slots available ~5 all game
+    why=CAP       164 turns  ( 8.2%)      trapsInRing settles at 7, never blocks
+    why=BUILT     153 turns  ( 7.7%)
+    why=NO_SLOT    12 turns  ( 0.6%)
+
+    treasury pinned at 987-1044 from round 200 to the end
+
+My first hypothesis was **wrong and the instrumentation killed it**: `findTrapLocation`
+and `findBuildLocation` search the same radius, so I expected the King's ring to be
+eating its own nursery. `NO_SLOT` is 0.6%. The binding constraint is cheese, and the
+treasury sits exactly on `REPLACEMENT_RESERVE = 1000` -- the equilibrium the Iteration 90
+comment predicted and nobody had measured.
+
+**The defect is the UNIT, not the magnitude.** Iteration 87 validated the reserve's size
+(+24 points) and Iterations 92/247 both failed to improve it by decaying it late. But the
+reserve exists to buy *replacement rats*, and a rat's price moves 8x:
+
+    getCurrentRatCost() = 10 + 10 * (aliveRats / 4)
+     8 live rats -> cost 30 -> 1000 cheese hoards 33.3 rats' worth
+    28 live rats -> cost 80 -> 1000 cheese hoards 12.5 rats' worth
+
+It is most generous exactly when the army has collapsed and rebuilding is most urgent.
+On that closeup game we ran on 4-6 rats for 800 rounds while holding 20+ rats' worth of
+cheese; `opportunistic` held 15-22 and out-collected us 12429 to 8935. **Deaths were not
+the cause -- we lost 113 rats to their 164.** We simply stopped rebuilding.
+
+So: `REPLACEMENT_RESERVE = RESERVE_RATS * getCurrentRatCost()`.
+
+    reserve       games  swept-win  swept-loss   imme oppo pure rush   asym
+    fixed 1000     158      52          2         53   29   27   49   ----
+    14 * ratCost   159      57          6         53   31   26   49   0.21s
+     8 * ratCost   162      60          6         51   32   29   50   0.76s   <- accepted
+     4 * ratCost   159      58          7         48   36   26   49   0.16s
+
+Concave with an interior optimum, and legible: shrinking the reserve monotonically helps
+`opportunistic` (29->31->32->36) and monotonically hurts `immediate_defector`
+(53->53->51->48), which attacks from round 1 and cannot replace losses on a thin
+treasury. 8 is where the curves cross -- the burst-versus-buffer trade-off that sank the
+eight MAX_POPULATION raises, priced rather than guessed.
+
+    paired check (at 14)  maze neutral (r491->521, pickups 21->27);
+                          closeup MORE_POINTS loss -> RATKING_DESTROYED win
+    peers                 158 -> 162 games; swept-wins 52 -> 60, and the swept flips
+                          are 10 gained : 2 lost -- far cleaner than the game-level split
+    head-to-head g_iter33 29/54 (53.7%), swept 3-1
+    benchmarks            9 -> 10/162; close-spawn wins 2/42 -> 3/42; wipes 20/42 -> 20/39
+
+**ACCEPTED as g_iter34.** No instrument is negative. The blemish is swept-losses 2 -> 6;
+three of the four new ones (`safelycontained`, `pipes`, `dirtpassageway`) sit in the
+coin-flip band measured below.
+
+### Two method corrections, both of which changed a conclusion
+
+**1. I compared against the wrong control.** I first diffed against run `135231` because
+it was the newest 216-game run. Timestamps say it finished at 14:09, mid-Iteration-247 --
+it is the *rejected reserve-decay candidate*, not a control. The true g_iter33 baseline is
+`113915` (finished 11:55, immediately before the re-baseline commit). Both score 158/216,
+which is exactly why the error was invisible in the headline. I briefly concluded from
+their 4-game disagreement that **the Gauntlet is non-deterministic** -- it is not; those 4
+games are Iteration 247's effect. Check what a run *was*, not just its date.
+
+**2. "Churn" is not a rejection criterion, and I have been misusing it.** Calibrating
+flip-asymmetry against changes already judged:
+
+    change                          gained  lost   flips   asym
+    g_iter33 ACCEPT (window 400->200)   26    18      44   1.21s
+    window 400->300                     20    13      33   1.22s
+    window 400->100                     21    17      38   0.65s
+    Iteration 250 (rejected)             8     5      13   0.83s
+    Iteration 251 at 14                 12    11      23   0.21s
+    Iteration 251 at 8                  ---   ---      28   0.76s
+
+**The accepted g_iter33 change churned 44 games, 26:18.** Heavy churn is the normal
+response of this map set to any timing perturbation, so "13 games changed for +3" was
+never evidence against Iteration 250 by itself. The discriminators are asymmetry per
+flip and a coherent dose curve. Iteration 250 stays rejected -- 0.83s on 13 flips, and
+its dose curve was non-monotone (52/54/53) -- but for the right reason now.
+
+**Why the map set churns: a large coin-flip band.** Scoring every loss replay exactly
+(the dump carries `catDamage=[..]` and `cheeseTransferred=[..]` per round, so points need
+not be proxied), **9 points-decided losses sit within 1.0 point of a win**.
+`safelycontained` is lost from both sides by **115 cheese out of 25,755 -- 0.22%**, with
+catDamage a dead 0-0 term. Any economy perturbation flips games in that band in both
+directions, which is the churn, and is also why real economy gains do convert.
+
+### Recorded for later
+
+A pre-registered prediction (six low-army-ratio maps) **failed at 2/6**, and the change
+gained `closeup` B, the one game explicitly flagged as *not* explained by the mechanism
+(army ratio 2.28). Across all 23 `opportunistic` losses our mean army is 24.5 vs their
+25.4 -- near parity. So the collapse is real and worth fixing but is a minority failure
+mode; the accept rests on the dose curve and the instruments, not on the prediction.
+
+`closeup` A and B lose for **opposite** reasons: A loses cheese (8935 v 12429) while
+winning catDamage; B loses catDamage (3186 v 4814) while winning cheese by a wide margin.
+Per-side diagnosis is required on this map set. And in a 2000-round game where neither
+King dies the kings term is void, so while cooperating catDamage carries 50 of the 70
+live points against cheese's 20 -- 2.5x the weight of the economy work we keep doing.
