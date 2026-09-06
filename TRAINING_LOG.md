@@ -13742,3 +13742,77 @@ mirror, not a target. `TRAINING_ALGORITHM.md` specifies a third archetype that w
 never built -- *opportunistic*: cooperates until the cats are mostly dead or its King
 count is safely ahead, then defects -- and calls it "the hardest and most realistic".
 That is now the missing instrument, and building it is the next step.
+
+## Iteration 223 — build the opportunistic archetype; the peer instrument has resolution again
+
+Consequence of Iteration 222. Added the third archetype TRAINING_ALGORITHM.md
+specifies and that was never built, as 3 policy edits in `resync_archetypes.py` so it
+stays current and hard-aborts if an anchor breaks.
+
+**A mechanism failure worth recording.** The first trigger fired only on seeing a cat
+at <=1200 hp (30% of 4000) and cooperation NEVER broke -- BABY_RAT vision is a
+90-degree cone, and a cat that low dies almost immediately, so no rat ever both saw
+it and lived to act. Widened to <=2400 with a round-500 fallback; it now defects at
+r76-r463 by map and lays rat traps once it does. **An instrument has to reliably pose
+its threat**, which is a different bar from being a good policy.
+
+New baseline for g_iter32, 162 games:
+
+    overall               109/162 (67.3%)
+    vs pure_cooperator     27/54 (50%)   mirror -- no resolution by construction
+    vs immediate_defector  51/54 (94%)   saturated
+    vs opportunistic       31/54 (57%)   the only archetype in the resolving band
+
+**And it immediately exposes a vulnerability the other two cannot pose:**
+
+    vs opportunistic   KING 10-8   POINTS 21-15
+      King losses median round 921 (range 498-1460)
+
+Eight King losses, against 2 from pure_cooperator and 3 from immediate_defector. An
+opponent that farms cats *and then turns on us* is a situation the instrument has
+never contained before.
+
+**Traced `opportunistic__corridorofdoomanddespair__botB`** (lost r665):
+
+    cooperation broke   r137        our ring: 12 placements, first at r138
+    our King hp         600 -> 0 in SIXTY drops of exactly 10 (RAT_BITE_DAMAGE)
+    all damage between  r606 and r665 -- zero before r606
+
+So the ring reacts immediately and correctly, we then survive 470 quiet rounds, and
+the King dies in a single 59-round massed assault. **We had 470 rounds of warning and
+built 12 traps against a `RAT_TRAP.maxCount` of 25** -- the ring is half-built when
+the blow lands, because `TRAPS_PER_BUILD = 2` alternates trap-building with rat-
+building at the same rate in war as in peace.
+
+## Iteration 224 — build the ring faster once at war — REJECTED, the ring is GEOMETRICALLY full
+
+From the 223 trace: 470 rounds of warning, 12 ring traps placed, `RAT_TRAP.maxCount`
+25. So raise the trap:build ratio while at war only (`TRAPS_PER_BUILD =
+rc.isCooperation() ? 2 : 4`), leaving cooperative games untouched -- the difference
+from Iteration 122, which raised it unconditionally and lost four wins.
+
+    MECHANISM  WEAK: ring placements 12 -> 15, and the traced game still lost
+               (r665 -> r670).
+
+**Why, and it is a permanent constraint.** `RAT_KING_BUILD_DISTANCE_SQUARED` is 8 and
+the King is SIZE 3, so the placeable annulus is every (dx,dy) with dx^2+dy^2 <= 8
+excluding the 3x3 body:
+
+    (-2,-2) (-2,-1) (-2,0) (-2,1) (-2,2) (-1,-2) (-1,2) (0,-2)
+    (0,2) (1,-2) (1,2) (2,-2) (2,-1) (2,0) (2,1) (2,2)          = 16 tiles
+
+We already place on **15 of the 16**. The ring is not half-built; it is essentially
+full, and `maxCount` 25 is unreachable by a King that never moves. Building faster
+cannot deepen a ring that has nowhere left to go.
+
+**REJECTED**, and it retires the framing from Iteration 223's trace: "12 traps
+against a cap of 25" was the wrong comparison. The right denominator is 16, and we
+were at 12-15 of it.
+
+This also explains Iteration 122's result better than its own note did: raising the
+ratio 2:1 -> 3:1 lost four wins because the extra King-actions bought traps that had
+**nowhere to be placed**, so the cost in rats was real and the benefit was zero.
+
+Consequence for the betrayal problem: the King's static defence is already maxed, so
+surviving a massed assault has to come from somewhere else -- the rats, the approach,
+or not being where the assault lands.

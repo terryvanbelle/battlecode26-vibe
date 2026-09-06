@@ -557,6 +557,13 @@ public class RobotPlayer {
         //
         // Self-limiting: RAT_TRAP maxCount is 25 and findTrapLocation returns
         // null once the ring is full, in which case we fall through and build.
+        // Iteration 224 (TRAINING_LOG.md): raising this while at war is REJECTED.
+        // The King's ring is GEOMETRICALLY capped: RAT_KING_BUILD_DISTANCE_SQUARED
+        // 8 around a SIZE-3 King leaves exactly 16 placeable tiles, and we already
+        // use 15 of them. RAT_TRAP.maxCount 25 is unreachable for a King that never
+        // moves, so a faster ratio bought 3 extra traps and lost the same game.
+        // (It also explains Iteration 122: a 3:1 ratio spent King-actions on traps
+        // that had nowhere to go.)
         final int TRAPS_PER_BUILD = 2;
         //
         // Iteration 200 (TRAINING_LOG.md): SUPPRESS THE TRAP, KEEP THE CADENCE.
