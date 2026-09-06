@@ -14020,3 +14020,43 @@ live-rat census rather than King visibility, so it fires only in the traced stat
 (0 rats, ~1000 cheese) rather than routinely. Also worth noting the method: the
 swept-map view of `vs_old_bots` located a true regression (knifefight, tiny) that
 162 benchmark games and 216 peer games had both hidden.
+
+## Iteration 229 — narrow the rebuild trigger — REJECTED; the dead window is real but not convertible
+
+Iteration 228's bypass fired on `noVisibleArmy` alone, which is KING-VISION-scoped and
+therefore true whenever rats are merely foraging (16 builds beyond the cap in one
+window). The distinguishing feature of genuine extinction is DURATION -- foragers come
+back to deliver, so an empty view lasts a few rounds; extinction does not end. So
+require the emptiness to persist for N rounds before bypassing the cap.
+
+**The selectivity worked exactly as designed** -- and buys nothing:
+
+    streak      builds beyond cap (window 0)     knifefight result
+    50                    2                      lost r687  (= control)
+    20                    3                      lost r797
+    10                    5                      lost r805
+    none (iter 228)      16                      WON  r659
+
+Only the indiscriminate version flips the map, and that one was already rejected as
+churn. Every selective dose extends survival without converting it -- the regularity
+`damage-does-not-convert` records for inactivity, here reached from the opposite
+direction (more rats rather than fewer risks).
+
+Full instrument at streak = 10, the most permissive narrow dose:
+
+    swept maps   54/108 -> 52/108     games  161/216 -> 158/216
+      pure_cooperator 0 -> 1, immediate_defector 24 -> 23,
+      opportunistic 5 -> 5, rusher 25 -> 23
+
+**REJECTED, and the direction is closed.** There is no setting that is both selective
+and useful: broad enough to matter means raising the population cap, which six prior
+iterations (111/112/113/114/120/125), Iteration 219 and now 228 have all rejected;
+narrow enough to be safe means firing 2-5 times a game, which changes nothing.
+
+**What remains true and is worth carrying:** `builtCount` is cumulative per 400-round
+window, so `MAX_POPULATION` 25 is 25 builds PER WINDOW, and on knifefight we spend the
+entire allowance by r99 and cannot build for 300 rounds -- at r325 holding 1095 cheese
+with zero rats. That is a genuine structural feature of the build policy. It is simply
+not where the games are decided: the same 300 rounds of idleness are survivable, and
+the two builds that the safe trigger adds do not change who wins. The cap is doing
+more good (King starvation protection in short games) than the dead window costs.
