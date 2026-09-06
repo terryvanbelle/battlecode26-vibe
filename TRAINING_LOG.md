@@ -14220,3 +14220,50 @@ strips it.
 
 **The pairing rule paid for itself on first use**: one extra match (about a minute)
 replaced a 216-game run that would have taken twenty and told me the same thing.
+
+## Iteration 234 — retreat without turning our back — REJECTED on the mechanism, no gauntlet spent
+
+**Systematic capability audit first.** Of 85 `RobotController` methods, 43 have zero
+call sites here. Most are cosmetic (indicators, resign, disintegrate), but one cluster
+is a whole mechanic: `carryRat` / `canCarryRat` / `throwRat` / `dropRat` /
+`isBeingCarried`. Two engine facts came out of reading it:
+
+- **Carrying a FRIENDLY rat does not backstab** -- `grabRobot` only calls
+  `backstab()` when the carried robot is on the other team. Friendly transport is
+  legal at any time.
+- `THROW_RAT_COOLDOWN` is 20, `THROW_DAMAGE` 10 + 4/tile.
+
+The tested idea came from the other half of that mechanic. `assertCanCarryRat` grants
+a grab when the target cannot sense the grabber, and 52% of our rat deaths are enemy
+throws. Our `flee()` goes through `tryMove -> stepTo`, which TURNS to face the flight
+direction -- so a fleeing rat presents its back, handing the enemy the condition it
+needs. `move()` does not turn, so we can retreat while still facing the threat, at
+MOVE_STRAFE_COOLDOWN 18 against 10.
+
+    MECHANISM FAILED. bench_spaark vs us on closeup, paired:
+      g_iter32   ourRatsGrabbed 98   thrown 47
+      iter234    ourRatsGrabbed 98   thrown 46
+
+Zero effect, so rejected without a gauntlet.
+
+**Why, from the engine.** The grab precondition is a THREE-way OR:
+
+    !target.canSenseLocation(grabber)   -> grab allowed   (target cannot see grabber)
+    same team                          -> grab allowed
+    targetHealth + 0 < grabberHealth    -> grab allowed   (grabber merely healthier)
+
+Facing the threat we are fleeing does not put a DIFFERENT grabber inside our
+90-degree cone -- three quarters of approach angles remain blind -- and the health
+clause makes facing irrelevant whenever the grabber is healthier, which is the normal
+case for a scratched forager. `HEALTH_GRAB_THRESHOLD` is 0, so *any* health edge
+suffices.
+
+**So the facing trap is not fixable by facing.** The note that "fleeing is what makes
+our rats grabbable" is true but incomplete: facing is only one of three sufficient
+conditions, and the cheapest one for the opponent to satisfy is simply being healthier.
+
+**Instrument note.** The peer set measured ZERO grabs on both arms -- peers never
+throw, only benchmarks do (25-70/game). Had I checked this on peers alone I would have
+recorded "no change" as a pass. This is the situation
+`an-instrument-that-cannot-pose-the-situation-says-inert` describes, and it is now the
+second mechanism this session that only the benchmark set could evaluate.
