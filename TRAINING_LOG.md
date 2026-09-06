@@ -14540,3 +14540,42 @@ the treasury in a burst and starving the King during a rush, whereas the same to
 spend spread over twice as many windows never presents that burst. `immediate_defector`
 going 24/27 -> 27/27 swept is the clearest sign: that archetype attacks from round 1,
 and a steady replacement stream is exactly what survives it.
+
+## Iteration 241 — re-sync to g_iter33 and re-baseline; plus the rat-cost curve
+
+Re-synced all four archetypes to g_iter33 (they carry `BUILD_WINDOW_ROUNDS = 200`
+now) and re-measured, because stale archetypes have inflated the headline twice
+before (Iterations 212 and 220).
+
+    instrument                       vs g_iter32-derived   vs g_iter33-derived
+    peers, games                        166/216               158/216
+    peers, swept maps                    64/108                52/108
+      pure_cooperator                     6/27                  0/27  (27 splits)
+      immediate_defector                 27/27                 26/27
+      opportunistic                       6/27                  4/27
+      rusher                             25/27                 22/27
+
+So g_iter33's accept figures were inflated by roughly 12 swept maps and 8 games. **The
+accept still stands** -- it was measured against a control on the SAME archetypes, and
+the independent instruments agree (benchmarks' guards identical, `vs_old_bots`
+331 -> 337/378, head-to-head 31/54). But **52/108 swept and 158/216 games is the number
+to compare against from here.**
+
+`pure_cooperator` is once again 0/27 swept with all 27 maps split by side -- it has
+converged back onto us, exactly as Iteration 222 described. That column carries no
+information and should be read as a mirror, not as a 50% result.
+
+**Engine finding recorded while the run went (relevant to any future population work):**
+
+    getCurrentRatCost() = BUILD_ROBOT_BASE_COST + BUILD_ROBOT_COST_INCREASE
+                          * (aliveBabyRats / NUM_ROBOTS_FOR_COST_INCREASE)
+                        = 10 + 10 * (aliveRats / 4)
+
+Rat cost scales with LIVE rats, not with rats ever built: 10 cheese at 0-3 rats, 70 at
+24-27, 160 at 60. Two consequences worth keeping. Rebuilding after losses is CHEAP --
+a depleted team pays near the base rate -- which is part of why Iteration 240's faster
+window refresh is affordable where a raised ceiling was not: the ceiling lets you buy
+rats at the expensive end of the curve, whereas the refresh mostly buys them at the
+cheap end, after losses. And `REPLACEMENT_RESERVE` 1000 is ~14 rats at the 70-cheese
+rate but only ~6 at the 160 rate, so the reserve is implicitly tighter the larger the
+army gets.

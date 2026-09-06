@@ -341,7 +341,20 @@ public class RobotPlayer {
         // reserve is not what binds here. Changing both at once would leave it
         // unknown which one mattered.
         final int MAX_POPULATION = rc.getGlobalCheese() > 1500 ? 60 : 25;
-        final int BUILD_WINDOW_ROUNDS = 400;
+        // Iteration 240 (TRAINING_LOG.md): halve the build WINDOW, not the cap.
+        //
+        // Iteration 238 measured the benchmark gap as RAT-TURNS (2104 vs 4187), not
+        // per-rat behaviour. Every previous population attempt raised MAX_POPULATION
+        // (111/112/113/114/120/125, 219, 228) and was rejected for starving the King
+        // in short games -- a raised cap permits a BURST. Nobody has touched the
+        // window length, which is undosed and has no comment justifying 400.
+        //
+        // `builtCount` resets each window, so a shorter window means the SAME 25
+        // builds per window arriving more often, rather than more at once. That
+        // targets exactly the hole Iteration 228 traced on knifefight: 25 builds in
+        // rounds 0-99, then NOTHING until r400 while at r325 we sat on 1095 cheese
+        // with zero rats.
+        final int BUILD_WINDOW_ROUNDS = 200;
         // Iteration 92 (TRAINING_LOG.md): let the replacement reserve DECAY
         // late, when a survival buffer is worth less than the rats it buys.
         //
@@ -561,6 +574,13 @@ public class RobotPlayer {
         //
         // Self-limiting: RAT_TRAP maxCount is 25 and findTrapLocation returns
         // null once the ring is full, in which case we fall through and build.
+        // Iteration 224 (TRAINING_LOG.md): raising this while at war is REJECTED.
+        // The King's ring is GEOMETRICALLY capped: RAT_KING_BUILD_DISTANCE_SQUARED
+        // 8 around a SIZE-3 King leaves exactly 16 placeable tiles, and we already
+        // use 15 of them. RAT_TRAP.maxCount 25 is unreachable for a King that never
+        // moves, so a faster ratio bought 3 extra traps and lost the same game.
+        // (It also explains Iteration 122: a 3:1 ratio spent King-actions on traps
+        // that had nowhere to go.)
         final int TRAPS_PER_BUILD = 2;
         //
         // Iteration 200 (TRAINING_LOG.md): SUPPRESS THE TRAP, KEEP THE CADENCE.
@@ -743,10 +763,24 @@ public class RobotPlayer {
             // separate cleanly in time: every early wipe is over before round 100,
             // whereas the points games this wins run to r2000, so nothing of value
             // is given up by staying out of the way early.
+            // Iterations 214/215 tried three ways to stop rats cat-trapping during
+            // a rush, to recover the close-spawn drift (wipes 14 -> 20 across
+            // g_iter26..g_iter32). A health gate and a per-rat "enemy in sight"
+            // gate both failed to fire at all -- trapping rats are healthy, and
+            // BABY_RAT vision is a 90-degree cone. Gating on `isCooperation()` DID
+            // fire, cutting wartime traps 16 -> 2, and moved the wipe count by
+            // exactly zero games. So the drift is not caused by cat-trapping;
+            // the gate is not worth its complexity. See TRAINING_LOG.md.
             final int CAT_TRAP_CHEESE_FLOOR = 200;
-            final int CAT_TRAP_FIRST_ROUND = 0;
-            if (rc.getRoundNum() >= CAT_TRAP_FIRST_ROUND
-                    && rc.getGlobalCheese() > CAT_TRAP_CHEESE_FLOOR) {
+            if (rc.getGlobalCheese() > CAT_TRAP_CHEESE_FLOOR) {
+                // Iteration 218 (TRAINING_LOG.md): REJECTED -- laying traps toward
+                // a cat that is not yet adjacent. The binding constraint is
+                // CAT_TRAP.maxCount 10: a speculative trap is spent from the same
+                // budget as one that fires immediately, and crowds it out. Placing
+                // at any range cost 10 peer games (active traps sat at the cap for
+                // half the game); reserving slots recovered it to exactly par, with
+                // 24 games changed for zero net. Keep the rule that only places
+                // where the trap fires at once.
                 MapLocation catLoc = nearestCat.getLocation();
                 for (MapLocation loc : rc.getAllLocationsWithinRadiusSquared(
                         rc.getLocation(), GameConstants.BUILD_DISTANCE_SQUARED)) {
