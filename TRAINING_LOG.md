@@ -13357,3 +13357,90 @@ health rather than on the round number.
 Accepted because the peers are now correctly calibrated (pure_cooperator at exactly
 50.0% before this change), +8 is large and directional, and the head-to-head agrees
 at 64.8%.
+
+## Iteration 214 — survivability gate on cat-trapping — VOID on the mechanism
+
+Aimed at the cumulative close-spawn drift flagged at g_iter32. Replaced the (now
+inert) round-number gate with the bot's own engage-vs-flee test,
+`allies > 1 || rc.getHealth() > 30`, on the theory that a rat which would have fled
+was instead standing beside a cat to lay a trap and eating the 20-damage scratch.
+
+    MECHANISM  FAILED. Paired match, bench_spaark vs us on evileye:
+                 g_iter32  16 cat traps, lost r104
+                 iter214   15 cat traps, lost r107
+               One placement blocked out of sixteen.
+
+    peers       87/108 -> 88/108 (+1, noise)
+    benchmarks  10/162, close-spawn wins 2/42, wipes 20/42 -- ALL IDENTICAL
+
+**Why it cannot work as written:** a rat fails `allies > 1 || hp > 30` only when it
+is alone AND below 30 HP, which takes four prior scratches -- by then it is dying
+regardless. **The rats laying traps during a rush are healthy ones**, so a health
+test cannot see them. Reverted.
+
+**Two things the pre-check got right that are worth keeping.**
+
+1. My first stated cause was wrong and the check caught it: on `knifefight` -- the
+   archetypal wipe map -- we place **zero** cat traps, because
+   `CAT_TRAP_CHEESE_FLOOR` 200 is never reached that early. Early cat-trapping
+   cannot be causing wipes there.
+2. The drift is nonetheless real, and it is on the BORDERLINE close-spawn maps:
+
+        wipes by map      g_iter26 -> g_iter32
+        knifefight (5.0)     4 -> 4     unchanged
+        thunderdome (8.0)    3 -> 3     unchanged
+        dirtfulcat (15.0)    2 -> 2     unchanged
+        tiny (5.0)           4 -> 5
+        popthecork (17.0)    0 -> 1
+        evileye (21.2)       1 -> 3
+        toomuchcheese (21.2) 0 -> 2
+
+   The tight rush maps are untouched; the increase is entirely on maps far enough
+   apart to survive long enough to bank 200 cheese and start trapping. Confirmed
+   directly: on those wipes we place **6-38 cat traps before dying at r64-93**.
+
+**And the guard trend is real even though no single step was significant** -- wipes
+went 14, 16, 16, 18, 20 across five builds, which is ~2 sigma cumulatively on 42
+games. A sequence of individually-ignorable moves in one direction is a regression;
+judging each step alone is how it got there.
+
+## Iteration 215 — gate cat-trapping on isCooperation — REJECTED, and it closes the direction
+
+Third and best-aimed attempt at the close-spawn drift. `rc.isCooperation()` is a
+team-level signal -- global, free, and false exactly when someone has attacked (round
+2 on a benchmark rush, never against a pacifist peer). Trap at peace, fight at war.
+
+    MECHANISM  PASSED strongly, both directions:
+                 evileye vs bench_spaark   16 cat traps -> 2   (war: suppressed)
+                 tiny vs pure_cooperator   40 cat traps        (peace: preserved)
+
+    benchmarks        10/162 -> 10/162   identical
+    close-spawn wins    2/42 ->   2/42   identical
+    close-spawn wipes  20/42 ->  20/42   identical
+      by map: toomuchcheese 2 -> 1, tiny 5 -> 6, all others unchanged
+
+**Rejected: the mechanism fired hard and moved nothing.** Reverted to g_iter32.
+
+**This closes "cat-trapping causes the close-spawn drift" as a direction**, on three
+independent tests that between them cover every way to suppress it:
+
+    health gate (214)        did not fire   16 traps -> 15   (trapping rats are healthy)
+    enemy-in-sight (215a)    did not fire   16 traps -> 16   (90-degree vision cone)
+    cooperation gate (215b)  FIRED  16 -> 2                  guards unchanged
+
+The first two failed at reachability, which is informative in itself, but the third
+is the decisive one: we suppressed 88% of wartime cat-trapping and the wipe count
+did not move by a single game. **Whatever raised wipes from 14 to 20 across
+g_iter26..g_iter32, it is not the cat traps.**
+
+The remaining suspects are the ring changes -- Iteration 211 (arm on being attacked
+rather than on proximity) coincided with 16 -> 18, and Iteration 213 with 18 -> 20.
+Both are load-bearing elsewhere: 211 is worth 3 peer games and 213 is worth 8. A
+future attempt should test reverting 211's trigger specifically, and price the trade
+rather than assuming it is free.
+
+**Process note.** The drift only became visible when plotted across five builds
+(14, 16, 16, 18, 20 -- about 2 sigma cumulatively). Each individual step passed a
+"not statistically significant" test, and that is exactly how it accumulated. Judge
+guards on their trend across accepts, not only against the immediately preceding
+build.

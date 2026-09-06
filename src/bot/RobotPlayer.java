@@ -739,10 +739,16 @@ public class RobotPlayer {
             // separate cleanly in time: every early wipe is over before round 100,
             // whereas the points games this wins run to r2000, so nothing of value
             // is given up by staying out of the way early.
+            // Iterations 214/215 tried three ways to stop rats cat-trapping during
+            // a rush, to recover the close-spawn drift (wipes 14 -> 20 across
+            // g_iter26..g_iter32). A health gate and a per-rat "enemy in sight"
+            // gate both failed to fire at all -- trapping rats are healthy, and
+            // BABY_RAT vision is a 90-degree cone. Gating on `isCooperation()` DID
+            // fire, cutting wartime traps 16 -> 2, and moved the wipe count by
+            // exactly zero games. So the drift is not caused by cat-trapping;
+            // the gate is not worth its complexity. See TRAINING_LOG.md.
             final int CAT_TRAP_CHEESE_FLOOR = 200;
-            final int CAT_TRAP_FIRST_ROUND = 0;
-            if (rc.getRoundNum() >= CAT_TRAP_FIRST_ROUND
-                    && rc.getGlobalCheese() > CAT_TRAP_CHEESE_FLOOR) {
+            if (rc.getGlobalCheese() > CAT_TRAP_CHEESE_FLOOR) {
                 MapLocation catLoc = nearestCat.getLocation();
                 for (MapLocation loc : rc.getAllLocationsWithinRadiusSquared(
                         rc.getLocation(), GameConstants.BUILD_DISTANCE_SQUARED)) {
