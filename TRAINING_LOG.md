@@ -14737,3 +14737,49 @@ Reverted. Note the attempt DID perturb results (r985/65 events against a control
 r812/56) despite firing zero times -- an extra costly `canCarryRat` call per rat-turn
 in a dense melee is enough to shift trajectories, which is a reminder that "the branch
 never taken" is not the same as "no change".
+
+## Iteration 246 — why the throw asymmetry is unfixable, end to end — CLOSED, no code
+
+Iteration 245 left one thread: a FULL-HEALTH rat cannot be grabbed via the health
+clause, because `targetHealth + 0 < grabberHealth` needs the grabber above 100 and 100
+is the maximum. So the FIRST grab of a fresh rat must come from the other clause --
+`!target.canSenseLocation(grabber)` -- after which it is damaged and freely grabbable
+forever. Break the first grab and the cascade breaks.
+
+**The geometry says it cannot be broken.** `MapLocation.isWithinDistanceSquared` gates
+sensing on
+
+    halfAngle = degrees(acos(cosSim(facingDir, dirToTarget)));
+    isValidAngle = halfAngle - 1e-3 <= theta / 2;          // theta = 90 for BABY_RAT
+
+so a rat sees +/-45 degrees around its facing: **3 of the 8 adjacent squares, leaving 5
+blind**. An enemy stepping to any of those five can grab a rat at full health, and our
+rats face wherever they are walking.
+
+**The one escape hatch is closed by the engine.** The same function grants 360-degree
+vision when `facingDir == Direction.CENTER`:
+
+    if (facingDir == Direction.CENTER) { isValidAngle = true; }
+
+but `assertCanTurn` refuses it outright:
+
+    if (d == Direction.CENTER)
+        throw new GameActionException(CANT_DO_THAT, "Cannot turn to CENTER direction!");
+
+That branch exists for the King (vision angle 360) and cats (180), not for rats.
+
+**So the whole 47-to-0 throw asymmetry is structural**, and the chain is now complete:
+
+    5 of 8 adjacent approaches are blind  ->  a fresh rat is grabbed from behind
+    -> it takes 42 damage on landing      ->  it is now the weaker party
+    -> the health clause makes every later grab automatic
+    -> and we can never grab back, because we are the damaged side (Iteration 245)
+
+Iteration 234 showed we cannot stop the grabs by facing; 245 showed we cannot
+retaliate; this shows the underlying blindness is not addressable at all, since the
+only remedy the engine models is explicitly forbidden to our unit type.
+
+**No code change.** Recorded so this is not re-derived: the sequence 234 -> 245 -> 246
+covers defence, offence and the root cause, and the answer is the same each time. The
+throw mechanic is a property of the matchup we can only avoid by not being adjacent to
+enemy rats -- which is the leash, measured negative three times (191, 225, 239).
