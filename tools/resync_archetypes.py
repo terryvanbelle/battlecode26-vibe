@@ -148,10 +148,40 @@ OPPORTUNISTIC = [
 ]
 
 
+# Iteration 227: an archetype that differs from ROUND 1 by CROSSING THE MAP.
+#
+# Iteration 226 established that an archetype resolves only to the extent it differs
+# early and structurally: pure_cooperator (never differs) is 27/27 side-split and
+# yields nothing; opportunistic (flips at r76-463) is 21/27 split; immediate_defector
+# (differs from round 1) is only 3/27 split and carries the instrument.
+#
+# But immediate_defector enables the raid and then LEASHES its rats to its own King,
+# so it plays as a defensive early-aggressor. Nothing in the pool commits its opening
+# to reaching our King -- which is exactly what the benchmark bots do and what
+# produces our early wipes. This is that missing threat, at our own level.
+RUSHER = [
+    ("King always broadcasts the enemy-King guess",
+     "boolean desperate = economyStruggling && rc.getGlobalCheese() < RESERVE;",
+     "boolean desperate = true;  // ARCHETYPE: rusher always hunts"),
+    ("rats always treat the game as post-backstab",
+     "boolean desperate = rc.readSharedArray(2) == 1;",
+     "boolean desperate = true;  // ARCHETYPE: rusher"),
+    ("combat block always active",
+     "if (!rc.isCooperation()) {",
+     "if (true) {  // ARCHETYPE: rusher always fights"),
+    # The defining difference from immediate_defector: the raid is on AND there is
+    # no leash, so rats commit to crossing the map instead of turtling at home.
+    ("raid always enabled, and unleashed",
+     "if (DESPERATE_RAID && gx != 0 && gy != 0) {",
+     "if (gx != 0 && gy != 0) {  // ARCHETYPE: cross the map, do not turtle"),
+]
+
+
 ARCHETYPES = {
     "pure_cooperator": PURE_COOPERATOR,
     "immediate_defector": IMMEDIATE_DEFECTOR,
     "opportunistic": OPPORTUNISTIC,
+    "rusher": RUSHER,
 }
 
 

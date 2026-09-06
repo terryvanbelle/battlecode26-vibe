@@ -13927,3 +13927,47 @@ reports **swept maps -- maps won from BOTH sides** -- which cancels the side eff
 
 That is the number to move. It is stricter and much less noisy than 109/162, and it
 makes the pure_cooperator column visibly useless rather than deceptively "even".
+
+## Iteration 227 — a rusher archetype — SATURATES, and the peer pool is now fully characterised
+
+Built a fourth archetype that differs from ROUND 1 by crossing the map (raid on, no
+leash -- the defining difference from `immediate_defector`, which enables the raid
+and then turtles). Verified aggressive: it breaks cooperation at **round 2**, like
+the benchmark bots.
+
+    vs rusher   52/54 (96%)   swept-win 25/27   swept-loss 0   split 2
+
+**It fails its own pre-registered check** (target a swept-win rate between 20% and
+80%): we sweep it. Rushing with our own economy code is simply weak -- Iteration 221
+already measured offence at a 43% conversion, and the raid's enemy-King guess is
+wrong on 16 of 27 maps.
+
+**The whole peer pool, under the swept-map metric:**
+
+    archetype             differs from    swept-win   split-by-side   verdict
+    pure_cooperator       never (is us)      0/27         27/27       no information
+    opportunistic         r76-463             5/27         21/27       mostly spawn luck
+    immediate_defector    round 1            24/27          3/27       saturated
+    rusher                round 1            25/27          2/27       saturated
+
+**Every self-derived archetype is either a mirror or saturated, and this is
+structural rather than a design failure.** An archetype built from our own snapshot
+cannot be *better* than us -- the policy edits only remove or force behaviour -- so
+it either plays like us (mirror, all splits, zero information) or plays a worse
+policy (saturated, we sweep it). There is no edit that produces a genuinely stronger
+opponent, because we would have adopted it.
+
+This is exactly the gap `RESEARCH.md` identifies from the cross-year post-mortems:
+scrimmages give a diverse opponent set *calibrated to your own level*, and outside a
+tournament we cannot have one. Our benchmarks are independent but far above us
+(10/162); our peers are at our level but derived from us.
+
+**Consequence for the loop.** `vs_old_bots` is now the most under-used instrument we
+have: frozen snapshots are independent of the current build (they cannot drift onto
+it) and sit at our level by construction, which is precisely the combination the
+peers lack. The standing note not to discount old bots was right for a reason I had
+not fully understood.
+
+The rusher is KEPT despite saturating -- like `immediate_defector` it is a useful
+REGRESSION GUARD for early defence, which is where our close-spawn wipes live. It is
+labelled a guard, not a resolver.
