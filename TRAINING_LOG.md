@@ -15082,3 +15082,77 @@ winning catDamage; B loses catDamage (3186 v 4814) while winning cheese by a wid
 Per-side diagnosis is required on this map set. And in a 2000-round game where neither
 King dies the kings term is void, so while cooperating catDamage carries 50 of the 70
 live points against cheese's 20 -- 2.5x the weight of the economy work we keep doing.
+
+## Iteration 252 — rat-denominated cap gate — SCREENED, NOT YET DECIDED (paused here)
+
+Two dead ends closed first, both by measurement rather than by spending a gauntlet.
+
+**catDamage is a saturating contested pool and we lose it, but not for a reachable
+reason.** Scoring the loss replays exactly (the dump carries per-round `catDamage=[..]`),
+the pool totals ~8000 and is essentially fully consumed every game, so it is zero-sum;
+in cooperating losses we take **43.5%** of a term worth 50 of the 70 live points. The
+decomposition says the gap is *bites*, not traps -- traps are near-equal because both
+teams hold the per-team `CAT_TRAP.maxCount` of 10 (closeup: 1800 v 2000 from traps;
+239 v 180 bites where we win the term, 118 v 301 where we lose it).
+
+    our baby-rat turns on closeup      22799
+    a cat is VISIBLE                    1228   (5.4%)
+    cat ADJACENT (canAttack)             108   (0.5%)
+    visible-cat turns at hp<=30           35   (2.9% -- the flee gate)
+
+So **the engage gate is not the constraint** -- loosening `allies > 1 || health > 30`
+could move at most 2.9% of visible-cat turns. The constraint is proximity, and buying
+proximity is Iteration 179, already measured at -3 peer games.
+
+**The shared cat-trap pool, instrumented (`getNumberCatTraps()` sampled every King turn,
+closeup):**
+
+    placements by KING      0        <- its d^2 20 reactive gate never fires here
+    placements by RAT      20
+    rat turns wanting a slot with the pool FULL   465
+    mean occupancy        2.01 of 10
+    pool EMPTY (0 live)   76.3% of turns;  FULL (10/10)  15.5%
+
+This **contradicts the standing comment** ("we already place 15-16 per game, i.e. we hold
+the cap and refill it"): the baseline pool is empty three-quarters of the time and full
+only in bursts. The engine also makes speculative placement safe -- `wrongTrapType` means
+a rat or king stepping on a CAT_TRAP never triggers it, and own-team traps are skipped, so
+**no rat of either team can ever clear a cat trap**. But filling the pool is exactly
+Iteration 218, measured at **-10 peer games**. Direction closed; the corrected reason is
+recorded for whoever re-opens it.
+
+### The candidate that IS live
+
+`MAX_POPULATION`'s depth test is the last absolute-cheese constant in the build path, and
+g_iter34 moved the ground under it by making the treasury equilibrium proportional to rat
+cost. Instrumented on g_iter34:
+
+    closeup          mean treasury  482, ratCost  47  -> `cheese > 1500` fires  1.8%
+    safelycontained  mean treasury 1443, ratCost 159  -> fires 46.5%
+
+Dead on one map, load-bearing on the other. The change is three lines:
+
+    final int CAP_RAISE_RATS = 10;
+    final int MAX_POPULATION =
+            rc.getGlobalCheese() > CAP_RAISE_RATS * rc.getCurrentRatCost() ? 60 : 25;
+
+10 reproduces current behaviour where the gate is doing work (safelycontained asks 1590
+against the 1500 it replaces) while activating it where it was dead (closeup asks 470).
+
+    PAIRED CHECK (control re-measured) -- PASSES ON BOTH CHARACTERS:
+      corridor (maze)  control LOSS r591  ->  candidate WIN r736
+                       spawns 41 -> 52, pickups 34 -> 79
+      closeup  (open)  control LOSS r2000 MORE_POINTS
+                       ->  candidate WIN r1616 RATKING_DESTROYED
+                       pickups 524 -> 620, catTraps 20 -> 36
+
+**Both maps flip loss -> win.** That is the strongest screen this session, but a screen is
+four matches and is not an accept -- Iteration 232 looked superb on one map and lost 31
+games. **Reverted to g_iter34 so nothing unvalidated sits on main.**
+
+**To resume:** re-apply the three lines above, then run peers (control is
+`gauntlet/20260906-113915`, g_iter34 baseline is 162/216 with 60 swept-wins), dose
+CAP_RAISE_RATS at 6/10/16, then benchmarks (control 10/162) and the g_iter34 head-to-head.
+Note the candidate laid 36 cat traps against the control's 20, so it likely interacts with
+the pool measured above -- check whether the gain is population or traps before crediting
+the stated mechanism.
