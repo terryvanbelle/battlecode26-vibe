@@ -14414,3 +14414,44 @@ squeak reaches cats, steers them in ATTACK state only (entered on waypoint arriv
 max 8 turns), and is free of action cooldown. Any future cat-steering idea starts
 from here rather than from the withdrawn "squeaks tether cats" claim, which was about
 activity and was measured wrong.
+
+## Iteration 238 — profiling the benchmark gap: it is ARMY-TURNS, not per-rat behaviour
+
+Followed up Iteration 237's replay profiling with a per-turn utilisation measurement on
+`bench_finalist` vs us on popthecork -- **a game we WIN**, so the numbers are not an
+artefact of losing.
+
+    team        rat-turns   actions (% of turns)   moved
+    finalist        4187     1463 (34.9%)          81.6%
+    us              2104      216 (10.3%)          81.7%
+
+At face value they act 3.4x more often per turn. But **1086 of those 1463 actions are
+squeaks**, which cost no action cooldown. Excluding squeaks:
+
+    finalist   377 actions / 4187 turns =  9.0%
+    us         216 actions / 2104 turns = 10.3%
+
+**We act slightly MORE per rat-turn than a tournament finalist, and we move at an
+identical rate (81.6% vs 81.7%).** Per-rat behaviour is not the deficit.
+
+**The whole gap is rat-turns: 4187 against 2104, almost exactly 2x.** And it is not
+mainly production -- SpawnAction is 35 against 26, only 1.35x -- so the extra factor
+is SURVIVAL: their rats live longer. Consistent with RatAttack 223 vs 31; they are
+killing ours.
+
+**What this settles.** Sixteen iterations since g_iter32 have tried to improve what a
+rat DOES with its turn -- pathfinding to cheese, remembering mines, trapping harder,
+luring cats, retreating differently, rebuilding faster. This measurement says that
+whole family is aimed at the wrong quantity: our rats already convert turns into
+actions at a finalist's rate. We simply have half as many turns to spend.
+
+The one lever that would move it -- keeping rats alive -- has been measured twice and
+both times cost more than it saved: Iteration 191's unconditional leash (-18 peer
+games) and Iteration 225's wartime leash (-23 against the archetype it targeted),
+because a rat kept safe is a rat not collecting. And raising production has failed
+seven times (111/112/113/114/120/125, 219, 228).
+
+So the deficit is real, quantified, and sits precisely where both available remedies
+have been shown to cost more than the deficit itself. That is a much sharper statement
+of the ceiling than "the benchmarks are better than us", and it is the first time the
+gap has been measured in a game we won rather than inferred from losses.
