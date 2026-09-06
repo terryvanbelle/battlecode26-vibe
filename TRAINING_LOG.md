@@ -13624,3 +13624,71 @@ right level, because a lower one starves the King in the short King-kill games w
 cheese is genuinely scarce.
 
 Reverted to 1500; g_iter32 stands.
+
+## Iteration 220 — re-baseline on g_iter32 archetypes
+
+Four consecutive rejections (216-219), each with a small peer signal dominated by
+churn -- the signature of a saturating instrument. The archetypes were still built
+from g_iter31 and so lacked g_iter32's `CAT_TRAP_FIRST_ROUND = 0`: they began
+trapping at round 100 while we trapped from round 1, in a game that is now a race to
+bank catDamage before the cats expire. Re-synced to g_iter32:
+
+    peers            87/108 (80.6%)  ->  78/108 (72.2%)
+      pure_cooperator  35/54          ->  27/54  = exactly 50.0%
+      immediate_defector 52/54        ->  51/54
+
+Nine games of inflation. `pure_cooperator` lands on 50.0% again, which is what a
+calibrated archetype should give.
+
+**The loss profile under a symmetric cat race**, and it corrects an over-generalisation
+of mine. I had been treating "the game is a race to kill the cats" as the whole
+story. Across 108 games:
+
+    win KING 40   win POINTS 38   loss POINTS 25   loss KING 5
+    of the 63 points games: 49 ended EARLY (cats died), 14 ran to r2000
+
+So **42% of games are still decided by King destruction**, and we win 40 of those 45.
+Split by opponent, the structure is stark:
+
+    vs immediate_defector   KING 38-3    POINTS 13-0    51/54 (94%)
+    vs pure_cooperator      KING  2-2    POINTS 25-25   27/54 (50%)
+
+Points losses: median margin -4.7, median catShare **43.9%**, median cheeseShare
+49.6%. 17 of 25 are below 48% on cat share; cheese is at parity. The catDamage
+deficit is the whole gap, and four iterations have failed to close it.
+
+## Iteration 221 — deliberate late backstab — REJECTED, and I misread a defensive record
+
+Against a pure cooperator peace never breaks -- our combat block is gated on
+`!isCooperation()` and cooperation only ends when someone attacks -- so those 54
+games are a coin flip on a catDamage race we cannot improve. Since war games go 38-3
+in our favour, force a war: allow attacking while cooperating from `DEFECT_ROUND`.
+
+This also retired a stale finding: "the enemy King is unreachable, 0 of 3335 rounds"
+(Iteration 194) was measured on BENCHMARKS under g_iter26. Against peers we destroy
+40 enemy Kings, so reachability was never the constraint.
+
+    defect round        peers      pure_cooperator
+    never (baseline)   78/108         27/54
+    r300               73/108         22/54
+    r1200              79/108         28/54
+
+**REJECTED.** r1200 is +1, noise; r300 costs 5 games.
+
+**THE REASONING ERROR, which is the useful part.** I predicted a high conversion
+from the 38-3 record. What actually happened at r300:
+
+    vs pure_cooperator   KING games 4 -> 14, but we won only 6 of 14 (43%)
+                         POINTS 25-25 -> 16-24
+
+The 93% was a **DEFENSIVE** record. `immediate_defector` comes to us and dies on our
+trap ring and home defence; that says nothing about our ability to cross the map and
+kill a King that is not attacking. Attacking a pacifist converted at 43%, and we also
+began LOSING Kings (2 -> 8) because the pacifist retaliates once war starts.
+**A win rate earned while defending is not evidence of offensive capability**, and
+the split by cause was available before I ran anything.
+
+Second effect worth recording: defecting forfeits cat-trap rights, so the cats stop
+dying and games that used to end at ~r524 now run to r2000 -- with our banked
+catDamage revalued from 0.5 to 0.3. Defection is not a free option late; it changes
+how the whole game is scored.

@@ -740,7 +740,7 @@ public class RobotPlayer {
             // whereas the points games this wins run to r2000, so nothing of value
             // is given up by staying out of the way early.
             final int CAT_TRAP_CHEESE_FLOOR = 200;
-            final int CAT_TRAP_FIRST_ROUND = 100;
+            final int CAT_TRAP_FIRST_ROUND = 0;
             if (rc.getRoundNum() >= CAT_TRAP_FIRST_ROUND
                     && rc.getGlobalCheese() > CAT_TRAP_CHEESE_FLOOR) {
                 MapLocation catLoc = nearestCat.getLocation();
