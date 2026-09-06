@@ -14877,3 +14877,51 @@ rather than measuring it, and both were invisible until a number looked *too* dr
 A cheap check that is trusted without its control is worse than no check, because it
 manufactures confident narratives -- 243's is now the second write-up in this log to be
 corrected after the fact (Iteration 215's was the first).
+
+## Iteration 249 — the swept-losses to old builds are the PRICED COST of the ring gate
+
+Ran the swept-loss detector on g_iter33's roster run (the diagnostic that found the
+dead build window behind g_iter33 itself):
+
+    vs g_iter21   swept-LOSS  popthecork
+    vs g_iter26   swept-LOSS  corridorofdoomanddespair, jail, popthecork, safelycontained
+    vs g_iter31   swept-LOSS  safelycontained
+
+`popthecork` loses to two different old builds, so it is the most robust signal. Traced
+both, and they tell the same story:
+
+    opponent   result                spawns  pickups  catTraps  ring   catDamage    army
+    g_iter21   KING loss r684        47/56    62/83    0/20    29/18   780/2808    11/1
+    g_iter26   KING loss r837        54/54    81/87    0/27    34/16   534/3508    10/0
+
+**We win every scored term and lose the King.** We out-collect, out-deliver, and
+out-damage on cats by 3.6x and 6.6x -- and our army ends at 1 and 0 against their 11
+and 10. The difference is the ring: 16-18 against 29-34.
+
+**Why, exactly:**
+
+    opponent   cooperation breaks   our first ring   their first ring
+    g_iter21          r42                r43               r6
+    g_iter26          r38                r39               r6
+
+We react ONE ROUND after being attacked, which is precisely what g_iter31 was accepted
+to do. The old builds pre-date the gate: `KING_TRAPS_ENABLED` was unconditional, so
+they ring up from r6 and then REFILL triggered traps all game (the ring is
+geometrically capped at 16 tiles, Iteration 224, so 29-34 placements means ~half were
+consumed and replaced).
+
+**This is not an unexplored lever -- it is the accounted cost of an accepted trade, and
+that trade has been priced twice.** Iteration 199 gated the ring and gained 4 peer
+games; Iteration 211 moved the trigger to "being attacked" and gained 3 more, both with
+benchmark guards flat. And the gate is what preserves our cat-trap rights, which
+Iteration 228's +15 depends on -- `triggerTrap` credits the backstab to the trap's
+OWNER, so an early ring forfeits the cat traps that produce the very catDamage we are
+winning 3.6x on in these traces.
+
+So the four-to-six swept-losses against pre-gate builds are the visible price of a
+change that is net strongly positive. **Recorded so a future iteration does not
+"discover" popthecork and re-open the ring gate a third time**: the old builds win
+these specific maps precisely because they are playing a strategy we measured and
+rejected.
+
+No code change.
