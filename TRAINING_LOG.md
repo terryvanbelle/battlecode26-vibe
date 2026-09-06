@@ -14186,3 +14186,37 @@ first, and I recorded the lesson then without applying it here).
 The capability gap is real and remains unused; the fix must not cost exploration. A
 version that only diverts to a mine when the rat is ALREADY near it, or that keeps
 exploring and merely biases the heading, would test the idea without the commute.
+
+## Iteration 233 — mines, but only when already near — REJECTED on the PAIRED check, no full run spent
+
+The follow-up Iteration 232 called for: keep the mine memory, drop the commute. Divert
+to a remembered mine only when it is within d^2 8, otherwise fall through to
+`explore()` exactly as before.
+
+**Applied the new pairing rule immediately** -- check a sparse maze AND an open
+cheese-rich map before spending 216 games:
+
+    CheesePickup        control   iter232 (unbounded)   iter233 (near-only)
+    corridor (maze)        61            132                   43
+    closeup (open, rich)  593            233                  496
+
+**Worse than control on BOTH map types**, so it is rejected without a gauntlet run.
+The bound removed most of Iteration 232's damage on the open map (233 -> 496) but did
+not recover the maze gain (132 -> 43), and it is below control everywhere.
+
+**Why it cannot work in this form.** The diversion still claims the rat's turn: a rat
+standing near a mine with no loose cheese in its 90-degree cone steps onto the mine
+instead of exploring. When the mine is stripped -- which it usually is, since we and
+the opponent both work it -- that turn is simply lost, and at d^2 <= 8 the rat was
+close enough that `explore()` would have re-sighted any cheese there within a turn or
+two anyway. The unbounded version at least bought a real relocation on maze maps; the
+bounded one buys nothing and still costs the turn.
+
+So the mine idea is closed in both forms: the commute loses on open maps, and without
+the commute there is nothing left to gain. `hasCheeseMine()` remains a genuine unused
+capability, but it is unused because loose-cheese sighting already dominates it --
+`explore()` plus a 90-degree cone finds cheese faster than navigation to a known point
+strips it.
+
+**The pairing rule paid for itself on first use**: one extra match (about a minute)
+replaced a 216-game run that would have taken twenty and told me the same thing.
