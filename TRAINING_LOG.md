@@ -13971,3 +13971,52 @@ not fully understood.
 The rusher is KEPT despite saturating -- like `immediate_defector` it is a useful
 REGRESSION GUARD for early defence, which is where our close-spawn wipes live. It is
 labelled a guard, not a resolver.
+
+## Iteration 228 — emergency rebuild bypass — REJECTED, but it found a real structural hole
+
+**Found by using `vs_old_bots` as Iteration 227 recommended.** Swept-map analysis --
+maps an OLD build wins from BOTH sides -- gives side-independent evidence of genuine
+regressions, which no game count can:
+
+    vs g_iter21   swept-LOSS 3   corridorofdoomanddespair, knifefight, tiny
+    vs g_iter26   swept-LOSS 5   closeup, dirtfulcat, popthecork, trapped, whereisthecheese
+
+**THE STRUCTURAL FINDING, which is worth more than the iteration.** Tracing knifefight
+vs g_iter21: divergence starts ~r175 and by r325 we hold **1095 cheese with ZERO
+rats** -- rich and extinct. `builtCount` is cumulative **per 400-round window**, so
+`MAX_POPULATION` 25 means 25 builds per window. Measured spawns per 100 rounds:
+
+    r0: 25    r100: 0    r200: 0    r300: 0    r400: 17
+
+We spend the entire window's allowance in the first 100 rounds and then **cannot
+build for 300 rounds** while the enemy grinds us down. g_iter21 escaped only by
+crossing the 1500-cheese gate that unlocks the 60-cap (it held 1600 at r375); we
+never got that rich, so we stayed capped while extinct.
+
+**The fix tried:** bypass the cap when `noVisibleArmy`. Mechanism looked excellent --
+spawns in r100-399 went 0,0,0 -> 6,5,4 and the traced game flipped LOSS r687 -> WIN
+r659 with the end state reversed.
+
+    instrument            g_iter32        iteration 228
+    peers, swept maps      54/108           58/108   (+4)
+    peers, games          161/216          160/216
+    benchmarks             10/162           10/162   (close-spawn wins 2 -> 3)
+    vs_old_bots           331/378          329/378   (swept-win 151 -> 148)
+      g_iter21 swept-LOSS       3                1    knifefight and tiny FIXED
+      g_iter26 swept-LOSS       5                3
+      g_iter31 swept-LOSS       1                4    <- new regressions
+
+**REJECTED on two grounds.** The aggregate is churn -- +4 swept on peers against -3
+swept-win on old bots, benchmarks flat. And the mechanism is far broader than the
+name suggests: **`noVisibleArmy` is King-VISION-scoped** (radius^2 25), so it is true
+whenever our rats are merely out foraging, which is most of the time. Measured builds
+per window: **41 in window 0, i.e. 16 beyond the cap**. This is not an emergency
+bypass, it is "raise the cap ~64%", which is the family Iterations 111/112/113/114/
+120/125 rejected and Iteration 219 re-confirmed.
+
+**What survives, and what to do next.** The 300-round dead window is real, measured,
+and unaddressed; a narrower trigger is the obvious follow-up -- gate on an actual
+live-rat census rather than King visibility, so it fires only in the traced state
+(0 rats, ~1000 cheese) rather than routinely. Also worth noting the method: the
+swept-map view of `vs_old_bots` located a true regression (knifefight, tiny) that
+162 benchmark games and 216 peer games had both hidden.
