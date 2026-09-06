@@ -13816,3 +13816,73 @@ ratio 2:1 -> 3:1 lost four wins because the extra King-actions bought traps that
 Consequence for the betrayal problem: the King's static defence is already maxed, so
 surviving a massed assault has to come from somewhere else -- the rats, the approach,
 or not being where the assault lands.
+
+## Iteration 225 — the betrayal losses are ECONOMIC ANNIHILATION, not a defence failure
+
+Iteration 223's trace framed the loss as "a massed assault the half-built ring could
+not stop". Both halves were wrong. 224 showed the ring is geometrically full (15 of
+16 tiles). And **60 bites over 59 rounds is ONE rat biting every round, not a swarm**.
+
+State ~30 rounds before our King dies, across all 8 King losses vs `opportunistic`:
+
+    map                        round   our cheese  rats  |  their cheese  rats
+    corridorofdoomanddespair    665           1      1   |         104      1
+    dirtfulcat                 1262           1      0   |        1058     50
+    dirtpassageway             1460           0      0   |        1133     43
+    knifefight                  628           0      0   |        1184     20
+    peaceinourtime              498         996     18   |        1064     26
+    tiny                        965           1      1   |         273      9
+    streetsofnewyork            890          18      1   |         487     23
+    whereisthecheese            921           1      0   |         958      9
+
+**Seven of eight: we are at 0-18 cheese with 0-1 rats while the opponent holds
+104-1184 cheese and up to 50 rats.** We are bankrupt and extinct; the King is simply
+the last thing left to kill. Only `peaceinourtime` is a real fight.
+
+The army trace on corridorofdoomanddespair shows the spiral: both sides fall 25 -> ~5
+by r190, they recover to 9 by r519 and we reach 7, then we hit cheese=1 and cannot
+rebuild at all (a rat costs ~70). Losing foragers costs cheese, which prevents
+replacing foragers.
+
+**So the target is economic survival under war, not defence of the King.** This also
+explains why the ring, the trap depth and the assault framing were all dead ends: they
+address the final 60 rounds of a game decided 400 rounds earlier.
+
+Iteration 191 leashed foragers to a radius of our King, **halved the death rate**
+(82.5 -> 42.5 per 1000 rounds) and cost 18 peer games -- but that was measured
+UNCONDITIONALLY, i.e. mostly in peaceful games where foraging freely is right and
+nothing is hunting us. Gating the leash on `!rc.isCooperation()` leaves peace
+untouched and applies it exactly where we are being farmed. That is the test.
+
+### Iteration 225 result — REJECTED, and it INVERTS the causal story
+
+    instrument              g_iter32      wartime leash
+    overall                 109/162          80/162
+      pure_cooperator        27/54           27/54   (mirror -- unchanged, as expected)
+      immediate_defector     51/54           45/54
+      opportunistic          31/54            8/54   <- collapse
+
+**The worst single result in the run.** And it says my diagnosis had the causation
+backwards.
+
+I reasoned: our rats forage into danger, get farmed, and the lost foragers cost the
+cheese we need to replace them -- so confine them during war. The mechanism did what
+it was told (the traced game survived 263 rounds longer, r665 -> r928) and the
+outcome collapsed, because **the economy is not damaged by foraging, it is
+SUSTAINED by it.** A leashed rat is a rat not collecting cheese, so confining the
+army guarantees the bankruptcy it was meant to prevent -- we still ended that traced
+game at cheese 0.
+
+So the 7-of-8 pattern (0-18 cheese, 0-1 rats at death) is not evidence that foraging
+kills us. It is evidence that we have already lost the ability to forage. Bankruptcy
+is the SYMPTOM of losing the map, not the cause of losing the game, and I read a
+correlation at the moment of death as a cause hundreds of rounds earlier.
+
+This is now the second time an inactivity-based survival measure has been tried and
+lost badly (Iteration 191: -18 peer games unconditionally; this: -23 against the one
+archetype it targeted). The regularity in `damage-does-not-convert` -- that survival
+bought with inactivity does not convert -- holds under war as well as peace, and
+gating it on war made it worse rather than better, because war is exactly when the
+opponent is out-collecting us.
+
+Reverted; g_iter32 stands.
