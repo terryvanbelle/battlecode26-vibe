@@ -14618,3 +14618,43 @@ measured that closing that distance deliberately costs more than it gains.
 Reverted. Cost: two matches, no gauntlet. Recorded mainly so the next reader does not
 re-derive "we should prefer cats" -- we do, and the file layout hides it, because the
 preference is expressed as block ORDER rather than as a comparison.
+
+## Iteration 243 — specialise a quarter of rats as cat hunters — REJECTED
+
+Motivated by the Iteration 242 trace of `closeup`: we win every economic measure and
+lose anyway on a catDamage split of 3150/4850 that consumes the entire 8000 pool. We
+over-invest in the 0.2-weighted term and under-invest in the 0.5-weighted one, so
+move some rats across -- but only a fraction, since Iteration 217 moved ALL of them
+and lost peer games to deaths on the approach. One rat in four, selected by
+`getID() % 4`: stable, needs no coordination, and leaves three quarters foraging.
+
+    PAIRED CHECK -- a real terrain split rather than a verdict:
+      closeup (open, cheese-rich)  catDamage 3150 -> 3410, pickups 550 -> 605,
+                                   army 47 vs 4, POINTS LOSS r2000 -> WIN r1955
+      corridor (sparse maze)       pickups 61 -> 21, cheese 1620 -> 460,
+                                   LOSS r1032 -> LOSS r491
+
+    DOSE CURVE (peers, 216 games):
+      hunters      swept maps   games
+      none            52/108     158/216
+      1 in 4          57/108     155/216
+      1 in 8          54/108     151/216
+
+**REJECTED.** The game count falls monotonically as hunters are added, and the
+swept-loss column climbs with it (`pure_cooperator` 0 -> 6 -> 7). Swept maps peak at
+1-in-4 but the two metrics disagree, and 1-in-8 is worse than 1-in-4 on BOTH, which
+marks the swept movement as noise rather than a gradient.
+
+**What it confirms.** Hunting pays exactly where cats and cheese are dense and wastes
+rats on long walks where they are not -- the same terrain dependence that sank
+Iteration 232's mine memory, and visible here as one map flipping to a win while
+another dies 540 rounds sooner. A map-blind constant share cannot capture that, and
+the project has no reliable way to classify a map at runtime (Iteration 101 established
+that `RobotController` exposes width and height but not symmetry or density).
+
+That is now three attempts on the same imbalance -- 217 (all rats), 237 (lure the cat
+in), 243 (a fraction of rats) -- all failing because moving rats toward cats costs
+foraging turns, which Iteration 238 identified as the binding resource. **The
+0.5-weighted term cannot be bought with the 0.2-weighted one**, even though the
+weights say it should be worth it, because the exchange rate runs through rat-turns
+rather than through cheese.
