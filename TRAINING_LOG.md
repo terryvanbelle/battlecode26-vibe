@@ -14101,3 +14101,41 @@ things in opposite directions and the losing one is bigger.
 catDamage is 50% of the SCORE, and it is easy to forget that ~40% of peer games end by
 King destruction where the score is never consulted. Optimising a scoring term is only
 valuable in games that reach scoring.
+
+## Iteration 231 — bug navigation for cheese collection — REJECTED
+
+A new area after ten consecutive policy-tuning rejections. `RESEARCH.md` lists
+pathfinding as a cross-year perennial and we use ~4% of 17500 bytecode.
+
+**The audit finding was sound.** Bug2 is implemented and validated (~+5.6 points by
+ablation, Iteration 86) but is enabled at exactly ONE call site -- `deliverCheese` --
+on the stated rationale that "only deliverCheese has a genuinely fixed target". That
+is wrong for `collectCheese`: a cheese TILE is fixed too, and the code's own comment
+records the consequence -- three tracked rats "each got stuck at a fixed (x,y) for
+hundreds of rounds, moveCD/turnCD stuck at 0 the entire time" behind obstacles the
+"single-step routing can't get around". The fix applied then was to ABANDON
+unreachable targets, i.e. a workaround for missing routing rather than routing.
+
+    instrument         g_iter32       iteration 231
+    swept maps          54/108          56/108
+    games              161/216         152/216   (-9)
+      pure_cooperator      0 ->  5 swept-win, but 4 swept-LOSS
+      immediate_defector  24 -> 23
+      opportunistic        5 ->  4 swept-win, 7 swept-LOSS; games 31 -> 24
+      rusher              25 -> 24
+
+**REJECTED on the game count**, and the pre-registered risk is the explanation:
+**bug-nav wall-following is slower than a greedy step in OPEN terrain**, because it
+commits to following a boundary once it starts, and most of these maps are mostly
+open. Delivery benefits because the King is a single fixed point a rat returns to
+repeatedly, often from deep in a maze; collection targets are usually the *nearest*
+visible cheese, i.e. close and typically in line of sight, where committing to a wall
+is pure overhead. The trace showed it: CheesePickup 61 -> 62 on the traced map, no
+gain, while nine games were lost across the set.
+
+**The distinction worth keeping:** "fixed target" is not the condition that makes Bug2
+pay. The condition is *fixed target AND obstructed approach*. `deliverCheese` has
+both; `collectCheese` has only the first, and the greedy step is strictly better when
+the path is clear. The rationale in the original comment named the wrong half.
+
+Reverted; g_iter32 stands.
