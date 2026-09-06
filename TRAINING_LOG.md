@@ -14783,3 +14783,38 @@ only remedy the engine models is explicitly forbidden to our unit type.
 covers defence, offence and the root cause, and the answer is the same each time. The
 throw mechanic is a property of the matchup we can only avoid by not being adjacent to
 enemy rats -- which is the leash, measured negative three times (191, 225, 239).
+
+## Iteration 247 — re-open Iteration 92's late reserve decay — and a STALE-CONTROL error found
+
+`REPLACEMENT_RESERVE` is 1000. Iteration 92 decayed it to 400 after round 1200, was
+**accepted on the mirror (+3) and the peers**, and was reverted for costing ONE
+benchmark game -- a delta this project has since established carries no information in
+either sign (binomial sd ~2.6 at our base rate).
+
+The stronger re-open reason: `replacementMode` is latched inside the window-reset
+block, so Iteration 240's `BUILD_WINDOW_ROUNDS` 400 -> 200 means the reserve now
+engages at **r200 instead of r400**. We hold the 1000-cheese bar for twice as long as
+when 92 measured it, so the condition has materially changed.
+
+**A CONTROL ERROR CAUGHT BY THE PAIRED CHECK, worth more than the iteration.** The
+check returned corridorofdoomanddespair at r491 -- which I was about to score as a big
+regression against a remembered control of r1032. Re-running the control properly:
+
+    g_iter33 control   corridor  41 spawns, r491, loss
+                       closeup  153 spawns, r2000, loss
+    iteration 247      corridor  41 spawns, r491, loss     (identical -- the decay
+                                 cannot fire, the game ends before r1200)
+                       closeup  178 spawns, r2000, loss    (+25 spawns, army 28 v 25)
+
+**My r1032 figure was stale, from the g_iter32 era** -- g_iter33 itself changed that
+game. And the same stale number was used in **Iteration 243**, where I recorded
+corridor "pickups 61 -> 21, dies 540 rounds sooner" as evidence of a terrain split.
+That comparison was against the wrong build; r491 was already the g_iter33 baseline.
+243's REJECTION still stands, because it rested on the dose curve over 216 games
+(158 -> 155 -> 151), not on the paired check -- but the paired-check narrative in that
+entry is wrong and is corrected here.
+
+**Lesson:** a paired check is only as good as its control, and controls expire on every
+accept. Re-run the control against the CURRENT snapshot rather than quoting a figure
+from the log -- it costs one match, which is exactly what the paired check is supposed
+to cost.
