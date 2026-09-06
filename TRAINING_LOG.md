@@ -14818,3 +14818,25 @@ entry is wrong and is corrected here.
 accept. Re-run the control against the CURRENT snapshot rather than quoting a figure
 from the log -- it costs one match, which is exactly what the paired check is supposed
 to cost.
+
+### Iteration 247 result — REJECTED (inert)
+
+    instrument            g_iter33        decay after r1200
+    peers, games           158/216            158/216   identical
+    peers, swept maps       52/108             53/108   (+1)
+      pure_cooperator 0 -> 1, immediate_defector 26 -> 26,
+      opportunistic 4 -> 4, rusher 22 -> 22
+
+**No change made.** The decay fires only after round 1200 and most games are decided
+well before that -- against the current archetypes the median points game ends around
+r660 and King games earlier still, so the branch is nearly unreachable. Iteration 92's
+original +3 on the mirror was measured when games ran longer and when the reserve
+engaged at r400 rather than r200.
+
+That also answers the re-open properly: the changed condition (240 moving the latch to
+r200) makes the reserve bind for MORE of the game, but it does not make the r1200 decay
+any more reachable -- the two knobs act at opposite ends of the timeline. A decay early
+enough to matter would be a different proposal, and would collide with Iteration 87's
+ablation showing the reserve itself is worth ~+24 points.
+
+Reverted to `REPLACEMENT_RESERVE = 1000`.
