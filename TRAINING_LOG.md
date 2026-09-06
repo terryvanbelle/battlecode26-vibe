@@ -13886,3 +13886,44 @@ gating it on war made it worse rather than better, because war is exactly when t
 opponent is out-collecting us.
 
 Reverted; g_iter32 stands.
+
+## Iteration 226 — most of the peer "signal" is SPAWN ADVANTAGE; adopt a swept-map score
+
+Applying the lesson from 222 and 225 (both failures came from reading a statistic
+that described losing rather than causing it), I checked the instrument itself before
+tracing anything further. Counting, per map, whether we win from BOTH sides:
+
+    archetype             maps   split-by-side   swept-win   swept-loss
+    pure_cooperator        27         27             0           0
+    immediate_defector     27          3            24           0
+    opportunistic          27         21             5           1
+
+**Against `pure_cooperator` every single map is split** -- we win one side and lose
+the other, on all 27. That is not "a 50% win rate", it is a result with **zero
+information content**: the side decides, every time. It confirms Iteration 222's
+finding structurally rather than statistically.
+
+**And it corrects my claim in Iteration 223** that the opportunistic archetype was
+"the only one in the resolving band" at 31/54. 78% of its maps are also side-decided;
+it yields just 6 maps of real signal (5 swept wins, 1 swept loss). It is mirror-like
+for the same reason -- it is built from our own snapshot and **cooperates exactly like
+us** until it defects, so most of the game is a mirror.
+
+Only `immediate_defector` carries real signal (24 swept wins, 3 splits), because it
+differs from us from round 1 rather than flipping late.
+
+**Instrument rule this establishes: an archetype resolves only to the extent it
+differs EARLY and STRUCTURALLY. A late policy divergence is not enough** -- the game
+is largely decided before it fires.
+
+**Metric change.** A game count is contaminated by spawn advantage, which is why
+recent iterations produced so much churn: on a fully-split archetype, half the games
+are coin flips that no code change can influence. `tools/gauntlet.sh` now also
+reports **swept maps -- maps won from BOTH sides** -- which cancels the side effect.
+
+    g_iter32 baseline, swept-win:  pure_cooperator 0/27,
+                                   immediate_defector 24/27,
+                                   opportunistic 5/27   -- TOTAL 29/81
+
+That is the number to move. It is stricter and much less noisy than 109/162, and it
+makes the pure_cooperator column visibly useless rather than deceptively "even".

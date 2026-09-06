@@ -233,6 +233,24 @@ done
     echo "!! Run tools/resync_archetypes.py before trusting or logging this run."
   fi
   awk -v w="$wins" -v t="$total" 'BEGIN{printf "overall: %d/%d wins (%.1f%%)\n", w, t, (t>0)?100*w/t:0}'
+  # SWEPT-MAP SCORE. A game count is contaminated by spawn advantage: measured
+  # 2026-09-06, 27 of 27 maps against pure_cooperator are split (we win one side and
+  # lose the other), i.e. 100% of that archetype's result is decided by side rather
+  # than by play -- it is a mirror. opportunistic is 78% split, immediate_defector
+  # only 11%. Counting MAPS WON FROM BOTH SIDES cancels the side effect: a swept map
+  # is one we win regardless of spawn.
+  echo
+  echo "  swept maps (won from BOTH sides) -- immune to spawn advantage:"
+  for OPP in $OPPONENTS; do
+    awk -F, -v o="$OPP" 'NR>1 && $1==o {r[$2]=r[$2] $6 ";"} END {
+      sw=0; sl=0; sp=0; n=0
+      for (m in r) { n++
+        if (r[m] ~ /win;.*win;/) sw++
+        else if (r[m] ~ /loss;.*loss;/) sl++
+        else sp++ }
+      printf "    vs %-20s swept-win %2d/%d   swept-loss %2d   split-by-side %2d\n", o, sw, n, sl, sp
+    }' "$OUT/results.csv"
+  done
   echo
   for OPP in $OPPONENTS; do
     t=$(grep -c "^$OPP," "$OUT/results.csv" || true)
