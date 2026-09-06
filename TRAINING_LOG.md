@@ -13692,3 +13692,53 @@ Second effect worth recording: defecting forfeits cat-trap rights, so the cats s
 dying and games that used to end at ~r524 now run to r2000 -- with our banked
 catDamage revalued from 0.5 to 0.3. Defection is not a free option late; it changes
 how the whole game is scored.
+
+## Iteration 222 — mirror audit: the catDamage "deficit" was SELECTION BIAS, and half the peer instrument is a mirror
+
+Five iterations (217, 218a, 218b, 219, 221) tried to close a "median catShare 43.9%
+against pure_cooperator". **There was never a deficit to close.**
+
+**Symmetry is clean.** bot vs a byte-identical snapshot, full 27 maps, both sides:
+
+    overall 27/54 = exactly 50.0%
+    as A: 16-11    as B: 11-16     (mirror image -- a SIDE effect, not a package one)
+    maps where the same package wins from both sides: 0 of 27
+
+No positional bias, so no chirality/tie-break bug.
+
+**The deficit was an artifact of sampling only losses.** catShare in losses between
+BYTE-IDENTICAL bots:
+
+    dirtfulcat 41.2%   corridorofdoomanddespair 49.0%   closeup 39.5%   evileye 21.4%
+    dirtpassageway 56.9%   jail 35.4%   hatefullattice 43.9%   keepout 36.5%
+    median 40.4%     -- LOWER than the 43.9% I attributed to a deficit
+
+Of course it is: catDamage is 50% of the score, so a game you lost is almost by
+definition a game where you had less of it. My own note
+`sample-wins-too-and-mirrors-hide-position` says loss-only sampling is circular, and
+I did it anyway for five straight iterations.
+
+**The instrument finding, which is the bigger one.** `pure_cooperator` differs from
+us in exactly two edits, and BOTH are no-ops in the games it plays:
+
+    KING_TRAPS_ENABLED = false   ours is !isCooperation(), which vs a pacifist is
+                                 also false -- identical
+    desperate = false            ours writes shared-array slot 2 and an enemy-King
+                                 guess; but since Iteration 210 revoked the
+                                 first-bite licence and DESPERATE_RAID is gated off,
+                                 nothing on the rat side acts on it -- dead code
+
+So **`pure_cooperator` IS us.** Its per-map loss figures are identical to the
+mirror's, and both sit at exactly 27/54. Half of the peer gauntlet has been
+measuring map-and-side luck between two copies of the same bot, which is precisely
+why the last five iterations all came back as churn.
+
+The archetype's defining trait -- "never initiates a backstab" -- stopped being a
+policy DIFFERENCE the moment Iteration 210 made that true of us too. The instrument
+decayed not by going stale, but by our converging onto it.
+
+**Consequence for the loop:** the 25-25 points split is a structural property of a
+mirror, not a target. `TRAINING_ALGORITHM.md` specifies a third archetype that was
+never built -- *opportunistic*: cooperates until the cats are mostly dead or its King
+count is safely ahead, then defects -- and calls it "the hardest and most realistic".
+That is now the missing instrument, and building it is the next step.
