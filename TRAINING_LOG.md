@@ -13587,3 +13587,40 @@ while the map set says zero.
 That is the third distinct attempt on this gap -- 217 (walk to the cat, -2 to -8),
 218a (trap at any range, -10), 218b (reserve slots, 0) -- and all three fail on the
 same underlying scarcity rather than on execution.
+
+## Iteration 219 — lower the population gate — REJECTED, and the dead band is a FEEDBACK LOOP
+
+`MAX_POPULATION = getGlobalCheese() > 1500 ? 60 : 25`. Measured on the g_iter32
+trace: our cheese sits at 1421-1486 for most of the game and clears 1500 in only
+**5 of 24 samples**, so the cap is 25 for ~80% of the game while we sit within 5% of
+the threshold. That is exactly the pathology the code's own comment describes at the
+previous threshold -- a dead band where the treasury equilibrates below the gate and
+the gate stays shut -- apparently re-created one level up.
+
+    gate    peers      pure_coop   imm_def     benchmarks   cs wins   wipes
+    1500   87/108        35/54      52/54        10/162      2/42     20/42
+    1200   89/108        39/54      50/54         6/162      1/42     19/42
+    1000   86/108        36/54      50/54           --         --        --
+
+**REJECTED.** The peer curve is concave with a +2 peak at 1200, but the diff is
+**13 gained / 11 lost -- 24 games changed for +2**, i.e. churn, and the benchmarks
+fall 10/162 -> 6/162 with close-spawn wins 2 -> 1. That is the same failure the code
+already documents: Iterations 111/112/113/114/120/125 all raised population and were
+rejected for King starvation in short games. The gate at 1500 is doing its job.
+
+**THE INTERESTING PART -- the dead band cannot be removed by moving the gate.**
+I pre-registered "rounds above the gate must rise well past 5/24". Lowering the gate
+from 1500 to 1200 left it at **exactly 5/24**: the treasury simply re-equilibrated
+lower (mean cheese 1570 -> 1383). The gate is a **negative feedback loop** -- clear
+it and we build against the 60-cap, which spends cheese and drops us back under it --
+so the treasury is pinned just beneath whatever threshold is set, and the *fraction*
+of the game spent above the gate is invariant to the gate's value.
+
+So the framing in the old comment ("set the gate to the reserve removes the band")
+is wrong in general: the band is not a static interval between two constants, it is
+an equilibrium that follows the gate. What the gate's value actually controls is the
+cheese level the treasury settles at -- and the benchmark result says 1500 is the
+right level, because a lower one starves the King in the short King-kill games where
+cheese is genuinely scarce.
+
+Reverted to 1500; g_iter32 stands.
