@@ -14139,3 +14139,50 @@ both; `collectCheese` has only the first, and the greedy step is strictly better
 the path is clear. The rationale in the original comment named the wrong half.
 
 Reverted; g_iter32 stands.
+
+## Iteration 232 — remember cheese mines — REJECTED, badly, and the trace map lied
+
+Capability audit, the method that found Bug2 wired to one call site:
+**`MapInfo.hasCheeseMine()` has ZERO call sites in this bot.** We look only at
+`getCheeseAmount() > 0`, i.e. cheese already on the ground, while a mine is a
+permanent GENERATOR. So: record the nearest mine while scanning (no extra sensing --
+the loop already runs) and walk to it when no loose cheese is visible, instead of
+falling through to `explore()`.
+
+    MECHANISM on corridorofdoomanddespair vs g_iter21 (a map we SWEEP-LOSE):
+      CheesePickup 61 -> 132, cheeseTransferred 1620 -> 2640 (theirs 2380 -> 2200),
+      aliveBabies 2 -> 3 (theirs 11 -> 0), result LOSS r1032 -> WIN r1115.
+
+That is as strong as a single-map mechanism check ever looks. The full instrument:
+
+    swept maps   54/108 -> 55/108 but with 33 SWEPT-LOSSES (baseline ~3)
+    games       161/216 -> 130/216   (-31)
+      pure_cooperator 27 -> 20, immediate_defector 51 -> 47,
+      opportunistic 31 -> 19, rusher 52 -> 44
+
+**REJECTED.** Diagnosed on `closeup` vs opportunistic, a map that went from win to
+swept loss:
+
+    metric              control    iteration 232
+    CheesePickup          593          233        -60%
+    CheeseTransfer        398          200
+    cheeseTransferred   11672         4530        (theirs 6727 -> 12685)
+    aliveBabies            18            3
+
+**The change replaced productive local search with long commutes.** BABY_RAT vision is
+a 90-degree cone, so a rat frequently sees no cheese even when cheese is all around
+it; `explore()` wanders and finds it, whereas mine-memory marches to a fixed point
+that may be far away and already stripped. On a rich open map that is catastrophic.
+
+**Why the trace map lied, and the lesson.** `corridorofdoomanddespair` is a maze with
+sparse cheese -- exactly the terrain where a remembered generator beats wandering.
+`closeup` is open and cheese-rich, where wandering is better. I picked the trace map
+because it was a swept loss, i.e. selected for being *hard*, and hard maps here are
+the sparse mazes. **A single-map mechanism check should be paired with a map of the
+opposite character before spending a 216-game run** -- this is the second time a
+spectacular single replay preceded a large aggregate loss (Iteration 218b was the
+first, and I recorded the lesson then without applying it here).
+
+The capability gap is real and remains unused; the fix must not cost exploration. A
+version that only diverts to a mine when the rat is ALREADY near it, or that keeps
+exploring and merely biases the heading, would test the idea without the commute.
