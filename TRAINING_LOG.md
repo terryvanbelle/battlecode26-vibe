@@ -13444,3 +13444,53 @@ rather than assuming it is free.
 "not statistically significant" test, and that is exactly how it accumulated. Judge
 guards on their trend across accepts, not only against the immediately preceding
 build.
+
+## Iteration 216 — price the ring-trigger trade — REJECTED, and the drift is CHURN
+
+Last suspect for the close-spawn wipe drift (14 -> 20 across g_iter26..g_iter32).
+Iterations 214/215 had cleared cat-trapping; the trigger change in Iteration 211
+coincided with 16 -> 18, so restore g_iter30's proximity latch (`rushSignature`,
+RUSH_WINDOW 20) ORed with `!isCooperation()` on top of g_iter32. That is strictly
+MORE arming than the current build, so it should recover the wipes if the trigger is
+the cause.
+
+    MECHANISM  DID NOT FIRE. Paired match, bench_spaark vs us on evileye:
+                 g_iter32  first ring r16, 8 by r30, coop broke r15, lost r104
+                 iter216   first ring r16, 8 by r30, coop broke r15, lost r104
+               Byte-identical behaviour.
+
+    benchmarks        10/162 -> 10/162   identical
+    close-spawn wins    2/42 ->   2/42   identical
+    close-spawn wipes  20/42 ->  20/42   identical
+
+**Why it cannot fire, measured rather than argued.** Cooperation-break round on the
+eight g_iter32 benchmark wipes:
+
+    knifefight r4, r2, r2    tiny r8    dirtfulcat r10, r7
+    thunderdome r7           evileye r33
+
+**Seven of eight break by round 10** -- earlier than `RUSH_WINDOW` 20 could ever
+arm. Benchmarks attack immediately, so `!isCooperation()` already fires at least as
+early as a proximity latch on exactly these games. Iteration 211's trigger change
+was a no-op here by construction, and its "wipes 16 -> 18" was never causal.
+
+**So the drift is CHURN, and I over-read it.** Both candidate causes have now been
+tested by reversion -- the only test that settles attribution -- and neither
+recovers a single game:
+
+    suppress 88% of wartime cat-trapping (215)   wipes 20/42, unchanged
+    restore the pre-211 ring trigger (216)       wipes 20/42, unchanged
+
+A monotone-looking sequence across builds (14, 16, 16, 18, 20) is not by itself
+evidence of a regression. Each build differed by an accepted change, and chaotic
+trajectory sensitivity reshuffles near-threshold games in both directions; summing
+those reshuffles across six builds produced a sequence that looked directional. The
+2-sigma cumulative figure I computed treats six dependent, differently-caused steps
+as one experiment, which they are not.
+
+**The correct discipline, learned here:** to call a guard trend a regression, revert
+the suspected cause and show the metric returns. Trend-plus-plausible-story is not
+enough -- I had a plausible story for cat traps (they broke this same guard when
+ungated in Iteration 204) and it was wrong.
+
+Reverted; g_iter32 stands.
