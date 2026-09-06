@@ -14321,3 +14321,46 @@ scratched.
 So the largest unused capability in the API is unused for good reason on our side of
 the board, and the benchmark behaviour it explains is a vulnerability we have no
 counter to rather than a tool we are neglecting.
+
+## Iteration 236 — the cheese accessors, and why CAT_TRAP_CHEESE_FLOOR is inert — no change
+
+Continuing the capability audit into the three cheese getters, since our spend gates
+all read one of them.
+
+**Engine semantics, worth recording:**
+
+    getRawCheese()    the ROBOT's own carried stash
+    getGlobalCheese() the TEAM pool
+    getAllCheese()    raw + global          -- we never call this one
+
+    assertCanPlaceTrap: `if (getAllCheese() < trapType.buildCost)`   (CAT_TRAP is 10)
+    buildTrap:          `this.robot.addCheese(-buildCost)`
+    InternalRobot.addCheese: for a RAT, spends the local stash FIRST and only falls
+                             through to the team pool when short. For the KING, always
+                             the team pool.
+    assertCanBuildRat:  checks `getTeamInfo().getCheese(team)` -- global only.
+
+So a rat laying a trap mostly spends **cheese it is carrying** -- forage that would
+otherwise have been delivered -- not the treasury. Our build gate reads global cheese,
+which is correct for `buildRat`. But our cat-trap gate,
+`getGlobalCheese() > CAT_TRAP_CHEESE_FLOOR` with the floor at **200**, reads the pool
+the rat mostly does not spend, at 20x the engine's requirement, on top of
+`rc.canPlaceCatTrap(loc)` which already enforces the real condition. The 200 was set
+in Iteration 204 alongside the mechanism and never dosed -- a constant nobody chose.
+
+**Removing it changes nothing.** Paired check, sparse maze and open cheese-rich map:
+
+    map                        control            floor removed
+    corridorofdoomanddespair   24 traps, 61 pickups   24 traps, 61 pickups
+    closeup                    593 pickups            593 pickups
+
+Identical. The reason is that global cheese sits at roughly 1000-1500 for almost the
+whole game (measured in Iteration 219), so a 200 floor is never the binding
+constraint; and where it might bind -- a bankrupt team -- the rat is usually carrying
+nothing either, so `canPlaceCatTrap` refuses anyway.
+
+**No change made.** The constant is misleading rather than harmful, and modifying the
+accepted build to remove a provably inert line would be an unmeasured edit. Recorded
+so a future iteration does not "discover" the floor and assume it is load-bearing --
+and so the accessor semantics above (rats pay locally, `getAllCheese` is the trap
+test) are on record, since they bear on any future spend gate.
