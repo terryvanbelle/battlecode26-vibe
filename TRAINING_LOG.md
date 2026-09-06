@@ -13542,3 +13542,48 @@ it buys is the one that decides the game.** The cat race is real, but it is won 
 trapping cats that come to us, not by going to them.
 
 Reverted; g_iter32 stands.
+
+## Iteration 218 — speculative cat traps (lay toward a visible cat) — REJECTED
+
+The zero-marginal-cost version of Iteration 217, aimed at the same measured gap: we
+are NEAR a cat for 446 rat-turns per game but ADJACENT for only 62, and our active
+trap count sits at ZERO, so all ten `maxCount` slots are idle. Rather than walking to
+the cat (217, which cost rats and lost), lay the trap from where we already stand, at
+the tile in our build radius closest to the cat, and let the cat walk onto it. No
+movement, no approach, no added risk.
+
+**First form -- place at any distance -- was actively harmful.**
+
+    our traps 23 -> 39, catDamage 2120 -> 2972, aliveBabies 49 -> 48 (no rat cost)
+    BUT active traps: mean 7.5, AT THE CAP in 12 of 25 samples
+    peers 87/108 -> 77/108
+
+The cap is the whole story: once ten traps are live, `canPlaceCatTrap` fails, so a
+rat standing NEXT to a cat can no longer lay the trap that would fire immediately.
+**The speculative trap crowds out the certain one.**
+
+**Second form -- reserve slots** (`getNumberCatTraps() < N`, with an adjacent
+placement always allowed). On mercifullattice this looked superb: traps 23 -> 47,
+active mean 3.8 and never at the cap, catDamage 2120/5560 -> 4164/3612 (we take the
+cat race), and the game flips LOSS r524 -> WIN r355. Dosed on the full peer set:
+
+    speculative slots      peers      pure_coop   immediate_defector
+    0 (control g_iter32)   87/108       35/54          52/54
+    2                      87/108       37/54          50/54
+    5                      85/108       34/54          52/54
+    10 (unreserved)        77/108       25/54          52/54
+
+**Monotone, with the best value at zero.** Dose 2 ties the control exactly, and the
+game-by-game diff shows **12 gained, 12 lost -- 24 games changed for zero net**,
+i.e. pure churn that trades pure_cooperator wins for immediate_defector losses.
+
+**REJECTED. The existing rule -- place only where the trap fires at once -- is
+already optimal**, and the ~384 near-turns per game that see a cat and do nothing are
+not convertible: the binding constraint is `CAT_TRAP.maxCount` 10, so every
+speculative trap is spent from the same budget as a certain one. A single map can
+look spectacular (this one flipped by 169 rounds and reversed a 2120-vs-5560 deficit)
+while the map set says zero.
+
+That is the third distinct attempt on this gap -- 217 (walk to the cat, -2 to -8),
+218a (trap at any range, -10), 218b (reserve slots, 0) -- and all three fail on the
+same underlying scarcity rather than on execution.

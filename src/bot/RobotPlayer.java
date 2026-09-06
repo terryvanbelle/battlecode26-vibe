@@ -749,6 +749,14 @@ public class RobotPlayer {
             // the gate is not worth its complexity. See TRAINING_LOG.md.
             final int CAT_TRAP_CHEESE_FLOOR = 200;
             if (rc.getGlobalCheese() > CAT_TRAP_CHEESE_FLOOR) {
+                // Iteration 218 (TRAINING_LOG.md): REJECTED -- laying traps toward
+                // a cat that is not yet adjacent. The binding constraint is
+                // CAT_TRAP.maxCount 10: a speculative trap is spent from the same
+                // budget as one that fires immediately, and crowds it out. Placing
+                // at any range cost 10 peer games (active traps sat at the cap for
+                // half the game); reserving slots recovered it to exactly par, with
+                // 24 games changed for zero net. Keep the rule that only places
+                // where the trap fires at once.
                 MapLocation catLoc = nearestCat.getLocation();
                 for (MapLocation loc : rc.getAllLocationsWithinRadiusSquared(
                         rc.getLocation(), GameConstants.BUILD_DISTANCE_SQUARED)) {
