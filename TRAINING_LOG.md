@@ -14658,3 +14658,44 @@ foraging turns, which Iteration 238 identified as the binding resource. **The
 0.5-weighted term cannot be bought with the 0.2-weighted one**, even though the
 weights say it should be worth it, because the exchange rate runs through rat-turns
 rather than through cheese.
+
+## Iteration 244 — audit: the `economyStruggling` / `desperate` machinery is DEAD, and slots 2/3/4 are free
+
+Following the one insight that has produced an accept -- Iteration 240's "a rate limit
+has a ceiling AND a period, and only the ceiling was ever tested" -- I went looking for
+other PERIOD constants. Found one immediately, and it is not even a named constant:
+
+    if (rc.getRoundNum() - cheeseCheckpointRound >= 200) {
+        if (cheeseCheckpoint >= 0 && cheeseCheckpoint - rc.getGlobalCheese() > 150)
+            economyStruggling = true;
+
+A 200-round period and a 150-cheese threshold, both inline magic numbers. Before dosing
+them I traced what they drive, and the answer is **nothing**:
+
+    economyStruggling
+      -> King: `desperate = economyStruggling && globalCheese < RESERVE`   (line 106)
+         -> writeSharedArray(2, 1) and an enemy-King guess into slots 3/4
+         -> attackNearestHostile(rc, desperate)   -- the parameter appears ONLY in
+            the signature and a comment; Iteration 210 removed its use from the body
+      -> rats: `desperate = readSharedArray(2) == 1`                        (line 884)
+         -> used at line 938 solely to gate the raid, and
+            `final boolean DESPERATE_RAID = false` (Iteration 138)
+
+So the chain is: compute a checkpoint every King turn, set a flag, broadcast it to
+every rat, and have every consumer ignore it. **Dosing the 200 or the 150 would move
+nothing**, which is worth knowing before spending a run on it -- the same trap as
+Iteration 236's `CAT_TRAP_CHEESE_FLOOR`, found the same way.
+
+**No code change.** Removing provably inert code from an accepted build is an
+unmeasured edit for zero gain (the precedent set in Iteration 236), and the machinery
+costs only a few bytecodes against a 4%-of-17500 budget.
+
+**What is worth carrying forward: shared-array slots 2, 3 and 4 are effectively FREE.**
+The King is the only unit that may write (`writeSharedArray` requires
+`isRatKingType`), it has 360-degree vision at radius^2 25 while rats have a 90-degree
+cone, and it currently spends that channel entirely on signals nobody reads. Any
+future King-to-rat coordination starts with three free slots rather than needing new
+plumbing -- though note the two obvious uses are already measured as harmful: recalling
+rats (Iterations 191, 225, 239, all negative) and broadcasting an enemy-King guess for
+a raid (Iteration 138, gated off because the 180-degree-rotation guess is wrong on 16
+of 27 maps).
