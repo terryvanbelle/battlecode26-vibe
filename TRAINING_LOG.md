@@ -14060,3 +14060,44 @@ with zero rats. That is a genuine structural feature of the build policy. It is 
 not where the games are decided: the same 300 rounds of idleness are survivable, and
 the two builds that the safe trigger adds do not change who wins. The cap is doing
 more good (King starvation protection in short games) than the dead window costs.
+
+## Iteration 230 — trap cats only at peace — REJECTED, and it explains why 215 was right
+
+Re-opened Iteration 215 (gate cat-trapping on `isCooperation()`), which had been
+rejected on BENCHMARK-ONLY evidence -- peers and vs_old_bots were never run, and
+benchmarks rush and end early so they cannot see a change whose effect is in long war
+games. The re-open was justified: an instrument that cannot pose the situation should
+not close a direction.
+
+**The new evidence was real.** `corridorofdoomanddespair` is a swept loss to g_iter21
+(both sides, r1032 and r706). We are team2:
+
+    spawns 63/53   ring 30/14   cat traps 0/24
+    catDamage 1060/2978   <- we WIN the cat term decisively
+    cheeseTransferred 2380/1620   army 11/2   winType = RATKING_DESTROYED
+
+We out-score them on catDamage and lose anyway, because **a game that ends by King
+destruction is not scored at all**, while our rats spent their turns laying traps
+instead of foraging or fighting.
+
+**But the fix loses on the full instrument:**
+
+    swept maps   54/108 -> 52/108        games  161/216 -> 157/216
+      immediate_defector 24 -> 25, rusher 25 -> 25, pure_cooperator 0 -> 0
+      opportunistic       5 ->  2  (3 swept-LOSSES), games 31 -> 26
+
+**REJECTED**, and the reason is now understood rather than assumed: the gate trades
+scored games for King games. Against `opportunistic` -- which defects mid-game and
+whose points games run to r2000 -- switching off cat traps at the moment war starts
+forfeits the catDamage race in exactly the games that DO get scored, and there are
+more of those than there are King-decided ones. The +1 on immediate_defector is the
+King-game benefit, and it is much smaller than the points-game cost.
+
+So Iteration 215's verdict stands, but on a different and better-founded reason. 215
+concluded "the mechanism fired and moved nothing"; the truth is that it moves two
+things in opposite directions and the losing one is bigger.
+
+**The corridor finding survives the rejection** and is worth keeping as a caution:
+catDamage is 50% of the SCORE, and it is easy to forget that ~40% of peer games end by
+King destruction where the score is never consulted. Optimising a scoring term is only
+valuable in games that reach scoring.
