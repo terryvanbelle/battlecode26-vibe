@@ -14840,3 +14840,40 @@ enough to matter would be a different proposal, and would collide with Iteration
 ablation showing the reserve itself is worth ~+24 points.
 
 Reverted to `REPLACEMENT_RESERVE = 1000`.
+
+## Iteration 248 — `tools/paired-check.sh`, and Iteration 243's paired check fully corrected
+
+Iteration 247 found that I had quoted a stale control figure. The fix is tooling, not
+vigilance: `tools/paired-check.sh` re-measures the control from the newest accepted
+snapshot every time and runs BOTH map characters, so neither shortcut that caused the
+two errors is available.
+
+    control = g_iter33 (re-measured now, never quoted)
+
+    map                        arm        rounds  outcome              spawns pickups catTraps
+    corridorofdoomanddespair   control      491   RATKING_DESTROYED      41     21      24
+    corridorofdoomanddespair   candidate    491   RATKING_DESTROYED      41     21      24
+    closeup                    control     2000   MORE_POINTS           153    550      20
+    closeup                    candidate   2000   MORE_POINTS           153    550      20
+
+(Identical, as it must be -- `src/bot` is g_iter33.) Four matches, a few minutes,
+against ~20 for a gauntlet.
+
+**It immediately produced a second correction to Iteration 243.** Under g_iter33 the
+control's corridor pickups are **21**, so that entry's "pickups 61 -> 21, cheese
+1620 -> 460, dies 540 rounds sooner" was **21 -> 21 with no change at all** -- the 61
+and the r1032 were both g_iter32-era figures. So 243's paired check did NOT show a
+terrain split; it showed a clear gain on the open map and no effect on the maze, which
+by my own stated rule was a PASS.
+
+The gauntlet then rejected it anyway (games 158 -> 155 -> 151 across the dose curve),
+which is the right division of labour: **the paired check is a screen, not a verdict**.
+But the "hunting is terrain-dependent" conclusion I drew in 243 was not supported by
+the data I had, and is withdrawn -- the real reason specialisation failed is the one
+the dose curve showed, that every hunter is a forager removed.
+
+**Two process failures, one cause.** Both 243 and 247 came from quoting a control
+rather than measuring it, and both were invisible until a number looked *too* dramatic.
+A cheap check that is trusted without its control is worse than no check, because it
+manufactures confident narratives -- 243's is now the second write-up in this log to be
+corrected after the fact (Iteration 215's was the first).
