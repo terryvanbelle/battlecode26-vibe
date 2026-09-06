@@ -96,9 +96,62 @@ IMMEDIATE_DEFECTOR = [
      "    static Random rng;"),
 ]
 
+# The third archetype TRAINING_ALGORITHM.md specifies and that was never built:
+# "cooperates until cats are mostly dead or its own rat-king count is safely ahead,
+# then defects. The hardest and most realistic opponent archetype."
+#
+# It exists because Iteration 222 found pure_cooperator had become a MIRROR of us:
+# its two edits are both no-ops in the games it plays, so half the peer gauntlet was
+# measuring map-and-side luck between two copies of one bot. "Never initiates a
+# backstab" stopped being a policy difference the moment Iteration 210 made that
+# true of us too. This archetype restores a real difference.
+#
+# Trigger is game state, not a clock: a rat that sees a cat below 30% health knows
+# the cat pool is nearly spent, i.e. the game is about to end on points -- exactly
+# the moment a rational opportunist cashes in its cooperation. Latched per rat.
+OPPORTUNISTIC = [
+    ("opportunistic defect helper",
+     "    static boolean engage(RobotController rc, MapLocation target) throws GameActionException {",
+     """    // ARCHETYPE (opportunistic): cooperate while the cat pool is worth farming,
+    // then cash the cooperation in. CAT health is 4000; 2400 is 60%, so the trigger
+    // fires while there is still game left to exploit rather than at the buzzer.
+    //
+    // A pure game-state trigger proved unreliable as an INSTRUMENT: at a 1200
+    // threshold cooperation never broke at all, because BABY_RAT vision is a
+    // 90-degree cone and by the time a cat is that low it dies almost at once. The
+    // round fallback guarantees the archetype actually poses its threat, which is
+    // what an instrument has to do.
+    static boolean oppDefected = false;
+
+    static boolean oppDefect(RobotController rc, RobotInfo[] nearby) {
+        if (oppDefected) return true;
+        if (rc.getRoundNum() >= 500) {
+            oppDefected = true;
+            return true;
+        }
+        for (RobotInfo info : nearby) {
+            if (info.getType() == UnitType.CAT && info.getHealth() <= 2400) {
+                oppDefected = true;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static boolean engage(RobotController rc, MapLocation target) throws GameActionException {"""),
+    ("rat combat block opens on the opportunistic trigger",
+     "        if (!rc.isCooperation()) {",
+     "        if (!rc.isCooperation() || oppDefect(rc, nearby)) {  // ARCHETYPE: opportunist"),
+    ("attackNearestHostile honours the latch",
+     "                    || (!rc.isCooperation() && info.getTeam() != rc.getTeam());",
+     "                    || ((!rc.isCooperation() || oppDefected) && info.getTeam() != rc.getTeam());"),
+]
+
+
 ARCHETYPES = {
     "pure_cooperator": PURE_COOPERATOR,
     "immediate_defector": IMMEDIATE_DEFECTOR,
+    "opportunistic": OPPORTUNISTIC,
 }
 
 
