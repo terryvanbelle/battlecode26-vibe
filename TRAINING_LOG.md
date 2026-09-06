@@ -14579,3 +14579,42 @@ rats at the expensive end of the curve, whereas the refresh mostly buys them at 
 cheap end, after losses. And `REPLACEMENT_RESERVE` 1000 is ~14 rats at the 70-cheese
 rate but only ~6 at the 160 rate, so the reserve is implicitly tighter the larger the
 army gets.
+
+## Iteration 242 — prefer cats over enemy rats — REJECTED, premise was false
+
+Traced the two maps we lose from BOTH sides to `opportunistic` on the fresh
+instrument -- the only side-independent losses available.
+
+    map        result                 spawns   pickups   catTraps   catDamage
+    closeup    POINTS loss r2000    104/153  347/550    18/20     4850/3150
+    tiny       KING loss r775        52/47    89/59     42/34     4140/3860
+
+**closeup is the striking one: we dominate the economy and lose anyway.** More spawns
+(153 vs 104), more pickups (550 vs 347), more cheese delivered (10791 vs 6835) -- and
+we lose the catDamage split 3150 to 4850. Those sum to exactly 8000, the whole cat
+pool, so the game is a race for a finite resource and we take 39% of it while winning
+every other measure.
+
+**The hypothesis:** cooperation breaks at r221, so post-defection our rats spend bites
+on enemy rats, which convert to nothing (we trade 7 kills for 347 losses), while
+theirs keep hitting cats. They attack 765 times to our 549 (1.39x) yet take >=3050
+bite-catDamage against our <=1150 (2.7x), so the difference looked like target choice.
+
+    PAIRED CHECK: closeup catDamage [4850,3150] -> [4850,3150], byte-identical.
+                  corridor [1060,2978] -> [600,2944].
+
+**The change did not fire, because the premise was wrong: our rats ALREADY prefer
+cats.** `runBabyRat` attacks a visible cat at lines 829/831 and RETURNS; the enemy-rat
+branch is at line 897, gated behind `!rc.isCooperation()` and reached only when no cat
+was attackable. `attackNearestHostile` -- the function I actually changed -- is called
+from `runRatKing` alone, so I altered the KING's targeting, which bites 8-59 times a
+game.
+
+**So the 2.7x bite-catDamage gap is not target selection.** With cat preference already
+in place on both sides, the difference must be how often a rat is adjacent to a cat at
+all -- which is Iteration 238's army-turns finding again, and Iteration 217 already
+measured that closing that distance deliberately costs more than it gains.
+
+Reverted. Cost: two matches, no gauntlet. Recorded mainly so the next reader does not
+re-derive "we should prefer cats" -- we do, and the file layout hides it, because the
+preference is expressed as block ORDER rather than as a comparison.
