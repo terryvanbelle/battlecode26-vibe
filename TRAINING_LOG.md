@@ -14364,3 +14364,53 @@ accepted build to remove a provably inert line would be an unmeasured edit. Reco
 so a future iteration does not "discover" the floor and assume it is load-bearing --
 and so the accessor semantics above (rats pay locally, `getAllCheese` is the trap
 test) are on record, since they bear on any future spend gate.
+
+## Iteration 237 — squeak to lure cats onto our traps — REJECTED, but the engine finding is real
+
+**Found by profiling BENCHMARK REPLAYS** (permitted -- their source is not). Actions
+per team:
+
+    action          spaark/closeup (we lose)   finalist/popthecork (we WIN)
+    RatSqueak            505 vs 0                    1086 vs 0
+    CheesePickup         519 vs 37                     79 vs 15
+    RatAttack            260 vs 78                    223 vs 31
+    ThrowRat              47 vs 0                      38 vs 0
+
+The squeak gap holds in a game we WIN, so it is not an artefact of losing -- and it is
+total: they squeak ~1 per rat per turn, we have never squeaked at all since the
+mechanism was dropped.
+
+**Why they do it, from the engine.** `GameWorld.squeak` delivers to everything within
+`SQUEAK_RADIUS_SQUARED` 16 that is same-team **or A CAT**, and the cat AI's ATTACK
+branch reads it:
+
+    Message squeak = getFrontMessage();
+    if (squeak != null && directionTo(squeak.getSource()) != CENTER)
+        this.dir = directionTo(squeak.getSource());   // "get distracted"
+
+**A squeak turns an attacking cat toward the squeaker**, and `squeak()` charges NO
+action cooldown. That is the missing half of our own scoring engine: a cat trap pays
+only when the cat STEPS on it, and we lay traps adjacent to ourselves.
+
+    MECHANISM  strong. corridorofdoomanddespair: cat traps 24 -> 44, our catDamage
+               2978 -> 4860 (+63%), theirs 1060 -> 902.
+
+    peers   swept 54/108 -> 58/108 (+4)   games 161/216 -> 158/216 (-3)
+              pure_cooperator 27 -> 23, opportunistic 31 -> 32,
+              immediate_defector 51 -> 52, rusher 52 -> 51
+    benchmarks  10/162 -> 9/162   close-spawn wins 2 -> 3   wipes 20 -> 19
+
+**REJECTED**: no significant gain on either instrument. Swept +4 against games -3 and
+benchmarks -1 is a wash, and the standing rule needs a real gain somewhere.
+
+**Why a +63% catDamage swing converts to nothing** -- the same shape as five earlier
+cat iterations. Turning an ATTACKING cat toward the rat that just trapped it also
+turns it toward a rat it will now scratch for 20. We buy trap triggers with rat
+health, which is the "bought with a resource we need" class that has never converted
+here. The trap fires, and the forager that lured it dies a little sooner.
+
+**Keep the engine facts regardless** -- they are cheap, exact, and were unknown:
+squeak reaches cats, steers them in ATTACK state only (entered on waypoint arrival,
+max 8 turns), and is free of action cooldown. Any future cat-steering idea starts
+from here rather than from the withdrawn "squeaks tether cats" claim, which was about
+activity and was measured wrong.
