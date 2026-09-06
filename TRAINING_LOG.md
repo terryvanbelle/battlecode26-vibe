@@ -13494,3 +13494,51 @@ enough -- I had a plausible story for cat traps (they broke this same guard when
 ungated in Iteration 204) and it was wrong.
 
 Reverted; g_iter32 stands.
+
+## Iteration 217 — pursue a remembered cat — REJECTED, and it sharpens the rule
+
+**The measurement that motivated it** (pure_cooperator__mercifullattice__botB, a -21
+point loss where we placed 23 cat traps to their 58):
+
+    rat-turns NEAR a cat (d^2<=20):   us 446   them 354
+    rat-turns ADJACENT   (d^2<=2):    us  62   them 135
+    traps placed per adjacent turn:   us 37%   them 43%
+
+We reach the cat's neighbourhood MORE often than the opponent and fail to take the
+last step. Not opportunity, army size, cheese, or the trap cap -- our active cat
+traps sit at **zero** all game, because they fire the moment they are laid. The
+cause is the 90-degree vision CONE: `nearestCat` is null for a rat that is close to
+a cat but facing away, so it never enters the cat block at all.
+
+A rat cannot be *told* where the cat is (squeak is the only channel and measured
+neutral-to-harmful), but it can REMEMBER. Per-rat statics, no coordination, no
+shared-array slot: record the cat's location when seen, and walk to it for the next
+N rounds if nothing else is visible.
+
+    MECHANISM  PASSED clearly, same map and side:
+                 adjacent rat-turns   62 -> 77
+                 our cat traps        23 -> 38
+                 our catDamage      2120 -> 3662   (share 27.6% -> 45.8%)
+                 aliveBabies          49 -> 41     <- the cost
+
+    peers, dose 30 rounds   87/108 -> 85/108   7 gained, 9 lost (churn)
+    peers, dose 10 rounds   87/108 -> 79/108
+
+**Both doses lose, so the direction is rejected**, and the dose curve is
+non-monotone (87 / 79 / 85 for 0 / 10 / 30), which says the changed games are
+near-threshold churn rather than a real gradient.
+
+**Why this is not a contradiction of g_iter28, and what the rule actually is.**
+Cat traps gained +15 peer games when rats laid them on cats they *already
+encountered* -- a zero-marginal-cost action taken with a turn that was being spent
+standing there anyway. This iteration buys the same currency by **spending rat lives
+and forage time to seek cats out**, and it converts to nothing, exactly as
+Iteration 179's engagement dose did before cat traps existed. The catDamage share
+nearly doubled and the win count went DOWN.
+
+So the standing regularity survives the change of meta, in a sharper form:
+**damage bought with a resource we need does not convert -- even when the currency
+it buys is the one that decides the game.** The cat race is real, but it is won by
+trapping cats that come to us, not by going to them.
+
+Reverted; g_iter32 stands.
