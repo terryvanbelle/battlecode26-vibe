@@ -14455,3 +14455,40 @@ So the deficit is real, quantified, and sits precisely where both available reme
 have been shown to cost more than the deficit itself. That is a much sharper statement
 of the ceiling than "the benchmarks are better than us", and it is the first time the
 gap has been measured in a game we won rather than inferred from losses.
+
+## Iteration 239 — avoid enemy trap rings — REJECTED on the paired check, no gauntlet spent
+
+First idea filtered through Iteration 238's test: does it add RAT-TURNS without buying
+them with foraging? Enemy rat traps qualify on paper -- the profiled game shows
+`StunAction` 38 and `DamageAction` 38 against us and ZERO against them, i.e. ~1900
+damage (19 rats' worth) plus immobility, all from walking into a ring we cannot see.
+
+**Confirmed we cannot see it:** `getMapInfo` builds `MapInfo` with
+`gw.getTrap(loc, OUR team)`, so enemy traps are invisible. And the trap is CONSUMED on
+trigger (`removeTrap`), so the tile is safe afterwards -- but the ring is not, and they
+lay 61 traps a game to refill it. So: notice being hit, remember the spot, keep out of
+its neighbourhood.
+
+    PAIRED CHECK          control              iteration 239
+    popthecork      38 stuns, 15 pickups   45 stuns, 14 pickups
+    closeup          0 stuns, 593 pickups   0 stuns, 514 pickups
+
+**Rejected on both maps**, and `closeup` is the diagnostic: it takes ZERO stuns and
+still lost 79 pickups, so the trigger fired without any trap.
+
+**Why the detector is unsound.** I used `getMovementCooldownTurns() >= 30`, reasoning
+that `RAT_TRAP.stunTime` is 30 against a normal move's 10. But movement cooldown
+ACCUMULATES -- `setMovementCooldownTurns(this.movementCooldownTurns + movementCooldown)`
+-- and `MOVE_STRAFE_COOLDOWN` is **18**, so two off-facing steps in succession exceed
+30 with no trap present, as do `HIT_GROUND_COOLDOWN` and `HIT_TARGET_COOLDOWN` from
+being thrown. The rats were fleeing phantom trap zones and losing forage time.
+
+And where the detector *did* fire correctly, avoidance made things worse: popthecork
+stuns went 38 -> 45, because fleeing a remembered spot moves a rat semi-randomly
+inside the same ring rather than out of it.
+
+**Two lessons.** A threshold on an ACCUMULATING quantity is not an event detector; a
+distinctive health drop (RAT_TRAP deals exactly 50) would have been the sound signal.
+And the "avoid the danger" family now has three failures for the same underlying
+reason -- 191, 225 and this -- avoidance costs foraging turns, which is the resource
+Iteration 238 identified as binding.
