@@ -14699,3 +14699,41 @@ plumbing -- though note the two obvious uses are already measured as harmful: re
 rats (Iterations 191, 225, 239, all negative) and broadcasting an enemy-King guess for
 a raid (Iteration 138, gated off because the 180-degree-rotation guess is wrong on 16
 of 27 maps).
+
+## Iteration 245 — throw them back — REJECTED on the mechanism; the throw is a RICH-GET-RICHER mechanic
+
+**Quantified the survival deficit first.** `DamageAction` carries exact amounts, which
+the dumper already prints. On bench_spaark/closeup:
+
+    us:      47 events, 1642 damage total
+             dmg=42 x29   (= THROW_DAMAGE 10 + 4*8, a full-duration throw impact)
+             dmg=30 x7, 34 x2, 26 x2, 22 x2 (shorter throws), 10 x5 (hitGround)
+    spaark:   0 events,    0 damage
+
+**Every point of it is throw damage, we take ~16 rats' worth per game, and we inflict
+none** -- `carryRat`/`throwRat` have zero call sites. That is a large share of the
+survival gap Iteration 238 measured (rat-turns 2104 vs 4187).
+
+So: retaliate. Grabbing an enemy backstabs, but this branch only runs under
+`!rc.isCooperation()`, and benchmarks break the peace at round 2 -- the usual objection
+does not apply. A throw is 42 damage against a bite's 10 and removes the victim for
+THROW_DURATION 4.
+
+    MECHANISM FAILED: our throws = 0. `canCarryRat` never returned true.
+
+**Why, and it is the same clause as Iteration 234 seen from the other side.**
+`assertCanCarryRat` allows a grab only if the target cannot sense the grabber, the
+target is allied, or **`targetHealth + 0 < grabberHealth`**. Our rats are the ones
+absorbing 1642 damage, so we are almost never the healthier party, and an enemy rat
+that is facing us can sense us.
+
+**The throw is therefore a rich-get-richer mechanic: the side that is winning can grab,
+and grabbing is how it keeps winning.** It is unavailable to us *because* we are behind
+on health, which is exactly when we would want it. Iteration 234 showed we cannot stop
+them grabbing us; this shows we cannot grab them either. The asymmetry is structural,
+not a coding gap, and it explains the 47-to-0 event count.
+
+Reverted. Note the attempt DID perturb results (r985/65 events against a control of
+r812/56) despite firing zero times -- an extra costly `canCarryRat` call per rat-turn
+in a dense melee is enough to shift trajectories, which is a reminder that "the branch
+never taken" is not the same as "no change".
