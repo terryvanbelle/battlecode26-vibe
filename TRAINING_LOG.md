@@ -14267,3 +14267,57 @@ throw, only benchmarks do (25-70/game). Had I checked this on peers alone I woul
 recorded "no change" as a pass. This is the situation
 `an-instrument-that-cannot-pose-the-situation-says-inert` describes, and it is now the
 second mechanism this session that only the benchmark set could evaluate.
+
+## Iteration 235 — the carry/throw mechanic, read end to end — CLOSED on engine evidence, no code written
+
+Iteration 234's audit found 43 of 85 `RobotController` methods with zero call sites,
+and one cluster was a whole mechanic: `carryRat` / `canCarryRat` / `throwRat` /
+`dropRat` / `isBeingCarried`. Benchmarks throw 25-70 times a game; every peer throws
+zero; 52% of our rat deaths are throws. So it is the largest unused capability in the
+game and worth reading properly before guessing.
+
+**What the engine actually does.**
+
+1. **Grabbing.** `assertCanCarryRat` needs an adjacent, sensed, throwable target and
+   allows the grab if ANY of: the target cannot sense the grabber, the target is
+   ALLIED, or `targetHealth + 0 < grabberHealth`. `grabRobot` calls `backstab()`
+   **only for cross-team grabs** -- so carrying a FRIENDLY rat is legal at any time and
+   costs no peace.
+2. **Flight.** `getThrown` sets `remainingThrowDuration = 4` and the rat travels via
+   `travelFlying`, twice per turn.
+3. **Landing always hurts the thrown rat.** `hitGround` (off the map) applies
+   `THROW_DAMAGE` 10. `hitTarget` (a robot or impassable tile) applies
+   `10 + 4 * tiles` to the obstacle AND the same to the thrown rat.
+4. **CAT FEEDING.** A rat thrown into a cat is a special case:
+
+        this.addHealth(-this.getHealth());                     // the rat dies
+        getRobot(newLoc).sleepTimeRemaining = CAT_SLEEP_TIME;  // the cat sleeps
+
+   `CAT_SLEEP_TIME` is **2**, and a sleeping cat only skips its cooldown resets and its
+   AI for those two rounds.
+
+**CLOSED, on three independent grounds, without a gauntlet.**
+
+- **Cat feeding is a bad trade AND actively counterproductive for us.** Two rounds of
+  cat inactivity costs a whole rat (100 HP, ~70 cheese). Worse, our scoring engine is
+  cat traps, which need the cat to STEP onto a tile -- a sleeping cat does not move,
+  so feeding it suppresses the very mechanism that earns our catDamage. It also
+  credits no catDamage: the branch calls `addHealth` directly, not
+  `addDamageToCats`.
+- **Offensive throwing needs a backstab.** Grabbing an enemy rat calls
+  `backstab(this.team)`, forfeiting cat-trap rights and flipping the scoring weights
+  -- the cost Iterations 199/211 measured -- and the damage is symmetric, with our
+  thrown rat taking the same hit. `damage-does-not-convert` covers the rest.
+- **Friendly transport is not free.** It costs `THROW_RAT_COOLDOWN` 20 on the thrower,
+  the carried rat's turns while held, and a minimum of 10 damage on landing.
+
+**What this explains.** The benchmarks' 25-70 throws are almost certainly OFFENSIVE:
+they grab our rats (98 grabs on one traced closeup game, 47 throws) and throw them,
+often into cats, which kills the rat outright. That is the source of "52% of our rat
+deaths are throws" -- and Iteration 234 established we cannot prevent the grabs,
+because being healthier is sufficient for the opponent and our foragers are usually
+scratched.
+
+So the largest unused capability in the API is unused for good reason on our side of
+the board, and the benchmark behaviour it explains is a vulnerability we have no
+counter to rather than a tool we are neglecting.
