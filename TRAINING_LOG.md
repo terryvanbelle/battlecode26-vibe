@@ -14925,3 +14925,51 @@ these specific maps precisely because they are playing a strategy we measured an
 rejected.
 
 No code change.
+
+## Iteration 250 — avoid the enemy ring with a SOUND detector — REJECTED (churn)
+
+Re-opened Iteration 239, which failed on its DETECTOR rather than its idea. The
+motivating measurement (Iteration 249 traces of popthecork) split TriggerTrap events by
+who walked onto a trap:
+
+    vs g_iter21   cats 20, their rats 6, OUR rats 13
+    vs g_iter26   cats 27, their rats 6, OUR rats 12
+
+Their ring catches us twice as often as ours catches them -- each hit is RAT_TRAP
+damage 50 plus stunTime 30 (three turns immobile), so ~600 damage and ~36 rat-turns
+per game, against the resource Iteration 238 identified as binding.
+
+**The detector this time is sound.** 239 used `getMovementCooldownTurns() >= 30`, but
+that quantity ACCUMULATES and `MOVE_STRAFE_COOLDOWN` is 18, so two off-facing steps
+tripped it with no trap present. `RAT_TRAP` deals exactly **50** and nothing else does
+-- bites 10, cat scratches 20, throws 10 + 4/tile (14-42) -- so an exact -50 health
+delta is unambiguous.
+
+    PAIRED CHECK (tools/paired-check.sh, control re-measured) -- PASS:
+      corridor (maze)  identical: r491, 41 spawns, 21 pickups
+      closeup  (open)  winner 1 -> 2, spawns 153 -> 177, pickups 550 -> 627
+
+    DOSE CURVE (peers):        swept      games
+      none (g_iter33)          52/108    158/216
+      d^2 8                    54/108    161/216
+      d^2 16                   53/108    160/216
+
+    benchmarks  9/162 -> 8/162, close-spawn wins 2/42 and wipes 20/42 IDENTICAL
+    game diff   8 gained, 5 lost -- 13 changed for +3
+
+**REJECTED.** +3 games is 0.46 sigma and +2 swept is 0.38 sigma against this
+instrument's spread, and the diff is 8-5 churn rather than the directional pattern
+that justified g_iter33 (5 gained, 0 lost). One genuinely encouraging sign -- the
+`opportunistic` swept-LOSS column went 3 -> 0 -- is not enough on its own, and d^2 16
+being worse than d^2 8 while both beat none is as consistent with noise as with a
+gradient.
+
+**Worth recording that the idea is now properly tested rather than mis-tested.** 239's
+rejection was really a detector bug; with the correct signal the mechanism does what it
+claims (the paired check is unambiguous) and still does not convert. That is a
+different and much stronger closure: the enemy ring costs us ~600 damage a game, and
+avoiding it after the fact recovers too little of that to matter, because the first hit
+has already landed and the rat then spends turns walking away from a trap that is
+already consumed (`triggerTrap` calls `removeTrap`).
+
+Reverted to g_iter33.
